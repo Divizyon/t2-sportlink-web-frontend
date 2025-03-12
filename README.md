@@ -1,1 +1,1 @@
-# t2-sportlink-web-frontend Update izin ver 
+# t2-sportlink-web-frontend Pull Requestsiz
