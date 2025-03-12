@@ -1,1 +1,1 @@
-# t2-sportlink-web-frontend Pull Requestsiz
+# t2-sportlink-web-frontend Pull Requestsizaıdbas asd
