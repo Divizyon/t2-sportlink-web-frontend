@@ -1,34 +1,33 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { userService, LoginCredentials } from '@/lib/services/userService';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { userService } from '@/lib/services/userService';
 import { ApiError } from '@/lib/services/api';
+import { loginSchema, type LoginFormData } from '@/lib/utils/validations/schemas';
 
 export default function LoginForm() {
   const router = useRouter();
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [credentials, setCredentials] = useState<LoginCredentials>({
-    email: '',
-    password: '',
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: yupResolver(loginSchema),
+    mode: 'onBlur',
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setCredentials(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: LoginFormData) => {
     setError('');
     setLoading(true);
 
     try {
-      const { user } = await userService.login(credentials);
+      const { user } = await userService.login(data);
       console.log('user', user);
       router.push('/dashboard');
     } catch (err) {
@@ -40,7 +39,7 @@ export default function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 w-full max-w-md">
       <div className="space-y-2">
         <label htmlFor="email" className="block text-sm font-medium text-gray-700">
           Email
@@ -48,13 +47,14 @@ export default function LoginForm() {
         <input
           type="email"
           id="email"
-          name="email"
-          value={credentials.email}
-          onChange={handleChange}
-          required
+          {...register('email')}
           className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           placeholder="Enter your email"
+          aria-invalid={errors.email ? 'true' : 'false'}
         />
+        {errors.email && (
+          <p className="text-red-500 text-sm">{errors.email.message}</p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -64,13 +64,14 @@ export default function LoginForm() {
         <input
           type="password"
           id="password"
-          name="password"
-          value={credentials.password}
-          onChange={handleChange}
-          required
+          {...register('password')}
           className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           placeholder="Enter your password"
+          aria-invalid={errors.password ? 'true' : 'false'}
         />
+        {errors.password && (
+          <p className="text-red-500 text-sm">{errors.password.message}</p>
+        )}
       </div>
 
       {error && (
