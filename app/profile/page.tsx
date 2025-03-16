@@ -1,10 +1,11 @@
 'use client';
 
 import ProfileForm from "@/components/profile/ProfileForm";
+import type { ProfileFormData } from "@/components/profile/ProfileForm";
 
     
 export default function ProfilePage() {
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: ProfileFormData) => {
     // API çağrısı burada yapılacak
     console.log('Form data:', data);
   };

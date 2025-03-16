@@ -18,7 +18,7 @@ const profileSchema = yup.object().shape({
   role: yup.string().required('Rol seçimi zorunludur'),
 });
 
-type ProfileFormData = yup.InferType<typeof profileSchema>;
+export type ProfileFormData = yup.InferType<typeof profileSchema>;
 
 interface ProfileFormProps {
   initialData?: Partial<ProfileFormData>;
