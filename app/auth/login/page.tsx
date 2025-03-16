@@ -1,43 +1,44 @@
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+
 export default function LoginPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold text-center">Login</h2>
-        <p className="mt-2 text-sm text-center text-gray-600">
+      <div className="space-y-2 text-center">
+        <h2 className="text-3xl font-bold">Login</h2>
+        <p className="text-muted-foreground">
           Welcome back! Please login to your account.
         </p>
       </div>
+      
+      <Separator />
+      
       <form className="space-y-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
             id="email"
             name="email"
             type="email"
+            placeholder="Enter your email"
             required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-            Password
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
             id="password"
             name="password"
             type="password"
+            placeholder="Enter your password"
             required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
-        <button
-          type="submit"
-          className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-        >
+        <Button type="submit" className="w-full">
           Sign in
-        </button>
+        </Button>
       </form>
     </div>
   );
