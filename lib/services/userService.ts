@@ -1,5 +1,6 @@
-import api, { handleApiError, ApiError } from './api';
-import { AxiosError } from 'axios';
+import api, { handleApiError } from './api';
+import type { ApiError } from './api';
+import type { AxiosError } from 'axios';
 
 // User types
 export interface User {

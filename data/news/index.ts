@@ -1,0 +1,42 @@
+import type { News } from "./types";
+
+export const news: News[] = [
+  {
+    id: "1",
+    title: "Konyaspor'un Yeni Transferi",
+    content: "Konyaspor, sezon sonu için yeni bir transfer gerçekleştirdi...",
+    category: "Futbol",
+    authorId: "1",
+    status: "published",
+    publishedAt: "2024-04-10T14:00:00Z",
+    imageUrl: "/news/konyaspor-transfer.jpg",
+    views: 1234,
+    createdAt: "2024-04-09T10:00:00Z",
+    updatedAt: "2024-04-10T14:00:00Z",
+  },
+  {
+    id: "2",
+    title: "Basketbol Şampiyonası Başlıyor",
+    content: "Yıllık basketbol şampiyonası için hazırlıklar tamamlandı...",
+    category: "Basketbol",
+    authorId: "2",
+    status: "draft",
+    imageUrl: "/news/basketball-championship.jpg",
+    views: 0,
+    createdAt: "2024-04-08T15:30:00Z",
+    updatedAt: "2024-04-19T11:45:00Z",
+  },
+  {
+    id: "3",
+    title: "Voleybol Milli Takımı Kampda",
+    content: "Voleybol milli takımı, önemli bir turnuva öncesi kampa girdi...",
+    category: "Voleybol",
+    authorId: "1",
+    status: "published",
+    publishedAt: "2024-04-15T09:00:00Z",
+    imageUrl: "/news/volleyball-national-team.jpg",
+    views: 856,
+    createdAt: "2024-04-14T16:00:00Z",
+    updatedAt: "2024-04-15T09:00:00Z",
+  },
+]; 

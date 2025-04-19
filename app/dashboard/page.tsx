@@ -1,63 +1,98 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Plus, Users, Calendar, Newspaper } from "lucide-react";
 
 export default function DashboardPage() {
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome back! Here's an overview of your activity.
-        </p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+        <div className="flex items-center space-x-4">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Yeni Etkinlik Ekle
+          </Button>
+          <Button variant="outline">
+            <Newspaper className="mr-2 h-4 w-4" />
+            Haber Yayınla
+          </Button>
+        </div>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Toplam Kullanıcı
+            </CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">12</div>
+            <div className="text-2xl font-bold">1,234</div>
             <p className="text-xs text-muted-foreground">
-              +2 from last month
+              +12% geçen aya göre
             </p>
           </CardContent>
         </Card>
-        
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Active Tasks</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Aktif Etkinlikler
+            </CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">8</div>
+            <div className="text-2xl font-bold">45</div>
             <p className="text-xs text-muted-foreground">
-              3 due this week
+              +8% geçen haftaya göre
             </p>
           </CardContent>
         </Card>
-        
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Bugünkü Katılımlar
+            </CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">24</div>
+            <div className="text-2xl font-bold">89</div>
             <p className="text-xs text-muted-foreground">
-              +8 this month
+              +4% dün ile aynı
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Yeni Haberler
+            </CardTitle>
+            <Newspaper className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">12</div>
+            <p className="text-xs text-muted-foreground">
+              +2% geçen güne göre
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <Separator />
-
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold">Recent Activity</h2>
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <p className="text-muted-foreground">No recent activity to display.</p>
-            </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Son Etkinlikler</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Etkinlik listesi buraya gelecek */}
+          </CardContent>
+        </Card>
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Son Haberler</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Haber listesi buraya gelecek */}
           </CardContent>
         </Card>
       </div>

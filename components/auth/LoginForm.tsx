@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { userService } from '@/lib/services/userService';
-import { ApiError } from '@/lib/services/api';
+import type { ApiError } from '@/lib/services/api';
 import { loginSchema, type LoginFormData } from '@/lib/utils/validations/schemas';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';

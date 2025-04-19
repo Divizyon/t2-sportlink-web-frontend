@@ -1,4 +1,5 @@
-import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+import axios from 'axios';
+import type { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 
 // API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
@@ -44,16 +45,16 @@ api.interceptors.response.use(
 // Type for API error response
 export interface ApiError {
   message: string;
-  code?: string;
-  status?: number;
+  code: string;
+  status: number;
 }
 
 // Helper function to handle API errors
 export const handleApiError = (error: AxiosError<ApiError>): ApiError => {
   return {
     message: error.response?.data?.message || 'An unexpected error occurred',
-    code: error.response?.data?.code,
-    status: error.response?.status
+    code: error.response?.data?.code || 'UNKNOWN_ERROR',
+    status: error.response?.status || 500
   };
 };
 
