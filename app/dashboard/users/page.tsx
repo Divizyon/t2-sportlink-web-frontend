@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, User, Mail, Phone, Calendar, Clock, Trash, ChevronRight } from "lucide-react";
+import { Search, Plus, User as UserIcon, Mail, Phone, Calendar, Clock, Trash, ChevronRight, Trophy, Users, Activity, Shield, Award, MapPin, FileText, Bell, AlertTriangle, UserCheck } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -18,6 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
@@ -31,10 +33,72 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import type { User } from "@/interfaces/user";
 
-interface User {
+// Oluşturduğu Etkinlikler - Tıklanabilir
+const createdEventsData = [
+  { id: 1, name: "Halı Saha Maçı", date: "15.06.2023", location: "Kadıköy", participants: 14 },
+  { id: 2, name: "Basketbol Turnuvası", date: "22.07.2023", location: "Beşiktaş", participants: 20 },
+  { id: 3, name: "Tenis Eğitimi", date: "10.08.2023", location: "Ataşehir", participants: 8 }
+];
+
+// Katıldığı Etkinlikler
+const participatedEventsData = [
+  {
+    id: "1",
+    name: "Sahil Koşusu",
+    date: "05.05.2023",
+    location: "Caddebostan Sahili, İstanbul",
+    status: "Katıldı"
+  },
+  {
+    id: "2",
+    name: "Yoga Kampı",
+    date: "12.06.2023",
+    location: "Wellness Merkezi, İstanbul",
+    status: "Katıldı"
+  },
+  {
+    id: "3",
+    name: "Dağ Bisikleti Turu",
+    date: "20.07.2023",
+    location: "Belgrad Ormanı, İstanbul",
+    status: "Onay Bekliyor"
+  }
+];
+
+// Raporlar
+const reportsDataAhmet = [
+  {
+    id: "1",
+    reporter: "Murat Kılıç",
+    reason: "Etkinliğe gelmedi",
+    date: "15.06.2023",
+    status: "Çözüldü"
+  },
+  {
+    id: "2",
+    reporter: "Özlem Aslan",
+    reason: "Uygunsuz davranış",
+    date: "05.07.2023",
+    status: "İncelemede"
+  }
+];
+
+const reportsDataAyse = [
+  {
+    id: "1",
+    reporter: "Can Yılmaz",
+    reason: "Geç katılım ve etkinliği terk etme",
+    date: "18.07.2023",
+    status: "İncelemede"
+  }
+];
+
+// Tip tanımlamaları
+type UserType = {
   id: string;
   username: string;
   password: string;
@@ -42,77 +106,106 @@ interface User {
   first_name: string;
   last_name: string;
   phone: string;
-  profile_picture: string;
+  birthDate: string;
+  profile_picture: string | null;
+  default_location_latitude: number;
+  default_location_longitude: number;
   role: string;
   created_at: string;
   updated_at: string;
-  birthDate: string;
-  // İlişkili veriler
-  createdEvents?: number;
-  userSports?: string[];
-  ratingsGiven?: number;
-  ratingsReceived?: number;
-  eventParticipations?: number;
-  notifications?: number;
-  adminLogs?: number;
-  reportsMade?: number;
-  reportsReceived?: number;
-}
+  userSports: string[];
+  interests: string[];
+  createdEvents: number;
+  eventParticipations: number;
+  evaluationsGiven: number;
+  evaluationsReceived: number;
+  reportsGiven: number;
+  reportsReceived: number;
+  notifications: number;
+  adminActions: number;
+};
 
 export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [users, setUsers] = useState<User[]>([
+  const [users, setUsers] = useState<UserType[]>([
     {
       id: "1",
-      username: "ahmetyilmaz",
+      username: "john_doe",
       password: "********",
-      email: "ahmet.yilmaz@example.com",
-      first_name: "Ahmet",
-      last_name: "Yılmaz",
-      phone: "+90 555 123 4567",
-      birthDate: "1985-05-15",
-      profile_picture: "/images/avatars/male-1.jpg",
+      email: "john@example.com",
+      first_name: "John",
+      last_name: "Doe",
+      phone: "+905551234567",
+      birthDate: "1990-01-01",
+      profile_picture: null,
+      default_location_latitude: 41.0082,
+      default_location_longitude: 28.9784,
       role: "admin",
-      created_at: "2023-01-15T10:30:00Z",
-      updated_at: "2023-06-20T14:15:00Z",
-      // İlişkili örnek veriler
-      createdEvents: 12,
-      userSports: ["Futbol", "Basketbol", "Tenis"],
-      ratingsGiven: 8,
-      ratingsReceived: 15,
-      eventParticipations: 20,
-      notifications: 5,
-      adminLogs: 45,
-      reportsMade: 3,
-      reportsReceived: 0
+      created_at: "2022-01-01T00:00:00Z",
+      updated_at: "2022-01-01T00:00:00Z",
+      userSports: ["Futbol", "Basketbol"],
+      interests: ["Spor", "Müzik", "Seyahat", "Teknoloji"],
+      createdEvents: 5,
+      eventParticipations: 10,
+      evaluationsGiven: 8,
+      evaluationsReceived: 12,
+      reportsGiven: 2,
+      reportsReceived: 0,
+      notifications: 3,
+      adminActions: 15
     },
     {
       id: "2",
-      username: "aysedemir",
+      username: "jane_smith",
       password: "********",
-      email: "ayse.demir@example.com",
-      first_name: "Ayşe",
-      last_name: "Demir",
-      phone: "+90 555 987 6543",
-      birthDate: "1990-08-20",
-      profile_picture: "/images/avatars/female-1.jpg",
+      email: "jane@example.com",
+      first_name: "Jane",
+      last_name: "Smith",
+      phone: "+905559876543",
+      birthDate: "1992-05-15",
+      profile_picture: null,
+      default_location_latitude: 41.0082,
+      default_location_longitude: 28.9784,
       role: "user",
-      created_at: "2023-02-10T09:45:00Z",
-      updated_at: "2023-07-05T11:20:00Z",
-      // İlişkili örnek veriler
-      createdEvents: 5,
-      userSports: ["Voleybol", "Yüzme"],
-      ratingsGiven: 12,
-      ratingsReceived: 8,
+      created_at: "2022-02-01T00:00:00Z",
+      updated_at: "2022-02-01T00:00:00Z",
+      userSports: ["Tenis", "Yüzme"],
+      interests: ["Kitap", "Seyahat"],
+      createdEvents: 2,
       eventParticipations: 15,
-      notifications: 3,
-      adminLogs: 0,
-      reportsMade: 1,
-      reportsReceived: 0
+      evaluationsGiven: 10,
+      evaluationsReceived: 5,
+      reportsGiven: 1,
+      reportsReceived: 0,
+      notifications: 5,
+      adminActions: 0
     }
   ]);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
+  const [editingUser, setEditingUser] = useState<UserType | null>(null);
+  const [selectedDetailType, setSelectedDetailType] = useState<string | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [showAddUserDialog, setShowAddUserDialog] = useState(false);
+  const [newUser, setNewUser] = useState<Partial<UserType>>({
+    username: "",
+    email: "",
+    first_name: "",
+    last_name: "",
+    phone: "",
+    role: "user",
+  });
+  const [newRole, setNewRole] = useState<string>("user");
+
+  // Sayfa yüklendiğinde ilk kullanıcıyı otomatik olarak seç
+  useEffect(() => {
+    if (users.length > 0 && !selectedUser) {
+      const firstUser = users[0];
+      if (firstUser) {
+        setSelectedUser(firstUser);
+        setEditingUser(firstUser);
+      }
+    }
+  }, [users, selectedUser]);
 
   const handleDeleteUser = (id: string) => {
     setUsers(users.filter(user => user.id !== id));
@@ -124,7 +217,7 @@ export default function UsersPage() {
   const handleSaveChanges = () => {
     if (editingUser && selectedUser) {
       // Sadece rol değişikliklerini kaydet
-      const updatedUser: User = {
+      const updatedUser: UserType = {
         ...selectedUser,
         role: editingUser.role,
         updated_at: new Date().toISOString()
@@ -149,10 +242,32 @@ export default function UsersPage() {
     return fullName.includes(query) || user.email.toLowerCase().includes(query) || user.username.toLowerCase().includes(query);
   });
 
+  // İçerik sayılarını kullanıcı ID'sine göre dinamik olarak belirle
+  const getUserData = (userId: string) => {
+    if (userId === "1") { // Ahmet
+      return {
+        createdEvents: createdEventsData.length,
+        eventParticipations: participatedEventsData.length,
+        reportsReceived: reportsDataAhmet.length
+      };
+    } else if (userId === "2") { // Ayşe
+      return {
+        createdEvents: 5,
+        eventParticipations: 15,
+        reportsReceived: reportsDataAyse.length
+      };
+    }
+    return {
+      createdEvents: 0,
+      eventParticipations: 0,
+      reportsReceived: 0
+    };
+  };
+
   return (
     <div className="flex h-screen">
-      {/* Sol taraf - Kullanıcı listesi (4/5) */}
-      <div className="w-4/5 p-6 space-y-6 overflow-auto border-r">
+      {/* Sol taraf - Kullanıcı listesi (2/3) */}
+      <div className="w-2/3 p-6 space-y-6 overflow-auto border-r">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Kullanıcı Yönetimi</h1>
         </div>
@@ -257,7 +372,7 @@ export default function UsersPage() {
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
                         <Avatar>
-                          <AvatarImage src={user.profile_picture} alt={`${user.first_name} ${user.last_name}`} />
+                          <AvatarImage src={user.profile_picture || ""} alt={`${user.first_name} ${user.last_name}`} />
                           <AvatarFallback>{user.first_name.charAt(0)}{user.last_name.charAt(0)}</AvatarFallback>
                         </Avatar>
                       </div>
@@ -306,167 +421,571 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Sağ taraf - Kullanıcı detayları (1/5) */}
-      <div className="w-1/5 p-4 overflow-auto">
+      {/* Sağ taraf - Kullanıcı detayları (1/3) */}
+      <div className="w-1/3 p-4 overflow-auto">
         {selectedUser ? (
           <div className="space-y-4">
             <Card>
-              <CardHeader className="pb-2 pt-4">
-                <div className="flex items-center justify-center mb-2">
-                  <Avatar className="h-24 w-24">
-                    <AvatarImage src={selectedUser.profile_picture} alt={`${selectedUser.first_name} ${selectedUser.last_name}`} />
-                    <AvatarFallback className="text-2xl">{selectedUser.first_name.charAt(0)}{selectedUser.last_name.charAt(0)}</AvatarFallback>
-                  </Avatar>
+              <CardHeader className="px-4 pt-4 pb-2">
+                <div className="text-center mb-2">
+                  <h2 className="text-xl font-semibold">Profil</h2>
                 </div>
-                <div className="text-center">
-                  <CardTitle className="text-xl">{selectedUser.first_name} {selectedUser.last_name}</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">@{selectedUser.username}</p>
-                  <div className="flex justify-center mt-2">
-                    <Badge className={
-                      selectedUser.role === "admin" 
-                        ? "bg-red-500 hover:bg-red-600"
-                        : selectedUser.role === "moderator"
-                        ? "bg-amber-500 hover:bg-amber-600"
-                        : "bg-green-500 hover:bg-green-600"
-                    }>
-                      {selectedUser.role === "admin" ? "Admin" : selectedUser.role === "moderator" ? "Moderatör" : "Üye"}
-                    </Badge>
+                <div className="flex items-center">
+                  <Avatar className="mr-2">
+                    <AvatarImage src={selectedUser.profile_picture || ""} />
+                    <AvatarFallback>{selectedUser.first_name.charAt(0)}{selectedUser.last_name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <CardTitle className="text-lg">{selectedUser.first_name} {selectedUser.last_name}</CardTitle>
+                    <CardDescription className="text-xs">Kullanıcı Bilgileri</CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">E-posta</span>
-                      <span className="text-sm text-muted-foreground">{selectedUser.email}</span>
-                    </div>
-                    <Separator />
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Telefon</span>
-                      <span className="text-sm text-muted-foreground">{selectedUser.phone}</span>
-                    </div>
-                    <Separator />
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Doğum Tarihi</span>
-                      <span className="text-sm text-muted-foreground">{new Date(selectedUser.birthDate).toLocaleDateString("tr-TR")}</span>
-                    </div>
-                    <Separator />
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Rol</span>
-                      <Badge className={
-                        selectedUser.role === "admin" 
-                          ? "bg-red-500 hover:bg-red-600"
-                          : "bg-green-500 hover:bg-green-600"
-                      }>
-                        {selectedUser.role === "admin" ? "Admin" : selectedUser.role === "moderator" ? "Moderatör" : "Üye"}
-                      </Badge>
-                    </div>
-                    <Separator />
-
-                    <div>
-                      <Label htmlFor="edit-role" className="text-sm font-medium">Rolü Değiştir</Label>
-                      <div className="mt-2">
-                        <Select 
-                          value={editingUser?.role || "user"}
-                          onValueChange={(value) => editingUser && setEditingUser({
-                            ...editingUser,
-                            role: value
-                          })}
-                        >
-                          <SelectTrigger id="edit-role">
-                            <SelectValue placeholder="Rol seçin" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="user">Üye</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <Separator />
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Kayıt Tarihi</span>
-                      <span className="text-sm text-muted-foreground">{new Date(selectedUser.created_at).toLocaleDateString("tr-TR")}</span>
-                    </div>
-                    <Separator />
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Son Güncelleme</span>
-                      <span className="text-sm text-muted-foreground">{new Date(selectedUser.updated_at).toLocaleDateString("tr-TR")}</span>
-                    </div>
-                  </div>
+                  <div>
+                    <Separator className="mb-4" />
                   
-                  <h3 className="text-sm font-medium mt-4">İlişkili Veriler</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Oluşturduğu Etkinlikler</span>
-                      <Badge variant="outline">{selectedUser.createdEvents}</Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Spor Dalları</span>
-                      <div className="flex gap-1">
-                        {selectedUser.userSports?.map((sport, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">{sport}</Badge>
-                        ))}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">E-posta</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">{selectedUser.email}</span>
+                      </div>
+                      <Separator />
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">Telefon</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">{selectedUser.phone}</span>
+                      </div>
+                      <Separator />
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">Doğum Tarihi</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">{new Date(selectedUser.birthDate).toLocaleDateString("tr-TR")}</span>
+                      </div>
+                      <Separator />
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">Rol</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={editingUser?.role || "user"}
+                            onValueChange={(value) => editingUser && setEditingUser({
+                              ...editingUser,
+                              role: value
+                            })}
+                          >
+                            <SelectTrigger id="edit-role" className="w-[120px] h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="user">Üye</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <Separator />
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">Kayıt Tarihi</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">{new Date(selectedUser.created_at).toLocaleDateString("tr-TR")}</span>
+                      </div>
+                      <Separator />
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Activity className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">Son Güncelleme</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">{new Date(selectedUser.updated_at).toLocaleDateString("tr-TR")}</span>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Verdiği Değerlendirmeler</span>
-                      <Badge variant="outline">{selectedUser.ratingsGiven}</Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Aldığı Değerlendirmeler</span>
-                      <Badge variant="outline">{selectedUser.ratingsReceived}</Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Etkinlik Katılımları</span>
-                      <Badge variant="outline">{selectedUser.eventParticipations}</Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Bildirimler</span>
-                      <Badge variant="outline">{selectedUser.notifications}</Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Admin İşlemleri</span>
-                      <Badge variant="outline">{selectedUser.adminLogs}</Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Yaptığı Raporlar</span>
-                      <Badge variant="outline">{selectedUser.reportsMade}</Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Hakkında Raporlar</span>
-                      <Badge variant="outline">{selectedUser.reportsReceived}</Badge>
-                    </div>
-                    
-                    <Button 
-                      className="w-full mt-4"
-                      onClick={handleSaveChanges}
-                    >
-                      Rol Değişikliğini Kaydet
-                    </Button>
                   </div>
                 </div>
+
+                <div className="space-y-3 mt-6">
+                  {/* Spor Dalları - Tıklanabilir */}
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-1 rounded">
+                        <div className="flex items-center gap-2">
+                          <Award className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">Spor Dalları</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 max-w-[180px] justify-end">
+                          {selectedUser.userSports && selectedUser.userSports.length > 0 ? (
+                            <>
+                              {selectedUser.userSports.slice(0, 2).map((sport, index) => (
+                                <Badge key={index} variant="outline" className="text-xs">{sport}</Badge>
+                              ))}
+                              {selectedUser.userSports.length > 2 && (
+                                <Badge variant="outline" className="text-xs">+{selectedUser.userSports.length - 2}</Badge>
+                              )}
+                            </>
+                          ) : (
+                            <Badge variant="outline">0</Badge>
+                          )}
+                        </div>
+                      </div>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>İlgilendiği Spor Dalları</DialogTitle>
+                      </DialogHeader>
+                      <div className="py-4">
+                        <div className="flex flex-wrap gap-2">
+                          {selectedUser.userSports?.map((sport, index) => (
+                            <Badge key={index}>{sport}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="outline">Kapat</Button>
+                        </DialogClose>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                  
+                  {/* Oluşturduğu Etkinlikler - Tıklanabilir */}
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-1 rounded">
+                        <div className="flex items-center gap-2">
+                          <Trophy className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">Oluşturduğu Etkinlikler</span>
+                        </div>
+                        <Badge variant="outline">
+                          {selectedUser.id === "1" ? createdEventsData.length : selectedUser.createdEvents || 0}
+                        </Badge>
+                      </div>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px]">
+                      <DialogHeader>
+                        <DialogTitle>Oluşturulan Etkinlikler</DialogTitle>
+                      </DialogHeader>
+                      <div className="py-4">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Etkinlik Adı</TableHead>
+                              <TableHead>Tarih</TableHead>
+                              <TableHead>Konum</TableHead>
+                              <TableHead>Katılımcı Sayısı</TableHead>
+                              <TableHead className="text-right">İşlemler</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {selectedUser.id === "1" ? (
+                              createdEventsData.map((event) => (
+                                <TableRow key={event.id}>
+                                  <TableCell>{event.name}</TableCell>
+                                  <TableCell>{event.date}</TableCell>
+                                  <TableCell>{event.location}</TableCell>
+                                  <TableCell>{event.participants}</TableCell>
+                                  <TableCell className="text-right">
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button variant="outline" size="sm">Detay</Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="sm:max-w-[600px]">
+                                        <DialogHeader>
+                                          <DialogTitle>{event.name} Detayları</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="py-4 space-y-3">
+                                          <Card>
+                                            <CardContent className="p-6">
+                                              <div className="space-y-4">
+                                                <div className="flex justify-between items-center">
+                                                  <h3 className="font-medium text-lg">{event.name}</h3>
+                                                  <Badge className="bg-green-500">Aktif</Badge>
+                                                </div>
+                                                <Separator />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                  <div>
+                                                    <span className="text-sm font-medium">Tarih:</span>
+                                                    <p className="text-sm">{event.date}</p>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-sm font-medium">Konum:</span>
+                                                    <p className="text-sm">{event.location}</p>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-sm font-medium">Katılımcı Sayısı:</span>
+                                                    <p className="text-sm">{event.participants}</p>
+                                                  </div>
+                                                </div>
+                                                <Separator />
+                                                <div>
+                                                  <span className="text-sm font-medium">Açıklama:</span>
+                                                  <p className="text-sm mt-1">
+                                                    Bu etkinlik {selectedUser.first_name} {selectedUser.last_name} tarafından oluşturulmuştur.
+                                                  </p>
+                                                </div>
+                                              </div>
+                                            </CardContent>
+                                          </Card>
+                                        </div>
+                                        <DialogFooter>
+                                          <DialogClose asChild>
+                                            <Button variant="outline">Kapat</Button>
+                                          </DialogClose>
+                                        </DialogFooter>
+                                      </DialogContent>
+                                    </Dialog>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            ) : (
+                              // Ayşe veya diğer kullanıcılar için örnek veriler
+                              <TableRow>
+                                <TableCell colSpan={5} className="text-center py-4">
+                                  <p className="text-gray-500">Bu kullanıcı henüz etkinlik oluşturmamış veya veriler yüklenemedi.</p>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="outline">Kapat</Button>
+                        </DialogClose>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                  
+                  {/* Etkinlik Katılımları - Tıklanabilir */}
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-1 rounded">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">Katıldığı Etkinlikler</span>
+                        </div>
+                        <Badge variant="outline">
+                          {selectedUser.id === "1" ? participatedEventsData.length : selectedUser.eventParticipations || 0}
+                        </Badge>
+                      </div>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px]">
+                      <DialogHeader>
+                        <DialogTitle>Kullanıcının Katıldığı Etkinlikler</DialogTitle>
+                      </DialogHeader>
+                      <div className="py-4">
+                        {selectedUser.id === "1" ? (
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Etkinlik Adı</TableHead>
+                                <TableHead>Tarih</TableHead>
+                                <TableHead>Konum</TableHead>
+                                <TableHead>Durum</TableHead>
+                                <TableHead className="text-right">İşlemler</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {participatedEventsData.map((event) => (
+                                <TableRow key={event.id}>
+                                  <TableCell>{event.name}</TableCell>
+                                  <TableCell>{event.date}</TableCell>
+                                  <TableCell>{event.location}</TableCell>
+                                  <TableCell>
+                                    <Badge className={event.status === "Katıldı" ? "bg-green-500" : "bg-yellow-500"}>
+                                      {event.status}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button variant="outline" size="sm">Detay</Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="sm:max-w-[600px]">
+                                        <DialogHeader>
+                                          <DialogTitle>{event.name} Detayları</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="py-4 space-y-3">
+                                          <Card>
+                                            <CardContent className="p-6">
+                                              <div className="space-y-4">
+                                                <div className="flex justify-between items-center">
+                                                  <h3 className="font-medium text-lg">{event.name}</h3>
+                                                  <Badge className={event.status === "Katıldı" ? "bg-green-500" : "bg-yellow-500"}>
+                                                    {event.status}
+                                                  </Badge>
+                                                </div>
+                                                <Separator />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                  <div>
+                                                    <span className="text-sm font-medium">Tarih:</span>
+                                                    <p className="text-sm">{event.date}</p>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-sm font-medium">Konum:</span>
+                                                    <p className="text-sm">{event.location}</p>
+                                                  </div>
+                                                </div>
+                                                <Separator />
+                                                <div>
+                                                  <span className="text-sm font-medium">Açıklama:</span>
+                                                  <p className="text-sm mt-1">
+                                                    Bu etkinliğe {event.status === "Katıldı" ? "katılım sağladınız" : "katılım onayınız bekleniyor"}.
+                                                  </p>
+                                                </div>
+                                              </div>
+                                            </CardContent>
+                                          </Card>
+                                        </div>
+                                        <DialogFooter>
+                                          <DialogClose asChild>
+                                            <Button variant="outline">Kapat</Button>
+                                          </DialogClose>
+                                        </DialogFooter>
+                                      </DialogContent>
+                                    </Dialog>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        ) : (
+                          <div className="text-center py-4">
+                            <p className="text-gray-500">
+                              {selectedUser.eventParticipations ? 
+                                `Bu kullanıcı ${selectedUser.eventParticipations} etkinliğe katılmış.` : 
+                                "Bu kullanıcının katıldığı etkinlik bulunamadı."}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="outline">Kapat</Button>
+                        </DialogClose>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                  
+                  {/* Hakkında Raporlar - Tıklanabilir */}
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-1 rounded">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">Hakkında Raporlar</span>
+                        </div>
+                        <Badge variant="outline">
+                          {selectedUser.id === "1" ? reportsDataAhmet.length : 
+                           selectedUser.id === "2" ? reportsDataAyse.length : 
+                           selectedUser.reportsReceived || 0}
+                        </Badge>
+                      </div>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px]">
+                      <DialogHeader>
+                        <DialogTitle>Kullanıcı Hakkında Raporlar</DialogTitle>
+                      </DialogHeader>
+                      <div className="py-4">
+                        {(selectedUser.id === "1" && reportsDataAhmet.length > 0) ? (
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Raporlayan</TableHead>
+                                <TableHead>Sebep</TableHead>
+                                <TableHead>Tarih</TableHead>
+                                <TableHead>Durum</TableHead>
+                                <TableHead className="text-right">İşlemler</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {reportsDataAhmet.map((report) => (
+                                <TableRow key={report.id}>
+                                  <TableCell>{report.reporter}</TableCell>
+                                  <TableCell>{report.reason}</TableCell>
+                                  <TableCell>{report.date}</TableCell>
+                                  <TableCell>
+                                    <Badge className={report.status === "Çözüldü" ? "bg-green-500" : "bg-yellow-500"}>
+                                      {report.status}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button variant="outline" size="sm">Detay</Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="sm:max-w-[600px]">
+                                        <DialogHeader>
+                                          <DialogTitle>Rapor Detayı</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="py-4 space-y-3">
+                                          <Card>
+                                            <CardContent className="p-6">
+                                              <div className="space-y-4">
+                                                <div className="flex justify-between items-center">
+                                                  <h3 className="font-medium text-lg">Rapor #{report.id}</h3>
+                                                  <Badge className={report.status === "Çözüldü" ? "bg-green-500" : "bg-yellow-500"}>
+                                                    {report.status}
+                                                  </Badge>
+                                                </div>
+                                                <Separator />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                  <div>
+                                                    <span className="text-sm font-medium">Raporlayan:</span>
+                                                    <p className="text-sm">{report.reporter}</p>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-sm font-medium">Tarih:</span>
+                                                    <p className="text-sm">{report.date}</p>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-sm font-medium">Sebep:</span>
+                                                    <p className="text-sm">{report.reason}</p>
+                                                  </div>
+                                                </div>
+                                                <Separator />
+                                                <div>
+                                                  <span className="text-sm font-medium">Detaylı Açıklama:</span>
+                                                  <p className="text-sm mt-1">
+                                                    {report.id === "2" ? 
+                                                      "Kullanıcı etkinlik sırasında diğer katılımcılara karşı uygunsuz davranışlar sergiledi ve etkinliğin düzenini bozdu." : 
+                                                      "Kullanıcı etkinliğe kayıt yaptırdığı halde hiçbir bildirimde bulunmadan etkinliğe katılmadı ve grup organizasyonunu aksattı."}
+                                                  </p>
+                                                </div>
+                                              </div>
+                                            </CardContent>
+                                          </Card>
+                                        </div>
+                                        <DialogFooter>
+                                          <DialogClose asChild>
+                                            <Button variant="outline">Kapat</Button>
+                                          </DialogClose>
+                                        </DialogFooter>
+                                      </DialogContent>
+                                    </Dialog>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        ) : selectedUser.id === "2" && reportsDataAyse.length > 0 ? (
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Raporlayan</TableHead>
+                                <TableHead>Sebep</TableHead>
+                                <TableHead>Tarih</TableHead>
+                                <TableHead>Durum</TableHead>
+                                <TableHead className="text-right">İşlemler</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {reportsDataAyse.map((report) => (
+                                <TableRow key={report.id}>
+                                  <TableCell>{report.reporter}</TableCell>
+                                  <TableCell>{report.reason}</TableCell>
+                                  <TableCell>{report.date}</TableCell>
+                                  <TableCell>
+                                    <Badge className="bg-yellow-500">
+                                      {report.status}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button variant="outline" size="sm">Detay</Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="sm:max-w-[600px]">
+                                        <DialogHeader>
+                                          <DialogTitle>Rapor Detayı</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="py-4 space-y-3">
+                                          <Card>
+                                            <CardContent className="p-6">
+                                              <div className="space-y-4">
+                                                <div className="flex justify-between items-center">
+                                                  <h3 className="font-medium text-lg">Rapor #{report.id}</h3>
+                                                  <Badge className="bg-yellow-500">
+                                                    {report.status}
+                                                  </Badge>
+                                                </div>
+                                                <Separator />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                  <div>
+                                                    <span className="text-sm font-medium">Raporlayan:</span>
+                                                    <p className="text-sm">{report.reporter}</p>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-sm font-medium">Tarih:</span>
+                                                    <p className="text-sm">{report.date}</p>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-sm font-medium">Sebep:</span>
+                                                    <p className="text-sm">{report.reason}</p>
+                                                  </div>
+                                                </div>
+                                                <Separator />
+                                                <div>
+                                                  <span className="text-sm font-medium">Detaylı Açıklama:</span>
+                                                  <p className="text-sm mt-1">
+                                                    Kullanıcı Ayşe Demir tenis etkinliğine geç katılım sağladı ve diğer katılımcıları bekletmeden 30 dakika sonra etkinliği önceden haber vermeden terk etti. Bu durum etkinlik düzenini bozdu ve diğer katılımcıların şikayetine sebep oldu.
+                                                  </p>
+                                                </div>
+                                              </div>
+                                            </CardContent>
+                                          </Card>
+                                        </div>
+                                        <DialogFooter>
+                                          <DialogClose asChild>
+                                            <Button variant="outline">Kapat</Button>
+                                          </DialogClose>
+                                        </DialogFooter>
+                                      </DialogContent>
+                                    </Dialog>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        ) : (
+                          <div className="text-center py-4">
+                            <p className="text-gray-500">Bu kullanıcı hakkında rapor bulunmamaktadır.</p>
+                          </div>
+                        )}
+                      </div>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="outline">Kapat</Button>
+                        </DialogClose>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </CardContent>
+              <CardFooter>
+                <Button onClick={handleSaveChanges} className="w-full">Kaydet</Button>
+              </CardFooter>
             </Card>
           </div>
         ) : (
           <div className="h-full flex items-center justify-center text-muted-foreground">
             <div className="text-center space-y-2">
-              <User className="h-12 w-12 mx-auto text-muted-foreground/60" />
+              <UserIcon className="h-12 w-12 mx-auto text-muted-foreground/60" />
               <p>Kullanıcı detaylarını görmek için<br />bir kullanıcı seçin</p>
             </div>
           </div>

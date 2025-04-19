@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
+import Image from "next/image";
 
 const routes = [
   {
@@ -63,9 +64,13 @@ export function Sidebar() {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-64 p-0">
-          <div className="flex h-16 items-center px-6 border-b">
-            <Link href="/dashboard" className="flex items-center space-x-2">
-              <span className="text-xl font-bold">SportLink</span>
+          <div className="flex h-16 items-center justify-center px-6 border-b">
+            <Link href="/dashboard" className="flex items-center justify-center">
+              <img 
+                src="/sportLink.svg" 
+                alt="SportLink Logo" 
+                className="h-12 w-auto"
+              />
             </Link>
           </div>
           <ScrollArea className="h-[calc(100vh-4rem)]">
@@ -87,9 +92,13 @@ export function Sidebar() {
         </SheetContent>
       </Sheet>
       <div className="hidden md:flex h-screen w-64 flex-col border-r bg-background">
-        <div className="flex h-16 items-center px-6 border-b">
-          <Link href="/dashboard" className="flex items-center space-x-2">
-            <span className="text-xl font-bold">SportLink</span>
+        <div className="flex h-16 items-center justify-center px-6 border-b">
+          <Link href="/dashboard" className="flex items-center justify-center">
+            <img 
+              src="/sportLink.svg" 
+              alt="SportLink Logo" 
+              className="h-12 w-auto"
+            />
           </Link>
         </div>
         <ScrollArea className="flex-1">

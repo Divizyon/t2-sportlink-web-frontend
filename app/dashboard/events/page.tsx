@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Plus, Calendar, Users, MapPin, Pencil, Clock, Trophy, Tag, Trash, Eye } from "lucide-react";
+import { Search, Plus, Calendar, Users, MapPin, Pencil, Clock, Trophy, Tag, Trash, Eye, Check, Ban } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Image from "next/image";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Event {
   id: string;
@@ -41,6 +42,7 @@ interface Event {
   organizer: string;
   requirements: string[];
   prizes: string[];
+  isApproved: boolean;
 }
 
 export default function EventsPage() {
@@ -59,7 +61,8 @@ export default function EventsPage() {
       price: 500,
       organizer: "Spor Kulübü",
       requirements: ["Spor kıyafetleri", "Futbol ayakkabısı", "Su matarası"],
-      prizes: ["10.000 TL", "Kupa", "Madalya"]
+      prizes: ["10.000 TL", "Kupa", "Madalya"],
+      isApproved: true
     },
     {
       id: "2",
@@ -75,7 +78,25 @@ export default function EventsPage() {
       price: 200,
       organizer: "Basketbol Federasyonu",
       requirements: ["Spor kıyafetleri", "Basketbol topu", "Spor çantası"],
-      prizes: ["5.000 TL", "Kupa", "Madalya"]
+      prizes: ["5.000 TL", "Kupa", "Madalya"],
+      isApproved: false
+    },
+    {
+      id: "3",
+      title: "Voleybol Turnuvası",
+      description: "Liselerarası voleybol turnuvası. Şehrimizdeki tüm liseler katılabilir.",
+      date: "2024-07-10",
+      time: "16:00",
+      location: "Belediye Spor Salonu",
+      category: "Voleybol",
+      capacity: 75,
+      status: "Aktif",
+      image: "/images/volleyball-tournament.jpg",
+      price: 0,
+      organizer: "Gençlik Spor İl Müdürlüğü",
+      requirements: ["Okul forması", "Spor ayakkabısı"],
+      prizes: ["3.000 TL", "Kupa", "Madalya"],
+      isApproved: false
     }
   ]);
 
@@ -92,12 +113,21 @@ export default function EventsPage() {
     price: 0,
     organizer: "",
     requirements: [] as string[],
-    prizes: [] as string[]
+    prizes: [] as string[],
+    isApproved: false
   });
 
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(events.length > 0 ? events[0] : null);
   const [viewMode, setViewMode] = useState<"preview" | "edit">("preview");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Sayfa yüklendiğinde ilk etkinliği otomatik seç
+  useEffect(() => {
+    if (events.length > 0 && !selectedEvent) {
+      setSelectedEvent(events[0]);
+    }
+  }, [events, selectedEvent]);
 
   const handleAddEvent = () => {
     const event: Event = {
@@ -120,7 +150,8 @@ export default function EventsPage() {
       price: 0,
       organizer: "",
       requirements: [],
-      prizes: []
+      prizes: [],
+      isApproved: false
     });
   };
 
@@ -134,25 +165,58 @@ export default function EventsPage() {
   };
 
   const handleDeleteEvent = (id: string) => {
-    setEvents(events.filter(event => event.id !== id));
+    const remainingEvents = events.filter(event => event.id !== id);
+    setEvents(remainingEvents);
+    
     if (selectedEvent && selectedEvent.id === id) {
-      setSelectedEvent(events.length > 1 ? events.find(event => event.id !== id) || null : null);
+      setSelectedEvent(remainingEvents.length > 0 ? remainingEvents[0] : null);
     }
   };
 
+  const handleApproveEvent = (id: string) => {
+    setEvents(events.map(event => 
+      event.id === id ? { ...event, isApproved: true } : event
+    ));
+  };
+
+  const handleRejectEvent = (id: string) => {
+    setEvents(events.map(event => 
+      event.id === id ? { ...event, isApproved: false } : event
+    ));
+  };
+
+  const handleInspectEvent = (event: Event) => {
+    if (event) {
+      setSelectedEvent(event);
+    }
+  };
+
+  const filteredEvents = events.filter(event => 
+    event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    event.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const pendingApprovalEvents = events.filter(event => !event.isApproved);
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-4rem)]">
-      <div className="overflow-y-auto">
-        <Card>
-          <CardHeader>
-            <CardTitle>Etkinlik Listesi</CardTitle>
-          </CardHeader>
-          <CardContent>
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 h-[calc(100vh-4rem)]">
+      {/* Sol taraf (3/5) - İki parçaya bölünmüş */}
+      <div className="lg:col-span-3 grid grid-cols-1 gap-6 overflow-y-auto">
+        
+        {/* Üst bölüm - Etkinlik Listesi */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Etkinlik Listesi</CardTitle>
+        </CardHeader>
+        <CardContent>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-4">
                 <Input
                   placeholder="Etkinlik ara..."
                   className="max-w-sm"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
                 <Button variant="outline" size="icon">
                   <Search className="h-4 w-4" />
@@ -278,17 +342,18 @@ export default function EventsPage() {
             </div>
             <div className="overflow-auto">
               <Table className="min-w-full divide-y divide-gray-200">
-                <TableHeader>
-                  <TableRow>
+            <TableHeader>
+              <TableRow>
                     <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Başlık</TableHead>
                     <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tarih</TableHead>
                     <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</TableHead>
                     <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durum</TableHead>
+                    <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Onay</TableHead>
                     <TableHead className="py-3 px-4 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</TableHead>
-                  </TableRow>
-                </TableHeader>
+              </TableRow>
+            </TableHeader>
                 <TableBody className="bg-white divide-y divide-gray-200">
-                  {events.map((event) => (
+                  {filteredEvents.map((event) => (
                     <tr 
                       key={event.id}
                       className={`
@@ -313,6 +378,16 @@ export default function EventsPage() {
                           </Badge>
                         }
                       </td>
+                      <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
+                        {event.isApproved ? 
+                          <Badge variant="outline" className="border-blue-500 text-blue-600 bg-blue-50">
+                            Onaylanmış
+                          </Badge> : 
+                          <Badge variant="outline" className="border-yellow-500 text-yellow-600 bg-yellow-50">
+                            Onay Bekliyor
+                          </Badge>
+                        }
+                      </td>
                       <td className="py-4 px-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end">
                           <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={(e) => {
@@ -330,9 +405,85 @@ export default function EventsPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      <div className="overflow-y-auto">
+        {/* Alt bölüm - Admin Onay Alanı */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Etkinlik Onay Merkezi</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4">
+              <h3 className="text-sm font-medium mb-2">Onay Bekleyen Etkinlikler ({pendingApprovalEvents.length})</h3>
+            </div>
+            {pendingApprovalEvents.length > 0 ? (
+              <div className="overflow-auto">
+                <Table className="min-w-full divide-y divide-gray-200">
+                  <TableHeader>
+              <TableRow>
+                      <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Başlık</TableHead>
+                      <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organizatör</TableHead>
+                      <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tarih</TableHead>
+                      <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</TableHead>
+                      <TableHead className="py-3 px-4 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody className="bg-white divide-y divide-gray-200">
+                    {pendingApprovalEvents.map((event) => (
+                      <tr 
+                        key={event.id}
+                        className="hover:bg-orange-50"
+                      >
+                        <td className="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900">{event.title}</td>
+                        <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{event.organizer}</td>
+                        <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{new Date(event.date).toLocaleDateString('tr-TR')}</td>
+                        <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{event.category}</td>
+                        <td className="py-4 px-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="border-green-500 text-green-600 hover:bg-green-50"
+                              onClick={() => handleApproveEvent(event.id)}
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              Onayla
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="border-red-500 text-red-600 hover:bg-red-50"
+                              onClick={() => handleRejectEvent(event.id)}
+                            >
+                              <Ban className="h-4 w-4 mr-1" />
+                              Reddet
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                              onClick={() => handleInspectEvent(event)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              İncele
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </TableBody>
+                </Table>
+                  </div>
+            ) : (
+              <div className="text-center py-8 bg-gray-50 rounded-lg">
+                <div className="text-gray-500">Onay bekleyen etkinlik bulunmamaktadır</div>
+                  </div>
+            )}
+          </CardContent>
+        </Card>
+                  </div>
+
+      {/* Sağ taraf (2/5) - Etkinlik Önizleme */}
+      <div className="lg:col-span-2 overflow-y-auto">
         <Card className="h-full">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Etkinlik Önizleme</CardTitle>
@@ -344,7 +495,7 @@ export default function EventsPage() {
                 onClick={() => setViewMode("preview")}
               >
                 <Eye className="h-4 w-4" />
-              </Button>
+                  </Button>
               <Button 
                 variant={viewMode === "edit" ? "default" : "outline"} 
                 size="icon" 
@@ -353,7 +504,7 @@ export default function EventsPage() {
                 onClick={() => setViewMode("edit")}
               >
                 <Pencil className="h-4 w-4" />
-              </Button>
+                  </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -548,8 +699,8 @@ export default function EventsPage() {
                 Önizlemek için bir etkinlik seçin
               </div>
             )}
-          </CardContent>
-        </Card>
+        </CardContent>
+      </Card>
       </div>
     </div>
   );
