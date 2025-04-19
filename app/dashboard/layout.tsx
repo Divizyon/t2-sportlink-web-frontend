@@ -1,11 +1,10 @@
-import type { ReactNode } from "react";
-import { Sidebar } from "@/components/dashboard/sidebar";
-import { TopBar } from "@/components/dashboard/top-bar";
+import { Sidebar } from "@/components/dashboard/sidebar"
+import { TopBar } from "@/components/dashboard/top-bar"
 
 export default function DashboardLayout({
   children,
 }: {
-  children: ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <div className="flex h-screen bg-background">
@@ -17,5 +16,5 @@ export default function DashboardLayout({
         </main>
       </div>
     </div>
-  );
+  )
 } 

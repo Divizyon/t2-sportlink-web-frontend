@@ -1,101 +1,90 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Plus, Users, Calendar, Newspaper } from "lucide-react";
+"use client"
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Calendar, Newspaper, Megaphone } from "lucide-react"
 
 export default function DashboardPage() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <div className="flex items-center space-x-4">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Yeni Etkinlik Ekle
-          </Button>
-          <Button variant="outline">
-            <Newspaper className="mr-2 h-4 w-4" />
-            Haber Yayınla
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Toplam Kullanıcı
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1,234</div>
-            <p className="text-xs text-muted-foreground">
-              +12% geçen aya göre
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Aktif Etkinlikler
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">45</div>
-            <p className="text-xs text-muted-foreground">
-              +8% geçen haftaya göre
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Bugünkü Katılımlar
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">89</div>
-            <p className="text-xs text-muted-foreground">
-              +4% dün ile aynı
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Yeni Haberler
-            </CardTitle>
-            <Newspaper className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">
-              +2% geçen güne göre
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
           <CardHeader>
-            <CardTitle>Son Etkinlikler</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Son Etkinlikler
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* Etkinlik listesi buraya gelecek */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div>
+                    <p className="font-medium">Futbol Turnuvası</p>
+                    <p className="text-sm text-muted-foreground">15 Nisan 2024</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm">
+                  Detaylar
+                </Button>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div>
+                    <p className="font-medium">Basketbol Maçı</p>
+                    <p className="text-sm text-muted-foreground">20 Nisan 2024</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm">
+                  Detaylar
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card className="col-span-3">
+
+        <Card>
           <CardHeader>
-            <CardTitle>Son Haberler</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Newspaper className="h-4 w-4" />
+              Son Haberler
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* Haber listesi buraya gelecek */}
+            <div className="space-y-4">
+              <div>
+                <p className="font-medium">Fenerbahçe'den Muhteşem Galibiyet</p>
+                <p className="text-sm text-muted-foreground">15 Nisan 2024</p>
+              </div>
+              <div>
+                <p className="font-medium">Basketbolda Büyük Başarı</p>
+                <p className="text-sm text-muted-foreground">14 Nisan 2024</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Megaphone className="h-4 w-4" />
+              Son Duyurular
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <p className="font-medium">Spor Tesisi Bakım Çalışması</p>
+                <p className="text-sm text-muted-foreground">20-22 Nisan tarihleri arasında spor tesisimizde bakım çalışması yapılacaktır.</p>
+              </div>
+              <div>
+                <p className="font-medium">Yaz Spor Okulu Kayıtları</p>
+                <p className="text-sm text-muted-foreground">2024 yaz spor okulu kayıtları başlamıştır. Son başvuru tarihi 30 Nisan 2024'tür.</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
     </div>
-  );
+  )
 } 

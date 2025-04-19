@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Calendar, Download, BarChart2 } from "lucide-react";
+import { Calendar, Download, BarChart2, Newspaper, Megaphone, Users } from "lucide-react";
 
 export default function ReportsPage() {
   return (
@@ -29,13 +29,13 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Toplam Etkinlik
             </CardTitle>
-            <BarChart2 className="h-4 w-4 text-muted-foreground" />
+            <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">156</div>
@@ -47,9 +47,37 @@ export default function ReportsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Toplam Katılımcı
+              Toplam Haber
             </CardTitle>
-            <BarChart2 className="h-4 w-4 text-muted-foreground" />
+            <Newspaper className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">45</div>
+            <p className="text-xs text-muted-foreground">
+              +5% geçen aya göre
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Toplam Duyuru
+            </CardTitle>
+            <Megaphone className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">23</div>
+            <p className="text-xs text-muted-foreground">
+              +3% geçen aya göre
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Toplam Kullanıcı
+            </CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">2,345</div>
@@ -58,59 +86,40 @@ export default function ReportsPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Ortalama Katılım
-            </CardTitle>
-            <BarChart2 className="h-4 w-4 text-muted-foreground" />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="col-span-2">
+          <CardHeader>
+            <CardTitle>Popüler Spor Dalları</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">15</div>
-            <p className="text-xs text-muted-foreground">
-              +2% geçen aya göre
-            </p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BarChart2 className="h-4 w-4 text-muted-foreground" />
+                  <span>Futbol</span>
+                </div>
+                <span className="text-sm font-medium">45 Etkinlik</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BarChart2 className="h-4 w-4 text-muted-foreground" />
+                  <span>Basketbol</span>
+                </div>
+                <span className="text-sm font-medium">32 Etkinlik</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BarChart2 className="h-4 w-4 text-muted-foreground" />
+                  <span>Voleybol</span>
+                </div>
+                <span className="text-sm font-medium">28 Etkinlik</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Popüler Spor Dalları</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Spor Dalı</TableHead>
-                <TableHead>Etkinlik Sayısı</TableHead>
-                <TableHead>Toplam Katılım</TableHead>
-                <TableHead>Ortalama Katılım</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell className="font-medium">Futbol</TableCell>
-                <TableCell>45</TableCell>
-                <TableCell>1,234</TableCell>
-                <TableCell>27</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Basketbol</TableCell>
-                <TableCell>32</TableCell>
-                <TableCell>856</TableCell>
-                <TableCell>26</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Voleybol</TableCell>
-                <TableCell>28</TableCell>
-                <TableCell>672</TableCell>
-                <TableCell>24</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>

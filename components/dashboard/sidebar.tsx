@@ -3,45 +3,46 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import {
-  LayoutDashboard,
-  Users,
-  Calendar,
-  Newspaper,
-  Shield,
-  BarChart,
-} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Menu } from "lucide-react";
 
-const sidebarItems = [
+const routes = [
   {
-    title: "Ana Sayfa",
+    label: "Ana Sayfa",
     href: "/dashboard",
-    icon: LayoutDashboard,
+    icon: "Home",
   },
   {
-    title: "Kullanıcı Yönetimi",
+    label: "Kullanıcı Yönetimi",
     href: "/dashboard/users",
-    icon: Users,
+    icon: "Users",
   },
   {
-    title: "Etkinlik Yönetimi",
+    label: "Etkinlik Yönetimi",
     href: "/dashboard/events",
-    icon: Calendar,
+    icon: "Calendar",
   },
   {
-    title: "Spor Haberleri",
+    label: "Spor Haberleri",
     href: "/dashboard/news",
-    icon: Newspaper,
+    icon: "Newspaper",
   },
   {
-    title: "Güvenlik",
+    label: "Duyuru Yönetimi",
+    href: "/dashboard/announcements",
+    icon: "Megaphone",
+  },
+  {
+    label: "Güvenlik",
     href: "/dashboard/security",
-    icon: Shield,
+    icon: "Shield",
   },
   {
-    title: "Raporlar",
+    label: "Raporlar",
     href: "/dashboard/reports",
-    icon: BarChart,
+    icon: "BarChart2",
   },
 ];
 
@@ -49,32 +50,65 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="w-64 bg-background border-r">
-      <div className="flex h-16 items-center px-6 border-b">
-        <Link href="/dashboard" className="flex items-center space-x-2">
-          <span className="font-bold text-xl">SportLink</span>
-        </Link>
-      </div>
-      <nav className="flex-1 space-y-1 p-4">
-        {sidebarItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors",
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted"
-              )}
-            >
-              <item.icon className="h-5 w-5" />
-              <span>{item.title}</span>
+    <>
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            className="md:hidden"
+            size="icon"
+          >
+            <Menu className="h-6 w-6" />
+            <span className="sr-only">Menüyü Aç</span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-64 p-0">
+          <div className="flex h-16 items-center px-6 border-b">
+            <Link href="/dashboard" className="flex items-center space-x-2">
+              <span className="text-xl font-bold">SportLink</span>
             </Link>
-          );
-        })}
-      </nav>
-    </div>
+          </div>
+          <ScrollArea className="h-[calc(100vh-4rem)]">
+            <div className="space-y-1 p-2">
+              {routes.map((route) => (
+                <Link
+                  key={route.href}
+                  href={route.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                    pathname === route.href ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                  )}
+                >
+                  <span>{route.label}</span>
+                </Link>
+              ))}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+      <div className="hidden md:flex h-screen w-64 flex-col border-r bg-background">
+        <div className="flex h-16 items-center px-6 border-b">
+          <Link href="/dashboard" className="flex items-center space-x-2">
+            <span className="text-xl font-bold">SportLink</span>
+          </Link>
+        </div>
+        <ScrollArea className="flex-1">
+          <div className="space-y-1 p-2">
+            {routes.map((route) => (
+              <Link
+                key={route.href}
+                href={route.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                  pathname === route.href ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                )}
+              >
+                <span>{route.label}</span>
+              </Link>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+    </>
   );
 } 
