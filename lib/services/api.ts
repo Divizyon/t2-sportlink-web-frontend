@@ -3,6 +3,7 @@ import type { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 
 // API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const TOKEN_KEY = 'token';
 
 // Create Axios instance with default config
 export const api: AxiosInstance = axios.create({
@@ -16,12 +17,17 @@ export const api: AxiosInstance = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
-    // Get token from localStorage or wherever you store it
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    try {
+      // Get token from localStorage or wherever you store it
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    } catch (error) {
+      console.error('Token alınırken hata oluştu:', error);
+      return config;
     }
-    return config;
   },
   (error: AxiosError) => {
     return Promise.reject(error);
@@ -34,9 +40,13 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     if (error.response?.status === 401) {
       // Handle unauthorized access
-      // For example: redirect to login or refresh token
-      localStorage.removeItem('token');
-      window.location.href = '/auth/login';
+      try {
+        localStorage.removeItem(TOKEN_KEY);
+        // Direkt olarak sayfayı yönlendir
+        window.location.href = '/auth/login';
+      } catch (e) {
+        console.error('Token silinemedi:', e);
+      }
     }
     return Promise.reject(error);
   }

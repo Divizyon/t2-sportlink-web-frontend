@@ -40,6 +40,8 @@ export interface AuthResponse {
 // Auth service class
 class AuthService {
   private readonly BASE_PATH = '/auth';
+  private readonly TOKEN_KEY = 'token';
+  private readonly USER_KEY = 'user';
 
   // Login user
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
@@ -51,9 +53,10 @@ class AuthService {
       
       // Başarılı giriş durumunda token'ı localStorage'a kaydet
       if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
+        console.log("AuthService: Token alındı, kaydediliyor...");
+        this.setToken(response.data.token);
         // Kullanıcı bilgilerini de kaydedebiliriz
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        this.setUser(response.data.user);
       }
       
       return response.data;
@@ -125,24 +128,49 @@ class AuthService {
   }
 
   // Logout user
-  async logout(): Promise<void> {
-    try {
-      await api.post(`${this.BASE_PATH}/logout`);
-    } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-    }
+  logout(): void {
+    console.log("AuthService: Çıkış yapılıyor, token siliniyor...");
+    this.removeToken();
+    this.removeUser();
+    // Sayfayı yönlendir
+    window.location.href = '/auth/login';
+  }
+  
+  // Basit token yönetimi
+  setToken(token: string): void {
+    localStorage.setItem(this.TOKEN_KEY, token);
+  }
+  
+  removeToken(): void {
+    localStorage.removeItem(this.TOKEN_KEY);
+  }
+  
+  // Basit kullanıcı bilgileri yönetimi
+  setUser(user: UserData): void {
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+  }
+  
+  removeUser(): void {
+    localStorage.removeItem(this.USER_KEY);
   }
   
   // Check if user is authenticated
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('token');
+    const token = localStorage.getItem(this.TOKEN_KEY);
+    return !!token;
   }
   
   // Get current user from localStorage
   getLocalUser(): UserData | null {
-    const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
+    const userStr = localStorage.getItem(this.USER_KEY);
+    if (!userStr) return null;
+    
+    try {
+      return JSON.parse(userStr);
+    } catch (error) {
+      console.error('Kullanıcı bilgileri alınamadı:', error);
+      return null;
+    }
   }
 }
 
