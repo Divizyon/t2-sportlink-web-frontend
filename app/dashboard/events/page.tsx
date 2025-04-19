@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import type { ChangeEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -117,15 +118,46 @@ export default function EventsPage() {
     isApproved: false
   });
 
+  // Dosya yükleme için yardımcı fonksiyon
+  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>, isNewEvent: boolean) => {
+    const file = e.target.files?.[0];
+    
+    if (!file) return;
+    
+    // Yalnızca PNG, JPG ve JPEG formatlarını kabul et
+    if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+      alert('Lütfen sadece PNG, JPG veya JPEG formatında dosya yükleyiniz.');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      
+      if (isNewEvent) {
+        setNewEvent({
+          ...newEvent,
+          image: base64String
+        });
+      } else if (selectedEvent) {
+        setSelectedEvent({
+          ...selectedEvent,
+          image: base64String
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(events.length > 0 ? events[0] : null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [viewMode, setViewMode] = useState<"preview" | "edit">("preview");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Sayfa yüklendiğinde ilk etkinliği otomatik seç
   useEffect(() => {
     if (events.length > 0 && !selectedEvent) {
-      setSelectedEvent(events[0]);
+      setSelectedEvent(events[0] as Event);
     }
   }, [events, selectedEvent]);
 
@@ -169,7 +201,11 @@ export default function EventsPage() {
     setEvents(remainingEvents);
     
     if (selectedEvent && selectedEvent.id === id) {
-      setSelectedEvent(remainingEvents.length > 0 ? remainingEvents[0] : null);
+      if (remainingEvents.length > 0) {
+        setSelectedEvent(remainingEvents[0] as Event);
+      } else {
+        setSelectedEvent(null);
+      }
     }
   };
 
@@ -183,12 +219,6 @@ export default function EventsPage() {
     setEvents(events.map(event => 
       event.id === id ? { ...event, isApproved: false } : event
     ));
-  };
-
-  const handleInspectEvent = (event: Event) => {
-    if (event) {
-      setSelectedEvent(event);
-    }
   };
 
   const filteredEvents = events.filter(event => 
@@ -249,6 +279,28 @@ export default function EventsPage() {
                         value={newEvent.description}
                         onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
                       />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="image">Resim</Label>
+                      <div className="flex flex-col gap-2">
+                        <Input
+                          id="image"
+                          type="file"
+                          accept=".png,.jpg,.jpeg"
+                          onChange={(e) => handleImageUpload(e, true)}
+                        />
+                        {newEvent.image && (
+                          <div className="relative w-full h-32 mt-2 rounded-md overflow-hidden">
+                            <Image
+                              src={newEvent.image}
+                              alt="Etkinlik Önizleme"
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
+                        <span className="text-xs text-gray-500 mt-1">Sadece PNG, JPG ve JPEG formatları desteklenmektedir.</span>
+                      </div>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="date">Tarih</Label>
@@ -431,7 +483,11 @@ export default function EventsPage() {
                     {pendingApprovalEvents.map((event) => (
                       <tr 
                         key={event.id}
-                        className="hover:bg-orange-50"
+                        className="hover:bg-orange-50 cursor-pointer"
+                        onClick={() => {
+                          setSelectedEvent(event);
+                          setViewMode("preview");
+                        }}
                       >
                         <td className="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900">{event.title}</td>
                         <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{event.organizer}</td>
@@ -443,7 +499,10 @@ export default function EventsPage() {
                               variant="outline" 
                               size="sm"
                               className="border-green-500 text-green-600 hover:bg-green-50"
-                              onClick={() => handleApproveEvent(event.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApproveEvent(event.id);
+                              }}
                             >
                               <Check className="h-4 w-4 mr-1" />
                               Onayla
@@ -452,19 +511,13 @@ export default function EventsPage() {
                               variant="outline" 
                               size="sm"
                               className="border-red-500 text-red-600 hover:bg-red-50"
-                              onClick={() => handleRejectEvent(event.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRejectEvent(event.id);
+                              }}
                             >
                               <Ban className="h-4 w-4 mr-1" />
                               Reddet
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="border-blue-500 text-blue-600 hover:bg-blue-50"
-                              onClick={() => handleInspectEvent(event)}
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              İncele
                             </Button>
                           </div>
                         </td>
@@ -597,6 +650,28 @@ export default function EventsPage() {
                         onChange={(e) => setSelectedEvent({ ...selectedEvent, description: e.target.value })}
                         className="min-h-[150px]"
                       />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-image">Resim</Label>
+                      <div className="flex flex-col gap-2">
+                        <Input
+                          id="edit-image"
+                          type="file"
+                          accept=".png,.jpg,.jpeg"
+                          onChange={(e) => handleImageUpload(e, false)}
+                        />
+                        {selectedEvent.image && (
+                          <div className="relative w-full h-32 mt-2 rounded-md overflow-hidden">
+                            <Image
+                              src={selectedEvent.image}
+                              alt="Etkinlik Resmi"
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
+                        <span className="text-xs text-gray-500 mt-1">Sadece PNG, JPG ve JPEG formatları desteklenmektedir.</span>
+                      </div>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="edit-date">Tarih</Label>

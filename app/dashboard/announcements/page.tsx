@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import type { ChangeEvent } from "react"
 import { 
   MegaphoneIcon,
   MoreHorizontalIcon, 
@@ -182,6 +183,37 @@ export default function AnnouncementsPage() {
     }
   }
 
+  // Resim yükleme için yardımcı fonksiyon
+  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    
+    if (!file) return;
+    
+    // Yalnızca PNG, JPG ve JPEG formatlarını kabul et
+    if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+      alert('Lütfen sadece PNG, JPG veya JPEG formatında dosya yükleyiniz.');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      
+      if (editingAnnouncement) {
+        setEditingAnnouncement({
+          ...editingAnnouncement,
+          image: base64String
+        });
+      } else {
+        setNewAnnouncement({
+          ...newAnnouncement,
+          image: base64String
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="h-full p-4 space-y-4">
       <div className="flex justify-between items-center">
@@ -242,8 +274,8 @@ export default function AnnouncementsPage() {
                     Kategori
                   </Label>
                   <Select
-                    value={editingAnnouncement?.category || newAnnouncement.category}
-                    onValueChange={(value) => {
+                    value={editingAnnouncement?.category || newAnnouncement.category || ""}
+                    onValueChange={(value: string) => {
                       if (editingAnnouncement) {
                         setEditingAnnouncement({
                           ...editingAnnouncement,
@@ -263,8 +295,8 @@ export default function AnnouncementsPage() {
                     <SelectContent>
                       <SelectItem value="Etkinlik">Etkinlik</SelectItem>
                       <SelectItem value="Bilgilendirme">Bilgilendirme</SelectItem>
-                      <SelectItem value="Turnuva">Turnuva</SelectItem>
-                      <SelectItem value="Özel Duyuru">Özel Duyuru</SelectItem>
+                      <SelectItem value="Bakım">Bakım</SelectItem>
+                      <SelectItem value="Diğer">Diğer</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -274,7 +306,7 @@ export default function AnnouncementsPage() {
                     Öncelik
                   </Label>
                   <Select
-                    value={editingAnnouncement?.priority || newAnnouncement.priority}
+                    value={editingAnnouncement?.priority || newAnnouncement.priority || "Orta"}
                     onValueChange={(value: "Düşük" | "Orta" | "Yüksek" | "Kritik") => {
                       if (editingAnnouncement) {
                         setEditingAnnouncement({
@@ -306,7 +338,7 @@ export default function AnnouncementsPage() {
                     Durum
                   </Label>
                   <Select
-                    value={editingAnnouncement?.status || newAnnouncement.status}
+                    value={editingAnnouncement?.status || newAnnouncement.status || "Aktif"}
                     onValueChange={(value: "Aktif" | "Pasif" | "Taslak") => {
                       if (editingAnnouncement) {
                         setEditingAnnouncement({
@@ -410,27 +442,27 @@ export default function AnnouncementsPage() {
 
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="image" className="text-right">
-                    Görsel URL
+                    Görsel
                   </Label>
-                  <Input
-                    id="image"
-                    placeholder="Görsel URL (isteğe bağlı)"
-                    className="col-span-3"
-                    value={editingAnnouncement?.image || newAnnouncement.image || ""}
-                    onChange={(e) => {
-                      if (editingAnnouncement) {
-                        setEditingAnnouncement({
-                          ...editingAnnouncement,
-                          image: e.target.value,
-                        })
-                      } else {
-                        setNewAnnouncement({
-                          ...newAnnouncement,
-                          image: e.target.value,
-                        })
-                      }
-                    }}
-                  />
+                  <div className="col-span-3 space-y-2">
+                    <Input
+                      id="image"
+                      type="file"
+                      accept=".png,.jpg,.jpeg"
+                      onChange={handleImageUpload}
+                    />
+                    {(editingAnnouncement?.image || newAnnouncement.image) && (
+                      <div className="relative w-full h-32 mt-2 rounded-md overflow-hidden">
+                        <Image
+                          src={editingAnnouncement?.image || newAnnouncement.image || ""}
+                          alt="Duyuru Görseli"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    )}
+                    <span className="text-xs text-gray-500">Sadece PNG, JPG ve JPEG formatları desteklenmektedir.</span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-4 items-start gap-4">
