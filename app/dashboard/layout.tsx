@@ -1,20 +1,38 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { TopBar } from "@/components/dashboard/top-bar"
+import { AuthGuard } from "@/components/dashboard/auth-guard"
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const [isClient, setIsClient] = useState(false);
+
+  // Sadece client tarafında render et
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Server tarafında boş içerik göster
+  if (!isClient) {
+    return null;
+  }
+
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <TopBar />
-        <main className="flex-1 overflow-y-auto p-6">
-          {children}
-        </main>
+    <AuthGuard>
+      <div className="flex h-screen bg-background">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <TopBar />
+          <main className="flex-1 overflow-y-auto p-6">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </AuthGuard>
   )
 } 

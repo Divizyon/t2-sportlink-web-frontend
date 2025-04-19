@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,23 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+
+  // Eğer kullanıcı zaten giriş yapmışsa, dashboard'a yönlendir
+  useEffect(() => {
+    // Sayfa yüklendiğinde token kontrolü yap ve gerekirse yönlendir
+    const checkAuth = () => {
+      if (authService.isAuthenticated()) {
+        console.log("Login: Kullanıcı zaten giriş yapmış!");
+        setRedirecting(true);
+        
+        // Doğrudan sayfayı yönlendir
+        window.location.href = "/dashboard";
+      }
+    };
+    
+    checkAuth();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,13 +52,17 @@ export default function LoginPage() {
       });
 
       if (result.token) {
+        console.log("Login: Giriş başarılı, yönlendiriliyor...");
         toast({
           title: "Giriş başarılı",
           description: "Ana sayfaya yönlendiriliyorsunuz",
         });
         
-        // Ana sayfaya yönlendir
-        router.push("/dashboard");
+        // Yönlendirme öncesi durum ayarla
+        setRedirecting(true);
+        
+        // Tarayıcı konumunu doğrudan değiştir
+        window.location.href = "/dashboard";
       } else if ((result as any).needsEmailVerification) {
         // Email doğrulama gerekiyor
         setNeedsEmailVerification(true);
@@ -79,6 +100,16 @@ export default function LoginPage() {
       setResendingEmail(false);
     }
   };
+
+  // Yönlendirme yapılıyorsa yükleme durumu göster
+  if (redirecting) {
+    return (
+      <div className="flex flex-col items-center justify-center space-y-4 h-screen">
+        <div className="w-8 h-8 border-t-2 border-primary rounded-full animate-spin"></div>
+        <p className="text-muted-foreground">Yönlendiriliyorsunuz...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   
   // Form alanları
   const [email, setEmail] = useState("");
@@ -29,6 +30,18 @@ export default function RegisterPage() {
   const [phone, setPhone] = useState("");
   const [locationLatitude, setLocationLatitude] = useState(0);
   const [locationLongitude, setLocationLongitude] = useState(0);
+
+  // Eğer kullanıcı zaten giriş yapmışsa, dashboard'a yönlendir
+  useEffect(() => {
+    if (authService.isAuthenticated()) {
+      setRedirecting(true);
+      // Önce yönlendirme durumunu ayarla
+      setTimeout(() => {
+        // Sonraki tik'te yönlendirmeyi gerçekleştir
+        window.location.href = "/dashboard";
+      }, 100);
+    }
+  }, [router]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +89,16 @@ export default function RegisterPage() {
     }
   };
 
+  // Yönlendirme yapılıyorsa yükleme durumu göster
+  if (redirecting) {
+    return (
+      <div className="flex flex-col items-center justify-center space-y-4 h-screen">
+        <div className="w-8 h-8 border-t-2 border-primary rounded-full animate-spin"></div>
+        <p className="text-muted-foreground">Yönlendiriliyorsunuz...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center">
@@ -104,7 +127,12 @@ export default function RegisterPage() {
           </Alert>
           
           <div className="flex justify-center space-x-4">
-            <Button onClick={() => router.push("/auth/login")}>
+            <Button onClick={() => {
+              setRedirecting(true);
+              setTimeout(() => {
+                window.location.href = "/auth/login";
+              }, 100);
+            }}>
               Giriş Sayfasına Dön
             </Button>
           </div>
