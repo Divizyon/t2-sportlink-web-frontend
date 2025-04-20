@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -27,17 +27,25 @@ import {
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 
-interface News {
+// Define the NewsStatus type
+type NewsStatus = "Aktif" | "Pasif" | "Taslak" | "Onay Bekliyor";
+
+// Define the News type once
+type News = {
   id: number;
   title: string;
   content: string;
+  status: NewsStatus;
   category: string;
   date: string;
-  status: "Aktif" | "Pasif" | "Taslak" | "Onay Bekliyor";
+  author: string;
+  views: number;
   image: string;
   sourceUrl: string;
-  views: number;
-}
+};
+
+// Define a type for newNews without id and views
+type NewNewsType = Omit<News, 'id' | 'views'>;
 
 export default function NewsPage() {
   const [news, setNews] = useState<News[]>([
@@ -50,18 +58,44 @@ export default function NewsPage() {
       status: "Aktif",
       image: "/images/fenerbahce.jpg",
       sourceUrl: "",
-      views: 1250
+      views: 1250,
+      author: "Spor Haberleri"
     },
     {
       id: 2,
-      title: "NBA'de Play-off Heyecanı Başlıyor",
-      content: "NBA'de normal sezon sona erdi. Play-off eşleşmeleri belli oldu. İlk tur maçları hafta sonu başlıyor.",
+      title: "NBA'de Lakers Play-Off İçin Mücadele Ediyor",
+      content: "Los Angeles Lakers, NBA'de play-off pozisyonu için son maçlarında önemli galibiyetler almaya devam ediyor. LeBron James'in liderliğindeki ekip, Phoenix Suns'ı 122-111 mağlup etti.",
       category: "Basketbol",
-      date: "2023-04-16",
+      date: "2023-04-14",
       status: "Aktif",
-      image: "/images/nba.jpg",
+      image: "/images/lakers.jpg",
       sourceUrl: "",
-      views: 980
+      views: 980,
+      author: "NBA Türkiye"
+    },
+    {
+      id: 3,
+      title: "Voleybolda Vakıfbank Üst Üste 3. Kez Şampiyon",
+      content: "Vakıfbank Kadın Voleybol Takımı, Türkiye Voleybol Ligi'nde üst üste 3. şampiyonluğunu ilan etti. Final serisinde Fenerbahçe'yi 3-0 ile geçtiler.",
+      category: "Voleybol",
+      date: "2023-04-12",
+      status: "Aktif",
+      image: "/images/vakifbank.jpg",
+      sourceUrl: "",
+      views: 750,
+      author: "Voleybol Haberleri"
+    },
+    {
+      id: 4,
+      title: "Yeni Malatyaspor Süper Lig'de Küme Düştü",
+      content: "Süper Lig'in 29. haftasında Yeni Malatyaspor, matematiksel olarak da küme düşmesi kesinleşti. Takım gelecek sezon 1. Lig'de mücadele edecek.",
+      category: "Futbol",
+      date: "2023-04-10",
+      status: "Onay Bekliyor",
+      image: "/images/malatyaspor.jpg",
+      sourceUrl: "",
+      views: 520,
+      author: "Spor Haberleri"
     }
   ]);
 
@@ -128,7 +162,8 @@ export default function NewsPage() {
         status: "Onay Bekliyor",
         image,
         sourceUrl: sourceUrl,
-        views: 0
+        views: 0,
+        author: "Adsız Yazar"
       };
       
       setPendingNews([...pendingNews, newPendingNews]);
@@ -140,25 +175,26 @@ export default function NewsPage() {
   const handleApproveNews = (newsItem: News) => {
     const updatedPendingNews = pendingNews.filter(item => item.id !== newsItem.id)
     setPendingNews(updatedPendingNews)
-    setNews([...news, { ...newsItem, status: "Aktif" }])
+    setNews([...news, { ...newsItem, status: "Aktif", author: newsItem.author || "Adsız Yazar" }])
   }
 
   const handleRejectNews = (id: number) => {
     setPendingNews(pendingNews.filter(item => item.id !== id))
   }
 
-  const [newNews, setNewNews] = useState<Omit<News, 'id' | 'views'>>({
+  const [newNews, setNewNews] = useState<NewNewsType>({
     title: "",
     content: "",
     category: "",
-    date: new Date().toISOString().split('T')[0] || "",
-    status: "Aktif",
+    date: new Date().toISOString().split('T')[0],
+    status: "Taslak",
     image: "",
-    sourceUrl: ""
+    sourceUrl: "",
+    author: ""
   });
 
   const [editingNews, setEditingNews] = useState<News | null>(null);
-  const [selectedNews, setSelectedNews] = useState<News | null>(news[0] || null);
+  const [selectedNews, setSelectedNews] = useState<News | null>(null);
   const [selectedPendingNews, setSelectedPendingNews] = useState<News | null>(null);
   const [viewMode, setViewMode] = useState<"preview" | "edit">("preview");
   const [searchQuery, setSearchQuery] = useState("");
@@ -187,9 +223,10 @@ export default function NewsPage() {
       content: "",
       category: "",
       date: new Date().toISOString().split('T')[0],
-      status: "Aktif",
+      status: "Taslak",
       image: "",
-      sourceUrl: ""
+      sourceUrl: "",
+      author: ""
     });
     setIsUrlDialogOpen(false);
   };
@@ -240,6 +277,16 @@ export default function NewsPage() {
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
+  // Automatically select the first news item from filtered list
+  useEffect(() => {
+    if (filteredNews.length > 0 && 
+        (!selectedNews || !filteredNews.some(n => n.id === selectedNews.id))) {
+      setSelectedNews(filteredNews[0]);
+    } else if (filteredNews.length === 0 && selectedNews) {
+      setSelectedNews(null);
+    }
+  }, [filteredNews, selectedNews]);
+
   const getTotalSelectedFilters = () => {
     return Object.values(selectedFilters).reduce((total, filters) => total + filters.length, 0);
   };
@@ -256,6 +303,48 @@ export default function NewsPage() {
         return "border-blue-500 text-blue-600";
       default:
         return "border-gray-500 text-gray-600";
+    }
+  };
+
+  const handleStatusChange = (value: NewsStatus) => {
+    setNewNews({
+      ...newNews,
+      status: value
+    });
+  };
+
+  const handleEditingStatusChange = (value: NewsStatus) => {
+    if (editingNews) {
+      setEditingNews({
+        ...editingNews,
+        status: value
+      });
+    } else if (selectedNews) {
+      setSelectedNews({
+        ...selectedNews,
+        status: value
+      });
+    } else if (selectedPendingNews) {
+      setSelectedPendingNews({
+        ...selectedPendingNews,
+        status: value
+      });
+    }
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setNewNews({
+      ...newNews,
+      category: value
+    });
+  };
+
+  const handleEditingCategoryChange = (value: string) => {
+    if (editingNews) {
+      setEditingNews({
+        ...editingNews,
+        category: value
+      });
     }
   };
 
@@ -366,13 +455,15 @@ export default function NewsPage() {
                     onChange={(e) => setNewNews({ ...newNews, image: e.target.value })}
                   />
                 </div>
-                <div className="grid gap-2">
+                <div className="space-y-4">
                   <Label htmlFor="status">Durum</Label>
                   <Select
                     value={newNews.status}
-                    onValueChange={(value: "Aktif" | "Pasif" | "Taslak" | "Onay Bekliyor") => setNewNews({ ...newNews, status: value })}
+                    onValueChange={(value: string) => {
+                      handleStatusChange(value as NewsStatus);
+                    }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="news-status" className="w-full">
                       <SelectValue placeholder="Durum seçin" />
                     </SelectTrigger>
                     <SelectContent>
@@ -741,19 +832,15 @@ export default function NewsPage() {
                           }}
                         />
                       </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="edit-status">Durum</Label>
+                      <div className="space-y-4">
+                        <Label htmlFor="editStatus">Durum</Label>
                         <Select
-                          value={selectedNews?.status || selectedPendingNews?.status || "Aktif"}
-                          onValueChange={(value: "Aktif" | "Pasif" | "Taslak" | "Onay Bekliyor") => {
-                            if (selectedNews) {
-                              setSelectedNews({ ...selectedNews, status: value });
-                            } else if (selectedPendingNews) {
-                              setSelectedPendingNews({ ...selectedPendingNews, status: value });
-                            }
+                          value={editingNews?.status || ""}
+                          onValueChange={(value: string) => {
+                            handleEditingStatusChange(value as NewsStatus);
                           }}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger id="edit-news-status" className="w-full">
                             <SelectValue placeholder="Durum seçin" />
                           </SelectTrigger>
                           <SelectContent>

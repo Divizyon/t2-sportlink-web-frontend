@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import type { ChangeEvent } from "react"
 import { 
   MegaphoneIcon,
@@ -45,6 +45,8 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { toast } from "@/components/ui/use-toast"
+import { Toaster } from "@/components/ui/toaster"
 import Image from "next/image"
 
 interface Announcement {
@@ -55,8 +57,7 @@ interface Announcement {
   date: string
   status: "Aktif" | "Pasif" | "Taslak"
   image?: string
-  author: string
-  targetAudience: string[]
+  visibility: "Herkese Açık" | "Sadece Üyeler" | "Yöneticiler"
   views: number
   expiryDate: string
 }
@@ -71,8 +72,7 @@ export default function AnnouncementsPage() {
       date: "2023-05-15",
       status: "Aktif",
       image: "/images/summer-camp.jpg",
-      author: "Spor Koordinatörü",
-      targetAudience: ["Üyeler", "Veliler"],
+      visibility: "Herkese Açık",
       views: 342,
       expiryDate: "2023-06-30"
     },
@@ -84,8 +84,7 @@ export default function AnnouncementsPage() {
       date: "2023-06-10",
       status: "Aktif",
       image: "/images/maintenance.jpg",
-      author: "Tesis Müdürü",
-      targetAudience: ["Tüm Üyeler"],
+      visibility: "Herkese Açık",
       views: 567,
       expiryDate: "2023-06-25"
     }
@@ -96,8 +95,7 @@ export default function AnnouncementsPage() {
     content: "",
     category: "",
     status: "Aktif",
-    author: "",
-    targetAudience: [],
+    visibility: "Herkese Açık",
     expiryDate: ""
   })
   
@@ -115,6 +113,7 @@ export default function AnnouncementsPage() {
     category: [],
     status: []
   });
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const handleFilterChange = (type: 'category' | 'status', value: string) => {
     setSelectedFilters(prev => {
@@ -146,6 +145,14 @@ export default function AnnouncementsPage() {
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
+  // Automatically select the first announcement from filtered list
+  useEffect(() => {
+    if (filteredAnnouncements.length > 0 && 
+        (!selectedAnnouncement || !filteredAnnouncements.some(a => a.id === selectedAnnouncement.id))) {
+      setSelectedAnnouncement(filteredAnnouncements[0]);
+    }
+  }, [filteredAnnouncements, selectedAnnouncement]);
+
   const getTotalSelectedFilters = () => {
     return Object.values(selectedFilters).reduce((total, filters) => total + filters.length, 0);
   };
@@ -166,8 +173,7 @@ export default function AnnouncementsPage() {
       content: "",
       category: "",
       status: "Aktif",
-      author: "",
-      targetAudience: [],
+      visibility: "Herkese Açık",
       expiryDate: ""
     })
     setIsDialogOpen(false)
@@ -236,6 +242,7 @@ export default function AnnouncementsPage() {
 
   return (
     <div className="h-full p-4 space-y-4">
+      <Toaster />
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Duyurular</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -341,54 +348,34 @@ export default function AnnouncementsPage() {
               </div>
 
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="author" className="text-right">
-                  Yazar
+                <Label htmlFor="visibility" className="text-right">
+                  Görünürlük
                 </Label>
-                <Input
-                  id="author"
-                  placeholder="Duyuru yazarı"
-                  className="col-span-3"
-                  value={editingAnnouncement?.author || newAnnouncement.author}
-                  onChange={(e) => {
+                <Select
+                  value={editingAnnouncement?.visibility || newAnnouncement.visibility || "Herkese Açık"}
+                  onValueChange={(value: "Herkese Açık" | "Sadece Üyeler" | "Yöneticiler") => {
                     if (editingAnnouncement) {
                       setEditingAnnouncement({
                         ...editingAnnouncement,
-                        author: e.target.value,
+                        visibility: value,
                       })
                     } else {
                       setNewAnnouncement({
                         ...newAnnouncement,
-                        author: e.target.value,
+                        visibility: value,
                       })
                     }
                   }}
-                />
-              </div>
-
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="targetAudience" className="text-right">
-                  Hedef Kitle
-                </Label>
-                <Input
-                  id="targetAudience"
-                  placeholder="Hedef kitle (virgülle ayırın)"
-                  className="col-span-3"
-                  value={editingAnnouncement?.targetAudience.join(", ") || newAnnouncement.targetAudience?.join(", ") || ""}
-                  onChange={(e) => {
-                    const audiences = e.target.value.split(",").map(item => item.trim()).filter(Boolean)
-                    if (editingAnnouncement) {
-                      setEditingAnnouncement({
-                        ...editingAnnouncement,
-                        targetAudience: audiences,
-                      })
-                    } else {
-                      setNewAnnouncement({
-                        ...newAnnouncement,
-                        targetAudience: audiences,
-                      })
-                    }
-                  }}
-                />
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Görünürlük seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Herkese Açık">Herkese Açık</SelectItem>
+                    <SelectItem value="Sadece Üyeler">Sadece Üyeler</SelectItem>
+                    <SelectItem value="Yöneticiler">Yöneticiler</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid grid-cols-4 items-center gap-4">
@@ -550,6 +537,7 @@ export default function AnnouncementsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Görsel</TableHead>
                 <TableHead>Başlık</TableHead>
                 <TableHead>Kategori</TableHead>
                 <TableHead>Tarih</TableHead>
@@ -564,6 +552,22 @@ export default function AnnouncementsPage() {
                   className={`cursor-pointer ${selectedAnnouncement?.id === announcement.id ? "bg-muted" : ""}`}
                   onClick={() => setSelectedAnnouncement(announcement)}
                 >
+                  <TableCell>
+                    <div className="relative h-12 w-20 rounded-md overflow-hidden bg-muted">
+                      {announcement.image ? (
+                        <Image
+                          src={announcement.image}
+                          alt={announcement.title}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <MegaphoneIcon className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="font-medium">{announcement.title}</TableCell>
                   <TableCell>{announcement.category}</TableCell>
                   <TableCell>{announcement.date}</TableCell>
@@ -574,17 +578,6 @@ export default function AnnouncementsPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setEditingAnnouncement(announcement)
-                          setIsDialogOpen(true)
-                        }}
-                      >
-                        <PencilIcon className="h-4 w-4" />
-                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -629,52 +622,250 @@ export default function AnnouncementsPage() {
                     <span>Kategori: {selectedAnnouncement.category}</span>
                   </div>
                   <div className="flex items-center">
-                    <UsersIcon className="mr-1 h-4 w-4" />
-                    <span>Yazar: {selectedAnnouncement.author}</span>
-                  </div>
-                  <div className="flex items-center">
                     <EyeIcon className="mr-1 h-4 w-4" />
                     <span>Görüntülenme: {selectedAnnouncement.views}</span>
                   </div>
                   <div className="flex items-center">
                     <InfoIcon className="mr-1 h-4 w-4" />
-                    <span>Hedef Kitle: {selectedAnnouncement.targetAudience.join(", ")}</span>
+                    <span>Görünürlük: {selectedAnnouncement.visibility}</span>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="flex-grow overflow-auto pt-2">
-                <Tabs defaultValue="content">
+                <Tabs defaultValue="preview">
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="content">İçerik</TabsTrigger>
                     <TabsTrigger value="preview">Önizleme</TabsTrigger>
+                    <TabsTrigger value="edit">Düzenle</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="content" className="mt-4 min-h-[250px]">
-                    <div className="whitespace-pre-wrap">
-                      {selectedAnnouncement.content}
-                    </div>
-                  </TabsContent>
                   <TabsContent value="preview" className="mt-4 min-h-[250px]">
                     <div className="border rounded-lg p-4 bg-card text-card-foreground">
                       <div className="flex flex-col gap-4">
                         {selectedAnnouncement.image && (
                           <div className="rounded-md overflow-hidden">
                             <div className="relative h-56 w-full rounded-md bg-muted">
-                              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                <MegaphoneIcon className="h-10 w-10" />
-                                <span className="ml-2">Görsel Önizlemesi</span>
-                              </div>
+                              <Image
+                                src={selectedAnnouncement.image}
+                                alt={selectedAnnouncement.title}
+                                fill
+                                className="object-cover"
+                              />
                             </div>
                           </div>
                         )}
                         <div>
                           <h3 className="text-xl font-bold">{selectedAnnouncement.title}</h3>
                           <p className="text-sm text-muted-foreground mt-1">
-                            {selectedAnnouncement.author} | {selectedAnnouncement.date}
+                            {selectedAnnouncement.date}
                           </p>
                         </div>
                         <div className="whitespace-pre-wrap">
                           {selectedAnnouncement.content}
                         </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="edit" className="mt-4 min-h-[250px]">
+                    <div className="grid gap-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-title" className="text-right">
+                          Başlık
+                        </Label>
+                        <Input
+                          id="edit-title"
+                          placeholder="Duyuru başlığı"
+                          className="col-span-3"
+                          value={selectedAnnouncement.title}
+                          onChange={(e) => {
+                            setSelectedAnnouncement({
+                              ...selectedAnnouncement,
+                              title: e.target.value,
+                            });
+                          }}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-category" className="text-right">
+                          Kategori
+                        </Label>
+                        <Select
+                          value={selectedAnnouncement.category}
+                          onValueChange={(value: string) => {
+                            setSelectedAnnouncement({
+                              ...selectedAnnouncement,
+                              category: value,
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Kategori seçin" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Etkinlik">Etkinlik</SelectItem>
+                            <SelectItem value="Bilgilendirme">Bilgilendirme</SelectItem>
+                            <SelectItem value="Bakım">Bakım</SelectItem>
+                            <SelectItem value="Diğer">Diğer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-status" className="text-right">
+                          Durum
+                        </Label>
+                        <Select
+                          value={selectedAnnouncement.status}
+                          onValueChange={(value: "Aktif" | "Pasif" | "Taslak") => {
+                            setSelectedAnnouncement({
+                              ...selectedAnnouncement,
+                              status: value,
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Durum seçin" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Aktif">Aktif</SelectItem>
+                            <SelectItem value="Pasif">Pasif</SelectItem>
+                            <SelectItem value="Taslak">Taslak</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-visibility" className="text-right">
+                          Görünürlük
+                        </Label>
+                        <Select
+                          value={selectedAnnouncement.visibility}
+                          onValueChange={(value: "Herkese Açık" | "Sadece Üyeler" | "Yöneticiler") => {
+                            setSelectedAnnouncement({
+                              ...selectedAnnouncement,
+                              visibility: value,
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Görünürlük seçin" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Herkese Açık">Herkese Açık</SelectItem>
+                            <SelectItem value="Sadece Üyeler">Sadece Üyeler</SelectItem>
+                            <SelectItem value="Yöneticiler">Yöneticiler</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-expiryDate" className="text-right">
+                          Son Tarih
+                        </Label>
+                        <Input
+                          id="edit-expiryDate"
+                          type="date"
+                          className="col-span-3"
+                          value={selectedAnnouncement.expiryDate}
+                          onChange={(e) => {
+                            setSelectedAnnouncement({
+                              ...selectedAnnouncement,
+                              expiryDate: e.target.value,
+                            });
+                          }}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-image" className="text-right">
+                          Görsel
+                        </Label>
+                        <div className="col-span-3 space-y-2">
+                          <Input
+                            id="edit-image"
+                            type="file"
+                            accept=".png,.jpg,.jpeg"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              
+                              // Yalnızca PNG, JPG ve JPEG formatlarını kabul et
+                              if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+                                alert('Lütfen sadece PNG, JPG veya JPEG formatında dosya yükleyiniz.');
+                                return;
+                              }
+                              
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                const base64String = reader.result as string;
+                                setSelectedAnnouncement({
+                                  ...selectedAnnouncement,
+                                  image: base64String
+                                });
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                          />
+                          {selectedAnnouncement.image && (
+                            <div className="relative w-full h-32 mt-2 rounded-md overflow-hidden">
+                              <Image
+                                src={selectedAnnouncement.image}
+                                alt="Duyuru Görseli"
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                          )}
+                          <span className="text-xs text-gray-500">Sadece PNG, JPG ve JPEG formatları desteklenmektedir.</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-4 items-start gap-4">
+                        <Label htmlFor="edit-content" className="text-right pt-2">
+                          İçerik
+                        </Label>
+                        <Textarea
+                          id="edit-content"
+                          placeholder="Duyuru içeriği"
+                          className="col-span-3 min-h-[120px]"
+                          value={selectedAnnouncement.content}
+                          onChange={(e) => {
+                            setSelectedAnnouncement({
+                              ...selectedAnnouncement,
+                              content: e.target.value,
+                            });
+                          }}
+                        />
+                      </div>
+                      
+                      <div className="flex justify-end mt-4">
+                        <Button 
+                          onClick={() => {
+                            setIsUpdating(true);
+                            // Simulate a short delay to show loading state
+                            setTimeout(() => {
+                              const updatedAnnouncements = announcements.map((announcement) =>
+                                announcement.id === selectedAnnouncement.id ? selectedAnnouncement : announcement
+                              );
+                              setAnnouncements(updatedAnnouncements);
+                              setIsUpdating(false);
+                              toast({
+                                title: "Duyuru güncellendi",
+                                description: "Duyuru başarıyla güncellendi.",
+                                variant: "default",
+                              });
+                            }, 500);
+                          }}
+                          disabled={isUpdating}
+                        >
+                          {isUpdating ? (
+                            <div className="flex items-center">
+                              <span className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
+                              Güncelleniyor...
+                            </div>
+                          ) : (
+                            "Güncelle"
+                          )}
+                        </Button>
                       </div>
                     </div>
                   </TabsContent>
