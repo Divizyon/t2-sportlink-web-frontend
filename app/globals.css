@@ -121,3 +121,116 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* react-day-picker stilleri */
+.rdp {
+  --rdp-cell-size: 40px;
+  --rdp-accent-color: hsl(var(--primary));
+  --rdp-background-color: hsl(var(--primary) / 0.2);
+  --rdp-accent-color-dark: hsl(var(--primary));
+  --rdp-background-color-dark: hsl(var(--primary) / 0.3);
+  --rdp-outline: 2px solid var(--rdp-accent-color);
+  --rdp-outline-selected: 2px solid hsl(var(--primary));
+  margin: 0;
+}
+
+.rdp-day_selected, 
+.rdp-day_selected:focus-visible, 
+.rdp-day_selected:hover {
+  background-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+.rdp-day_today {
+  background-color: hsl(var(--accent)) !important;
+  color: hsl(var(--accent-foreground)) !important;
+}
+
+.rdp-day {
+  border-radius: var(--radius);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.rdp-nav_button {
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+}
+
+/* Takvim düzeltme stilleri */
+.rdp-months {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.rdp-month {
+  display: inline-block;
+  margin: 0;
+}
+
+.rdp-table {
+  margin: 0;
+  max-width: 100%;
+  border-collapse: collapse;
+}
+
+.rdp-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.rdp-caption_dropdowns {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.rdp-dropdown_month,
+.rdp-dropdown_year {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  appearance: none;
+  padding: 0 0.5rem;
+  font-size: 0.875rem;
+  height: 2rem;
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  background-color: transparent;
+  color: hsl(var(--foreground));
+  cursor: pointer;
+}
+
+.rdp-dropdown_month:hover,
+.rdp-dropdown_year:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.rdp-dropdown_month:focus,
+.rdp-dropdown_year:focus {
+  outline: none;
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.3);
+}
+
+.rdp-head_cell {
+  font-weight: 600;
+  text-align: center;
+  padding: 0.5rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.rdp-cell {
+  width: var(--rdp-cell-size);
+  height: var(--rdp-cell-size);
+  padding: 0;
+  text-align: center;
+}

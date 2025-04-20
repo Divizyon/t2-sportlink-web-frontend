@@ -668,11 +668,11 @@ export default function EventsPage() {
       <div className="lg:col-span-3 grid grid-cols-1 gap-6 overflow-y-auto">
         
         {/* Üst bölüm - Etkinlik Listesi */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Etkinlik Listesi</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card>
+        <CardHeader>
+          <CardTitle>Etkinlik Listesi</CardTitle>
+        </CardHeader>
+        <CardContent>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-4">
                 <Input
@@ -685,7 +685,7 @@ export default function EventsPage() {
                   <DialogTrigger asChild>
                     <Button variant="outline">
                       Filtrele {getTotalSelectedFilters() > 0 ? `(${getTotalSelectedFilters()})` : ''}
-                    </Button>
+                </Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
@@ -867,22 +867,22 @@ export default function EventsPage() {
                     </div>
                     <div className="grid gap-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                          <Label htmlFor="status">Durum</Label>
-                          <Select
+                    <div className="grid gap-2">
+                      <Label htmlFor="status">Durum</Label>
+                      <Select
                             value={newEvent.status ?? "pending"}
-                            onValueChange={(value) => setNewEvent({ ...newEvent, status: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Durum seçin" />
-                            </SelectTrigger>
-                            <SelectContent>
+                        onValueChange={(value) => setNewEvent({ ...newEvent, status: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Durum seçin" />
+                        </SelectTrigger>
+                        <SelectContent>
                               <SelectItem value="pending">Onay Bekliyor</SelectItem>
                               <SelectItem value="approved">Onaylanmış</SelectItem>
                               <SelectItem value="rejected">Reddedildi</SelectItem>
                               <SelectItem value="cancelled">İptal Edildi</SelectItem>
-                            </SelectContent>
-                          </Select>
+                        </SelectContent>
+                      </Select>
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="approval_status">Onay Durumu</Label>
@@ -1133,7 +1133,7 @@ export default function EventsPage() {
                           >
                             Katılımcıları Dışa Aktar
                           </Button>
-                        </div>
+                      </div>
                       </div>
                     )}
                   </div>
@@ -1250,22 +1250,22 @@ export default function EventsPage() {
                     </div>
                     <div className="grid gap-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                          <Label htmlFor="edit-status">Durum</Label>
-                          <Select
-                            value={selectedEvent.status}
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-status">Durum</Label>
+                      <Select
+                        value={selectedEvent.status}
                             onValueChange={(value) => handleChange('status', value as "pending" | "approved" | "rejected" | "cancelled")}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Durum seçin" />
-                            </SelectTrigger>
-                            <SelectContent>
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Durum seçin" />
+                        </SelectTrigger>
+                        <SelectContent>
                               <SelectItem value="pending">Onay Bekliyor</SelectItem>
                               <SelectItem value="approved">Onaylanmış</SelectItem>
                               <SelectItem value="rejected">Reddedildi</SelectItem>
                               <SelectItem value="cancelled">İptal Edildi</SelectItem>
-                            </SelectContent>
-                          </Select>
+                        </SelectContent>
+                      </Select>
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="approval_status">Onay Durumu</Label>
