@@ -141,6 +141,12 @@ type UserType = {
 
 export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchField, setSearchField] = useState<"username" | "email" | "first_name" | "last_name">("username");
+  const [selectedFilters, setSelectedFilters] = useState<{
+    role: string[];
+  }>({
+    role: []
+  });
   const [users, setUsers] = useState<UserType[]>([
     {
       id: "1",
@@ -250,10 +256,31 @@ export default function UsersPage() {
     }
   };
 
+  const handleFilterChange = (type: 'role', value: string) => {
+    setSelectedFilters(prev => {
+      const currentFilters = prev[type];
+      if (currentFilters.includes(value)) {
+        return {
+          ...prev,
+          [type]: currentFilters.filter(item => item !== value)
+        };
+      } else {
+        return {
+          ...prev,
+          [type]: [...currentFilters, value]
+        };
+      }
+    });
+  };
+
   const filteredUsers = users.filter(user => {
-    const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
-    const query = searchQuery.toLowerCase();
-    return fullName.includes(query) || user.email.toLowerCase().includes(query) || user.username.toLowerCase().includes(query);
+    const matchesSearch = searchQuery === "" || 
+      user[searchField].toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesRole = selectedFilters.role.length === 0 || 
+      selectedFilters.role.includes(user.role);
+
+    return matchesSearch && matchesRole;
   });
 
   // İçerik sayılarını kullanıcı ID'sine göre dinamik olarak belirle
@@ -278,6 +305,10 @@ export default function UsersPage() {
     };
   };
 
+  const getTotalSelectedFilters = () => {
+    return selectedFilters.role.length;
+  };
+
   return (
     <div className="flex h-screen">
       {/* Sol taraf - Kullanıcı listesi (2/3) */}
@@ -286,17 +317,45 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold">Kullanıcı Yönetimi</h1>
         </div>
 
-      <div className="flex items-center justify-between">
-          <div className="flex gap-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <Input
               placeholder="Kullanıcı ara..."
               className="max-w-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <Button variant="outline" size="icon">
-              <Search className="h-4 w-4" />
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  Filtrele {getTotalSelectedFilters() > 0 ? `(${getTotalSelectedFilters()})` : ''}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Filtreleme Seçenekleri</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Rol</h4>
+                    <div className="space-y-2">
+                      {['Admin', 'Kullanıcı', 'Yönetici'].map((role) => (
+                        <div key={role} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`role-${role}`}
+                            checked={selectedFilters.role.includes(role)}
+                            onChange={() => handleFilterChange('role', role)}
+                            className="h-4 w-4"
+                          />
+                          <label htmlFor={`role-${role}`}>{role}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
           <Dialog>
             <DialogTrigger asChild>
@@ -405,11 +464,9 @@ export default function UsersPage() {
                     <Badge className={
                       user.role === "admin" 
                         ? "bg-red-500 hover:bg-red-600"
-                        : user.role === "moderator"
-                        ? "bg-amber-500 hover:bg-amber-600"
                         : "bg-green-500 hover:bg-green-600"
                     }>
-                      {user.role === "admin" ? "Admin" : user.role === "moderator" ? "Moderatör" : "Üye"}
+                      {user.role === "admin" ? "Admin" : "Üye"}
                     </Badge>
                   </td>
                   <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
@@ -456,11 +513,9 @@ export default function UsersPage() {
                         <Badge className={
                           selectedUser.role === "admin" 
                             ? "bg-red-500 hover:bg-red-600"
-                            : selectedUser.role === "moderator"
-                            ? "bg-amber-500 hover:bg-amber-600"
                             : "bg-green-500 hover:bg-green-600"
                         }>
-                          {selectedUser.role === "admin" ? "Admin" : selectedUser.role === "moderator" ? "Moderatör" : "Üye"}
+                          {selectedUser.role === "admin" ? "Admin" : "Üye"}
                         </Badge>
                       </CardDescription>
                     </div>

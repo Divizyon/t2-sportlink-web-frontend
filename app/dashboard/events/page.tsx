@@ -44,6 +44,7 @@ interface Event {
   requirements: string[];
   prizes: string[];
   isApproved: boolean;
+  visibility: "public" | "club_members";
 }
 
 export default function EventsPage() {
@@ -63,7 +64,8 @@ export default function EventsPage() {
       organizer: "Spor Kulübü",
       requirements: ["Spor kıyafetleri", "Futbol ayakkabısı", "Su matarası"],
       prizes: ["10.000 TL", "Kupa", "Madalya"],
-      isApproved: true
+      isApproved: true,
+      visibility: "public"
     },
     {
       id: "2",
@@ -80,7 +82,8 @@ export default function EventsPage() {
       organizer: "Basketbol Federasyonu",
       requirements: ["Spor kıyafetleri", "Basketbol topu", "Spor çantası"],
       prizes: ["5.000 TL", "Kupa", "Madalya"],
-      isApproved: false
+      isApproved: false,
+      visibility: "public"
     },
     {
       id: "3",
@@ -97,7 +100,8 @@ export default function EventsPage() {
       organizer: "Gençlik Spor İl Müdürlüğü",
       requirements: ["Okul forması", "Spor ayakkabısı"],
       prizes: ["3.000 TL", "Kupa", "Madalya"],
-      isApproved: false
+      isApproved: false,
+      visibility: "public"
     }
   ]);
 
@@ -115,7 +119,8 @@ export default function EventsPage() {
     organizer: "",
     requirements: [] as string[],
     prizes: [] as string[],
-    isApproved: false
+    isApproved: false,
+    visibility: "public" as "public" | "club_members"
   });
 
   // Dosya yükleme için yardımcı fonksiyon
@@ -153,6 +158,16 @@ export default function EventsPage() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [viewMode, setViewMode] = useState<"preview" | "edit">("preview");
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchField, setSearchField] = useState<"title" | "description" | "category" | "organizer">("title");
+  const [selectedFilters, setSelectedFilters] = useState<{
+    category: string[];
+    status: string[];
+    visibility: string[];
+  }>({
+    category: [],
+    status: [],
+    visibility: []
+  });
 
   // Sayfa yüklendiğinde ilk etkinliği otomatik seç
   useEffect(() => {
@@ -183,7 +198,8 @@ export default function EventsPage() {
       organizer: "",
       requirements: [],
       prizes: [],
-      isApproved: false
+      isApproved: false,
+      visibility: "public"
     });
   };
 
@@ -221,13 +237,44 @@ export default function EventsPage() {
     ));
   };
 
-  const filteredEvents = events.filter(event => 
-    event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    event.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleFilterChange = (type: 'category' | 'status' | 'visibility', value: string) => {
+    setSelectedFilters(prev => {
+      const currentFilters = prev[type];
+      if (currentFilters.includes(value)) {
+        return {
+          ...prev,
+          [type]: currentFilters.filter(item => item !== value)
+        };
+      } else {
+        return {
+          ...prev,
+          [type]: [...currentFilters, value]
+        };
+      }
+    });
+  };
 
-  const pendingApprovalEvents = events.filter(event => !event.isApproved);
+  const filteredEvents = events.filter(event => {
+    const matchesSearch = searchQuery === "" || 
+      event[searchField].toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesCategory = selectedFilters.category.length === 0 || 
+      selectedFilters.category.includes(event.category);
+
+    const matchesStatus = selectedFilters.status.length === 0 || 
+      selectedFilters.status.includes(event.status);
+
+    const matchesVisibility = selectedFilters.visibility.length === 0 || 
+      selectedFilters.visibility.includes(event.visibility);
+
+    return matchesSearch && matchesCategory && matchesStatus && matchesVisibility;
+  });
+
+  const pendingApprovalEvents = events.filter((event: Event) => !event.isApproved);
+
+  const getTotalSelectedFilters = () => {
+    return Object.values(selectedFilters).reduce((total, filters) => total + filters.length, 0);
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 h-[calc(100vh-4rem)]">
@@ -235,11 +282,11 @@ export default function EventsPage() {
       <div className="lg:col-span-3 grid grid-cols-1 gap-6 overflow-y-auto">
         
         {/* Üst bölüm - Etkinlik Listesi */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Etkinlik Listesi</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <Card>
+          <CardHeader>
+            <CardTitle>Etkinlik Listesi</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-4">
                 <Input
@@ -248,15 +295,77 @@ export default function EventsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <Button variant="outline" size="icon">
-                  <Search className="h-4 w-4" />
-                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      Filtrele {getTotalSelectedFilters() > 0 ? `(${getTotalSelectedFilters()})` : ''}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Filtreleme Seçenekleri</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Kategori</h4>
+                        <div className="space-y-2">
+                          {['Futbol', 'Basketbol', 'Voleybol', 'Tenis', 'Yüzme', 'Diğer'].map((category) => (
+                            <div key={category} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`category-${category}`}
+                                checked={selectedFilters.category.includes(category)}
+                                onChange={() => handleFilterChange('category', category)}
+                                className="h-4 w-4"
+                              />
+                              <label htmlFor={`category-${category}`}>{category}</label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Durum</h4>
+                        <div className="space-y-2">
+                          {['Aktif', 'Tamamlandı', 'İptal Edildi'].map((status) => (
+                            <div key={status} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`status-${status}`}
+                                checked={selectedFilters.status.includes(status)}
+                                onChange={() => handleFilterChange('status', status)}
+                                className="h-4 w-4"
+                              />
+                              <label htmlFor={`status-${status}`}>{status}</label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Görünürlük</h4>
+                        <div className="space-y-2">
+                          {['Herkese Açık', 'Üyelere Özel'].map((visibility) => (
+                            <div key={visibility} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`visibility-${visibility}`}
+                                checked={selectedFilters.visibility.includes(visibility)}
+                                onChange={() => handleFilterChange('visibility', visibility)}
+                                className="h-4 w-4"
+                              />
+                              <label htmlFor={`visibility-${visibility}`}>{visibility}</label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
               <Dialog>
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
-                    Yeni Etkinlik
+                    Yeni Etkinlik Ekle
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
@@ -382,6 +491,21 @@ export default function EventsPage() {
                         <SelectContent>
                           <SelectItem value="Aktif">Aktif</SelectItem>
                           <SelectItem value="Pasif">Pasif</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="visibility">Görünürlük</Label>
+                      <Select
+                        value={newEvent.visibility}
+                        onValueChange={(value: "public" | "club_members") => setNewEvent({ ...newEvent, visibility: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Görünürlük seçin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="public">Herkese Açık</SelectItem>
+                          <SelectItem value="club_members">Kulüp Üyelerine Özel</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -741,20 +865,39 @@ export default function EventsPage() {
                         onChange={(e) => setSelectedEvent({ ...selectedEvent, organizer: e.target.value })}
                       />
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="edit-status">Durum</Label>
-                      <Select
-                        value={selectedEvent.status}
-                        onValueChange={(value) => setSelectedEvent({ ...selectedEvent, status: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Durum seçin" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Aktif">Aktif</SelectItem>
-                          <SelectItem value="Pasif">Pasif</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="grid gap-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="edit-status">Durum</Label>
+                          <Select
+                            value={selectedEvent.status}
+                            onValueChange={(value) => setSelectedEvent({ ...selectedEvent, status: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Durum seçin" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Aktif">Aktif</SelectItem>
+                              <SelectItem value="Pasif">Pasif</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="visibility">Görünürlük</Label>
+                          <Select
+                            value={selectedEvent.visibility}
+                            onValueChange={(value: "public" | "club_members") => setSelectedEvent({ ...selectedEvent, visibility: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Görünürlük seçin" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="public">Herkese Açık</SelectItem>
+                              <SelectItem value="club_members">Kulüp Üyelerine Özel</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
                     </div>
                     <div className="flex justify-end pt-4">
                       <Button onClick={() => {
