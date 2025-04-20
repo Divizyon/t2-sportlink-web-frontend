@@ -644,8 +644,7 @@ export default function EventsPage() {
                       <Label htmlFor="status">Durum</Label>
                       <Select
                         value={newEvent.status}
-                        onValueChange={(value: "Aktif" | "Pasif" | "upcoming" | "ongoing" | "completed" | "cancelled") => 
-                          setNewEvent({ ...newEvent, status: value })}
+                        onValueChange={(value) => setNewEvent({ ...newEvent, status: value })}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Durum seçin" />
@@ -1135,71 +1134,71 @@ export default function EventsPage() {
         </CardContent>
       </Card>
       </div>
-
-      {/* Katılımcı Detay Popup */}
-      {selectedParticipant && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Katılımcı Detayları</h3>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 rounded-full"
-                onClick={() => setSelectedParticipant(null)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+    </div>
+    
+    {/* Katılımcı Detay Popup */}
+    {selectedParticipant && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="bg-white rounded-lg shadow-lg w-full max-w-md overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="text-lg font-semibold">Katılımcı Detayları</h3>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 rounded-full"
+              onClick={() => setSelectedParticipant(null)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="p-6">
+            <div className="flex flex-col items-center mb-6">
+              <div className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                <span className="text-2xl font-bold text-green-600">
+                  {selectedParticipant.name.split(' ').map(n => n[0]).join('')}
+                </span>
+              </div>
+              <h4 className="text-xl font-semibold">{selectedParticipant.name}</h4>
+              <p className="text-gray-500 text-sm">Kayıt: {new Date(selectedParticipant.registrationDate).toLocaleDateString('tr-TR')}</p>
             </div>
-            <div className="p-6">
-              <div className="flex flex-col items-center mb-6">
-                <div className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center mb-4">
-                  <span className="text-2xl font-bold text-green-600">
-                    {selectedParticipant?.name.split(' ').map(n => n[0]).join('')}
-                  </span>
-                </div>
-                <h4 className="text-xl font-semibold">{selectedParticipant?.name}</h4>
-                <p className="text-gray-500 text-sm">Kayıt: {new Date(selectedParticipant?.registrationDate || "").toLocaleDateString('tr-TR')}</p>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-md">
-                  <Mail className="h-5 w-5 text-blue-500" />
-                  <div>
-                    <div className="text-xs text-gray-500">E-posta</div>
-                    <div className="text-sm font-medium">{selectedParticipant?.email}</div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-md">
-                  <Phone className="h-5 w-5 text-green-500" />
-                  <div>
-                    <div className="text-xs text-gray-500">Telefon</div>
-                    <div className="text-sm font-medium">{selectedParticipant?.phone || "Belirtilmemiş"}</div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-md">
-                  <Calendar className="h-5 w-5 text-purple-500" />
-                  <div>
-                    <div className="text-xs text-gray-500">Etkinlik</div>
-                    <div className="text-sm font-medium">{selectedEvent?.title}</div>
-                  </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-md">
+                <Mail className="h-5 w-5 text-blue-500" />
+                <div>
+                  <div className="text-xs text-gray-500">E-posta</div>
+                  <div className="text-sm font-medium">{selectedParticipant.email}</div>
                 </div>
               </div>
               
-              <div className="mt-6 flex gap-2">
-                <Button className="w-full" variant="outline" onClick={() => setSelectedParticipant(null)}>
-                  Kapat
-                </Button>
-                <Button className="w-full" variant="default">
-                  Mesaj Gönder
-                </Button>
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-md">
+                <Phone className="h-5 w-5 text-green-500" />
+                <div>
+                  <div className="text-xs text-gray-500">Telefon</div>
+                  <div className="text-sm font-medium">{selectedParticipant.phone || "Belirtilmemiş"}</div>
+                </div>
               </div>
+              
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-md">
+                <Calendar className="h-5 w-5 text-purple-500" />
+                <div>
+                  <div className="text-xs text-gray-500">Etkinlik</div>
+                  <div className="text-sm font-medium">{selectedEvent?.title}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-6 flex gap-2">
+              <Button className="w-full" variant="outline" onClick={() => setSelectedParticipant(null)}>
+                Kapat
+              </Button>
+              <Button className="w-full" variant="default">
+                Mesaj Gönder
+              </Button>
             </div>
           </div>
         </div>
-      )}
-    </div>
+      </div>
+    )}
   );
 } 
