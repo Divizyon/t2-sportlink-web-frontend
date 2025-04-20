@@ -552,7 +552,7 @@ export default function UsersPage() {
       console.error("Dashboard/users - Kullanıcı detayları yükleme hatası:", error);
       toast({
         title: "Hata",
-        description: error.message || "Kullanıcı detayları yüklenirken bir hata oluştu",
+        description: error?.message || "Kullanıcı detayları yüklenirken bir hata oluştu",
         variant: "destructive",
       });
     } finally {

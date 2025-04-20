@@ -30,156 +30,454 @@ import {
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-
-interface Event {
-  id: string;
-  title: string;
-  description: string;
-  image: string;
-  location: string;
-  date: string;
-  time: string;
-  category: string;
-  capacity: number;
-  status: "Aktif" | "Pasif" | "upcoming" | "ongoing" | "completed" | "cancelled";
-  price: number;
-  organizer: string;
-  requirements?: string[];
-  prizes?: string[];
-  isApproved: boolean;
-  createdBy: string;
-  createdAt: string;
-  visibility: "public" | "club_members";
-  participants: {
-    id: string;
-    name: string;
-    email: string;
-    phone?: string;
-    registrationDate: string;
-  }[];
-}
+import { useToast } from "@/components/ui/use-toast";
+import useAuth from "@/lib/hooks/useAuth";
+import eventService from "@/lib/services/eventService";
+import type { Event, Participant, Sport, User } from "@/interfaces/event";
 
 export default function EventsPage() {
-  const [events, setEvents] = useState<Event[]>([
-    {
-      id: "1",
-      title: "Futbol Turnuvası",
-      description: "Yıllık futbol turnuvası başlıyor! Tüm takımlar katılabilir. Turnuva 3 gün sürecek ve her gün 4 maç oynanacak. Kazanan takıma 10.000 TL ödül verilecek.",
-      date: "2024-06-15",
-      time: "14:00",
-      location: "Merkez Spor Salonu",
-      category: "Futbol",
-      capacity: 100,
-      status: "Aktif",
-      image: "/images/football-tournament.jpg",
-      price: 500,
-      organizer: "Spor Kulübü",
-      requirements: ["Spor kıyafetleri", "Futbol ayakkabısı", "Su matarası"],
-      prizes: ["10.000 TL", "Kupa", "Madalya"],
-      isApproved: true,
-      visibility: "public",
-      participants: [
-        {
-          id: "p1",
-          name: "Mustafa Yılmaz",
-          email: "mustafa@example.com",
-          phone: "555-123-4567",
-          registrationDate: "2024-05-01"
-        },
-        {
-          id: "p2",
-          name: "Ayşe Demir",
-          email: "ayse@example.com",
-          phone: "555-987-6543",
-          registrationDate: "2024-05-02"
-        },
-        {
-          id: "p3",
-          name: "Mehmet Kaya",
-          email: "mehmet@example.com",
-          registrationDate: "2024-05-03"
-        },
-        {
-          id: "p4",
-          name: "Zeynep Şahin",
-          email: "zeynep@example.com",
-          phone: "555-456-7890",
-          registrationDate: "2024-05-04"
-        },
-        {
-          id: "p5",
-          name: "Ali Öztürk",
-          email: "ali@example.com",
-          registrationDate: "2024-05-05"
-        }
-      ],
-      createdBy: "admin",
-      createdAt: "2024-06-01T12:00:00Z"
-    },
-    {
-      id: "2",
-      title: "Basketbol Maçı",
-      description: "A takımı vs B takımı heyecanlı maç. Maç sonrası ödül töreni ve kokteyl düzenlenecek. Tüm basketbol severler davetlidir.",
-      date: "2024-06-20",
-      time: "19:00",
-      location: "Kapalı Spor Salonu",
-      category: "Basketbol",
-      capacity: 50,
-      status: "Aktif",
-      image: "/images/basketball-match.jpg",
-      price: 200,
-      organizer: "Basketbol Federasyonu",
-      requirements: ["Spor kıyafetleri", "Basketbol topu", "Spor çantası"],
-      prizes: ["5.000 TL", "Kupa", "Madalya"],
-      isApproved: false,
-      visibility: "public",
-      participants: [],
-      createdBy: "admin",
-      createdAt: "2024-06-01T12:00:00Z"
-    },
-    {
-      id: "3",
-      title: "Voleybol Turnuvası",
-      description: "Liselerarası voleybol turnuvası. Şehrimizdeki tüm liseler katılabilir.",
-      date: "2024-07-10",
-      time: "16:00",
-      location: "Belediye Spor Salonu",
-      category: "Voleybol",
-      capacity: 75,
-      status: "Aktif",
-      image: "/images/volleyball-tournament.jpg",
-      price: 0,
-      organizer: "Gençlik Spor İl Müdürlüğü",
-      requirements: ["Okul forması", "Spor ayakkabısı"],
-      prizes: ["3.000 TL", "Kupa", "Madalya"],
-      isApproved: false,
-      visibility: "public",
-      participants: [],
-      createdBy: "admin",
-      createdAt: "2024-06-01T12:00:00Z"
-    }
-  ]);
+  const { toast } = useToast();
+  const { user, isLoading: authLoading, isAuthenticated, hasRequiredRole } = useAuth('admin');
+  
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    pages: 0
+  });
 
-  const [newEvent, setNewEvent] = useState<Omit<Event, "id">>({
+  const [newEvent, setNewEvent] = useState<Partial<Event>>({
     title: "",
     description: "",
-    date: "",
-    time: "",
-    location: "",
+    event_date: "",
+    start_time: "",
+    end_time: "",
+    location_name: "",
+    location_latitude: 41.0082,
+    location_longitude: 28.9784,
+    max_participants: 10,
+    status: "pending",
+    approval_status: "pending",
+    sport_id: "",
+    creator_id: "",
     category: "",
-    capacity: 0,
-    status: "Aktif",
-    image: "",
     price: 0,
     organizer: "",
-    requirements: [],
-    prizes: [],
-    isApproved: false,
-    visibility: "public",
-    participants: [],
-    createdBy: "admin",
-    createdAt: new Date().toISOString()
+    image: ""
   });
+
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [viewMode, setViewMode] = useState<"preview" | "edit">("preview");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchField, setSearchField] = useState<"title" | "description">("title");
+  const [selectedFilters, setSelectedFilters] = useState<{
+    category: string[];
+    status: string[];
+    approval_status: string[];
+  }>({
+    category: [],
+    status: [],
+    approval_status: []
+  });
+  
+  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  
+  // Katılımcı istatistikleri için popup state'leri
+  const [showAttendedEvents, setShowAttendedEvents] = useState(false);
+  const [showSportsList, setShowSportsList] = useState(false);
+  const [showReportsList, setShowReportsList] = useState(false);
+
+  // Kullanıcı doğrulamasını kontrol et
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      // Kullanıcı giriş yapmamışsa, toast ile bildir
+      toast({
+        title: "Yetki Hatası",
+        description: "Bu sayfayı görüntülemek için giriş yapmanız gerekiyor",
+        variant: "destructive",
+      });
+    } else if (!authLoading && !hasRequiredRole) {
+      // Kullanıcı giriş yapmış ama admin değilse, toast ile bildir
+      toast({
+        title: "Yetki Hatası",
+        description: "Bu sayfayı görüntülemek için admin yetkisine sahip olmanız gerekiyor",
+        variant: "destructive",
+      });
+    }
+  }, [authLoading, isAuthenticated, hasRequiredRole, toast]);
+
+  // Sayfa yüklendiğinde ve filtreler değiştiğinde etkinlikleri yükle
+  useEffect(() => {
+    // Eğer kimlik doğrulama tamamlandıysa ve gerekli yetkiler varsa, etkinlikleri getir
+    if (!authLoading && isAuthenticated && hasRequiredRole) {
+      fetchEvents();
+    }
+  }, [pagination.page, pagination.limit, searchQuery, searchField, selectedFilters, authLoading, isAuthenticated, hasRequiredRole]);
+
+  // Sonuçlar içinden ilk etkinliği seç
+  useEffect(() => {
+    if (events.length > 0 && !selectedEvent) {
+      setSelectedEvent(events[0] || null);
+    }
+  }, [events, selectedEvent]);
+
+  // Etkinlikleri API'den yükle
+  const fetchEvents = async () => {
+    // Eğer kullanıcının yetkisi yoksa veya giriş yapmamışsa, hemen çık
+    if (!isAuthenticated || !hasRequiredRole) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      console.log("Dashboard/events: Etkinlikler yükleniyor...");
+      
+      const params: {
+        page: number;
+        limit: number;
+        search?: string;
+        searchField?: string;
+        category?: string[];
+        status?: string[];
+        approval_status?: string[];
+      } = {
+        page: pagination.page,
+        limit: pagination.limit
+      };
+      
+      if (searchQuery.length > 2) {
+        params.search = searchQuery;
+        params.searchField = searchField;
+      }
+      
+      if (selectedFilters.category.length > 0) {
+        params.category = selectedFilters.category;
+      }
+      
+      if (selectedFilters.status.length > 0) {
+        params.status = selectedFilters.status;
+      }
+      
+      if (selectedFilters.approval_status.length > 0) {
+        params.approval_status = selectedFilters.approval_status;
+      }
+      
+      const response = await eventService.listEvents(params);
+      
+      if (response.success && response.data) {
+        console.log("Dashboard/events - Etkinlikler yüklendi:", response.data.length);
+        setEvents(response.data);
+        if (response.pagination) {
+          setPagination({
+            total: response.pagination.total || 0,
+            page: response.pagination.page || 1,
+            limit: response.pagination.limit || 10,
+            pages: response.pagination.totalPages || 0
+          });
+        }
+      } else {
+        console.error("Dashboard/events - API başarısız yanıt:", response);
+        
+        toast({
+          title: "Hata",
+          description: response.message || "Etkinlikler yüklenirken bir hata oluştu",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Dashboard/events - Etkinlikler yüklenirken hata:", error);
+      
+      toast({
+        title: "Hata",
+        description: error.message || "Etkinlikler yüklenirken bir hata oluştu",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Etkinlik detaylarını yükle
+  const fetchEventDetails = async (eventId: string) => {
+    try {
+      setDetailLoading(true);
+      const response = await eventService.getEventById(eventId);
+      
+      console.log("Dashboard/events - Etkinlik detayları API yanıtı:", response);
+      
+      if (response.success && response.data) {
+        setSelectedEvent(response.data);
+      } else {
+        toast({
+          title: "Hata",
+          description: "Etkinlik detayları yüklenirken bir hata oluştu",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Dashboard/events - Etkinlik detayları yükleme hatası:", error);
+      toast({
+        title: "Hata",
+        description: error.message || "Etkinlik detayları yüklenirken bir hata oluştu",
+        variant: "destructive",
+      });
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const handleAddEvent = async () => {
+    try {
+      const response = await eventService.createEvent(newEvent);
+      
+      if (response.success && response.data) {
+        toast({
+          title: "Başarılı",
+          description: response.message || "Etkinlik başarıyla oluşturuldu",
+        });
+        
+        // Etkinlik listesini güncelle
+        fetchEvents();
+        resetEvent();
+      } else {
+        toast({
+          title: "Hata",
+          description: response.message || "Etkinlik oluşturulurken bir hata oluştu",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Etkinlik oluşturma hatası:", error);
+      toast({
+        title: "Hata",
+        description: error.message || "Etkinlik oluşturulurken bir hata oluştu",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditEvent = async () => {
+    if (!editingEvent) return;
+    
+    try {
+      const response = await eventService.updateEvent(editingEvent.id, editingEvent);
+      
+      if (response.success) {
+        toast({
+          title: "Başarılı",
+          description: response.message || "Etkinlik başarıyla güncellendi",
+        });
+        
+        // Etkinlik listesini güncelle
+        fetchEvents();
+        
+        // Seçili etkinliği güncelle
+        if (selectedEvent && selectedEvent.id === editingEvent.id) {
+          await fetchEventDetails(editingEvent.id);
+        }
+        
+        setEditingEvent(null);
+      } else {
+        toast({
+          title: "Hata",
+          description: response.message || "Etkinlik güncellenirken bir hata oluştu",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Etkinlik güncelleme hatası:", error);
+      toast({
+        title: "Hata",
+        description: error.message || "Etkinlik güncellenirken bir hata oluştu",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    try {
+      const response = await eventService.deleteEvent(id);
+      
+      if (response.success) {
+        toast({
+          title: "Başarılı",
+          description: response.message || "Etkinlik başarıyla silindi",
+        });
+        
+        // Etkinlik listesini güncelle
+        fetchEvents();
+        
+        // Eğer silinen etkinlik seçili ise, ilk etkinliği seç
+        if (selectedEvent && selectedEvent.id === id) {
+          if (events.length > 1) {
+            const remainingEvents = events.filter(event => event.id !== id);
+            if (remainingEvents[0]) {
+              setSelectedEvent(remainingEvents[0]);
+            } else {
+              setSelectedEvent(null);
+            }
+          } else {
+            setSelectedEvent(null);
+          }
+        }
+      } else {
+        toast({
+          title: "Hata",
+          description: response.message || "Etkinlik silinirken bir hata oluştu",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Etkinlik silme hatası:", error);
+      toast({
+        title: "Hata",
+        description: error.message || "Etkinlik silinirken bir hata oluştu",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleApproveEvent = async (id: string) => {
+    try {
+      const response = await eventService.approveEvent(id);
+      
+      if (response.success) {
+        toast({
+          title: "Başarılı",
+          description: response.message || "Etkinlik başarıyla onaylandı",
+        });
+        
+        // Etkinlik listesini güncelle
+        fetchEvents();
+        
+        // Seçili etkinliği güncelle
+        if (selectedEvent && selectedEvent.id === id) {
+          await fetchEventDetails(id);
+        }
+      } else {
+        toast({
+          title: "Hata",
+          description: response.message || "Etkinlik onaylanırken bir hata oluştu",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Etkinlik onaylama hatası:", error);
+      toast({
+        title: "Hata",
+        description: error.message || "Etkinlik onaylanırken bir hata oluştu",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRejectEvent = async (id: string) => {
+    try {
+      const response = await eventService.rejectEvent(id);
+      
+      if (response.success) {
+        toast({
+          title: "Başarılı",
+          description: response.message || "Etkinlik başarıyla reddedildi",
+        });
+        
+        // Etkinlik listesini güncelle
+        fetchEvents();
+        
+        // Seçili etkinliği güncelle
+        if (selectedEvent && selectedEvent.id === id) {
+          await fetchEventDetails(id);
+        }
+      } else {
+        toast({
+          title: "Hata",
+          description: response.message || "Etkinlik reddedilirken bir hata oluştu",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Etkinlik reddetme hatası:", error);
+      toast({
+        title: "Hata",
+        description: error.message || "Etkinlik reddedilirken bir hata oluştu",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFilterChange = (type: 'category' | 'status' | 'approval_status', value: string) => {
+    setSelectedFilters(prev => {
+      const currentFilters = prev[type];
+      if (currentFilters.includes(value)) {
+        return {
+          ...prev,
+          [type]: currentFilters.filter(item => item !== value)
+        };
+      } else {
+        return {
+          ...prev,
+          [type]: [...currentFilters, value]
+        };
+      }
+    });
+  };
+
+  const getTotalSelectedFilters = () => {
+    return selectedFilters.category.length + selectedFilters.status.length + selectedFilters.approval_status.length;
+  };
+
+  const resetEvent = () => {
+    setNewEvent({
+      title: "",
+      description: "",
+      event_date: "",
+      start_time: "",
+      end_time: "",
+      location_name: "",
+      location_latitude: 41.0082,
+      location_longitude: 28.9784,
+      max_participants: 10,
+      status: "pending",
+      approval_status: "pending",
+      sport_id: "",
+      creator_id: "",
+      category: "",
+      price: 0,
+      organizer: "",
+      image: ""
+    });
+  };
+
+  // Tarih formatını düzenleyen yardımcı fonksiyon
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return '-';
+    
+    try {
+      const date = new Date(dateString);
+      
+      // Tarih geçerli mi kontrol et
+      if (isNaN(date.getTime())) {
+        return '-';
+      }
+      
+      // Sabit bir formatta tarih döndür (hydration hatalarını önlemek için)
+      return new Intl.DateTimeFormat('tr-TR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).format(date);
+    } catch (error) {
+      console.error("Tarih formatı hatası:", error);
+      return '-';
+    }
+  };
 
   // Dosya yükleme için yardımcı fonksiyon
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>, isNewEvent: boolean) => {
@@ -197,251 +495,170 @@ export default function EventsPage() {
     reader.onloadend = () => {
       const base64String = reader.result as string;
       
-      if (isNewEvent) {
-        setNewEvent({
-          ...newEvent,
-          image: base64String
-        });
-      } else if (selectedEvent) {
-        setSelectedEvent({
-          ...selectedEvent,
-          image: base64String
-        });
-      }
+      console.log("Dosya yüklendi, ancak işleme alınmadı. Backend API bu özelliği desteklemiyor.");
+      toast({
+        title: "Bilgi",
+        description: "Dosya yükleme şu anda desteklenmiyor.",
+      });
     };
     reader.readAsDataURL(file);
   };
 
-  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [viewMode, setViewMode] = useState<"preview" | "edit">("preview");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchField, setSearchField] = useState<"title" | "description" | "category" | "organizer">("title");
-  const [selectedFilters, setSelectedFilters] = useState<{
-    category: string[];
-    status: string[];
-    visibility: string[];
-  }>({
-    category: [],
-    status: [],
-    visibility: []
-  });
-  const [selectedParticipant, setSelectedParticipant] = useState<{
-    id: string;
-    name: string;
-    email: string;
-    phone?: string;
-    registrationDate: string;
-  } | null>(null);
-
-  const [newParticipant, setNewParticipant] = useState<{
-    name: string;
-    email: string;
-    phone: string;
-  }>({
-    name: "",
-    email: "",
-    phone: ""
-  });
-
-  // Katılımcı istatistiklerine ilişkin popup durumları
-  const [showAttendedEvents, setShowAttendedEvents] = useState(false);
-  const [showSportsList, setShowSportsList] = useState(false);
-  const [showReportsList, setShowReportsList] = useState(false);
-
-  // Sayfa yüklendiğinde ilk etkinliği otomatik seç
-  useEffect(() => {
-    if (events.length > 0 && !selectedEvent) {
-      setSelectedEvent(events[0] as Event);
-    }
-  }, [events, selectedEvent]);
-
-  const handleAddEvent = () => {
-    const event: Event = {
-      id: Date.now().toString(),
-      ...newEvent
-    };
-
-    setEvents([event, ...events]);
-    setSelectedEvent(event);
-    resetEvent();
-  };
-
-  const handleEditEvent = () => {
-    if (!editingEvent) return;
-
-    setEvents(events.map(event => 
-      event.id === editingEvent.id ? editingEvent : event
-    ));
-    setEditingEvent(null);
-  };
-
-  const handleDeleteEvent = (id: string) => {
-    const remainingEvents = events.filter(event => event.id !== id);
-    setEvents(remainingEvents);
-    
-    if (selectedEvent && selectedEvent.id === id) {
-      if (remainingEvents.length > 0) {
-        setSelectedEvent(remainingEvents[0] as Event);
-      } else {
-        setSelectedEvent(null);
-      }
-    }
-  };
-
-  const handleApproveEvent = (id: string) => {
-    setEvents(events.map(event => 
-      event.id === id ? { ...event, isApproved: true } : event
-    ));
-  };
-
-  const handleRejectEvent = (id: string) => {
-    setEvents(events.map(event => 
-      event.id === id ? { ...event, isApproved: false } : event
-    ));
-  };
-
-  const handleAddParticipant = () => {
-    if (!selectedEvent || !newParticipant.name || !newParticipant.email) return;
-    
-    const participant = {
-      id: Date.now().toString(),
-      name: newParticipant.name,
-      email: newParticipant.email,
-      phone: newParticipant.phone || undefined,
-      registrationDate: new Date().toISOString().split('T')[0]
-    };
-    
-    const updatedEvent = {
-      ...selectedEvent,
-      participants: [...(selectedEvent.participants || []), participant]
-    };
-    
-    setEvents(prevEvents => prevEvents.map(event => 
-      event.id === selectedEvent.id ? updatedEvent as Event : event
-    ));
-    
-    setSelectedEvent(updatedEvent as Event);
-    
-    setNewParticipant({
-      name: "",
-      email: "",
-      phone: ""
-    });
-  };
-
-  const handleEditParticipant = () => {
-    if (!selectedEvent || !selectedParticipant) return;
-    
-    const updatedParticipants = selectedEvent.participants.map(participant => 
-      participant.id === selectedParticipant.id ? selectedParticipant : participant
-    );
-    
-    const updatedEvent = {
-      ...selectedEvent,
-      participants: updatedParticipants
-    };
-    
-    setEvents(prevEvents => prevEvents.map(event => 
-      event.id === selectedEvent.id ? updatedEvent as Event : event
-    ));
-    
-    setSelectedEvent(updatedEvent as Event);
-    setSelectedParticipant(null);
-  };
-
-  const handleDeleteParticipant = (id: string) => {
-    if (!selectedEvent) return;
-    
-    const updatedParticipants = selectedEvent.participants.filter(participant => 
-      participant.id !== id
-    );
-    
-    const updatedEvent = {
-      ...selectedEvent,
-      participants: updatedParticipants
-    };
-    
-    setEvents(prevEvents => prevEvents.map(event => 
-      event.id === selectedEvent.id ? updatedEvent as Event : event
-    ));
-    
-    setSelectedEvent(updatedEvent as Event);
-    
-    if (selectedParticipant && selectedParticipant.id === id) {
-      setSelectedParticipant(null);
-    }
-  };
-
-  const handleFilterChange = (type: 'category' | 'status' | 'visibility', value: string) => {
-    setSelectedFilters(prev => {
-      const currentFilters = prev[type];
-      if (currentFilters.includes(value)) {
-        return {
-          ...prev,
-          [type]: currentFilters.filter(item => item !== value)
-        };
-      } else {
-        return {
-          ...prev,
-          [type]: [...currentFilters, value]
-        };
-      }
-    });
-  };
-
-  const filteredEvents = events.filter(event => {
-    const matchesSearch = searchQuery === "" || 
-      event[searchField].toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesCategory = selectedFilters.category.length === 0 || 
-      selectedFilters.category.includes(event.category);
-
-    const matchesStatus = selectedFilters.status.length === 0 || 
-      selectedFilters.status.includes(event.status);
-
-    const matchesVisibility = selectedFilters.visibility.length === 0 || 
-      selectedFilters.visibility.includes(event.visibility);
-
-    return matchesSearch && matchesCategory && matchesStatus && matchesVisibility;
-  });
-
-  const pendingApprovalEvents = events.filter((event: Event) => !event.isApproved);
-
-  const getTotalSelectedFilters = () => {
-    return Object.values(selectedFilters).reduce((total, filters) => total + filters.length, 0);
-  };
-
-  const resetEvent = () => {
-    setNewEvent({
-      title: "",
-      description: "",
-      date: "",
-      time: "",
-      location: "",
-      category: "",
-      capacity: 0,
-      status: "Aktif",
-      image: "",
-      price: 0,
-      organizer: "",
-      requirements: [],
-      prizes: [],
-      isApproved: false,
-      visibility: "public",
-      participants: [],
-      createdBy: "admin",
-      createdAt: new Date().toISOString()
-    });
-  };
-
   const handleChange = (name: string, value: string | number | string[] | boolean) => {
-    if (name === "status") {
-      // Ensure the value is one of the allowed status types
-      const statusValue = value as "Aktif" | "Pasif" | "upcoming" | "ongoing" | "completed" | "cancelled";
-      setSelectedEvent(prev => prev ? { ...prev, [name]: statusValue } : null);
-    } else {
-      setSelectedEvent(prev => prev ? { ...prev, [name]: value } : null);
+    if (selectedEvent) {
+      if (name === "status") {
+        const statusValue = value as string;
+        setSelectedEvent({ ...selectedEvent, [name]: statusValue });
+      } else if (name === "approval_status") {
+        const approvalStatusValue = value as "pending" | "approved" | "rejected" | "cancelled";
+        setSelectedEvent({ ...selectedEvent, [name]: approvalStatusValue });
+      } else {
+        setSelectedEvent({ ...selectedEvent, [name]: value });
+      }
+    }
+  };
+
+  // İmage komponenti için varsayılan resim
+  const defaultImage = "/images/event-placeholder.jpg";
+
+  // Select komponentleri için
+  const renderSelectWithFallback = (value: string | undefined, onChange: (value: string) => void, placeholder: string, options: { value: string, label: string }[]) => {
+    return (
+      <Select value={value || ""} onValueChange={onChange}>
+        <SelectTrigger>
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  };
+
+  // Katılımcılar tablosunu oluşturan yardımcı fonksiyon
+  const renderParticipants = (participants: Participant[] | undefined) => {
+    if (!participants || participants.length === 0) {
+      return (
+        <div className="p-4 bg-gray-50 rounded-md text-center text-gray-500">
+          Henüz katılımcı bulunmamaktadır.
+        </div>
+      );
+    }
+
+    return (
+      <div className="overflow-auto max-h-60 bg-gray-50 rounded-md">
+        <table className="min-w-full text-sm">
+          <thead className="sticky top-0 bg-gray-100">
+            <tr>
+              <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase">İsim</th>
+              <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase">E-posta</th>
+              <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase">Telefon</th>
+              <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase">Kayıt Tarihi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {participants.map((participant) => {
+              const user = participant.user;
+              if (!user) return null;
+              
+              return (
+                <tr 
+                  key={participant.user_id} 
+                  className="hover:bg-gray-100 cursor-pointer"
+                  onClick={() => {
+                    const participantInfo: Participant = {
+                      event_id: participant.event_id,
+                      user_id: participant.user_id,
+                      joined_at: participant.joined_at,
+                      role: participant.role,
+                      // Opsiyonel alanlar
+                      name: `${user.first_name} ${user.last_name}`,
+                      email: user.email,
+                      phone: user.phone,
+                      registration_date: participant.joined_at
+                    };
+                    
+                    setSelectedParticipant(participantInfo);
+                  }}
+                >
+                  <td className="py-2 px-3">{`${user.first_name} ${user.last_name}`}</td>
+                  <td className="py-2 px-3 text-blue-600">{user.email}</td>
+                  <td className="py-2 px-3">{user.phone || "-"}</td>
+                  <td className="py-2 px-3">{formatDate(participant.joined_at)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  // Durum etiketleri için yardımcı fonksiyon
+  const getStatusBadge = (status: string) => {
+    switch(status) {
+      case 'active':
+        return (
+          <Badge variant="default" className="bg-green-500">
+            Aktif
+          </Badge>
+        );
+      case 'inactive':
+        return (
+          <Badge variant="secondary" className="bg-gray-500">
+            Pasif
+          </Badge>
+        );
+      case 'pending':
+        return (
+          <Badge variant="outline" className="text-yellow-600 bg-yellow-50 border-yellow-200">
+            Beklemede
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline">
+            {status}
+          </Badge>
+        );
+    }
+  };
+
+  // Onay durumu için yardımcı fonksiyon
+  const getApprovalBadge = (status: string) => {
+    switch(status) {
+      case 'approved':
+        return (
+          <Badge variant="outline" className="border-blue-500 text-blue-600 bg-blue-50">
+            Onaylanmış
+          </Badge>
+        );
+      case 'rejected':
+        return (
+          <Badge variant="outline" className="border-red-500 text-red-600 bg-red-50">
+            Reddedilmiş
+          </Badge>
+        );
+      case 'pending':
+        return (
+          <Badge variant="outline" className="border-yellow-500 text-yellow-600 bg-yellow-50">
+            Onay Bekliyor
+          </Badge>
+        );
+      case 'cancelled':
+        return (
+          <Badge variant="outline" className="border-gray-500 text-gray-600 bg-gray-50">
+            İptal Edildi
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline">
+            {status}
+          </Badge>
+        );
     }
   };
 
@@ -510,18 +727,18 @@ export default function EventsPage() {
                         </div>
                       </div>
                       <div className="space-y-4">
-                        <h4 className="font-medium">Görünürlük</h4>
+                        <h4 className="font-medium">Onay Durumu</h4>
                         <div className="space-y-2">
-                          {['Herkese Açık', 'Üyelere Özel'].map((visibility) => (
-                            <div key={visibility} className="flex items-center space-x-2">
+                          {['Onaylanmış', 'Onay Bekliyor'].map((approval_status) => (
+                            <div key={approval_status} className="flex items-center space-x-2">
                               <input
                                 type="checkbox"
-                                id={`visibility-${visibility}`}
-                                checked={selectedFilters.visibility.includes(visibility)}
-                                onChange={() => handleFilterChange('visibility', visibility)}
+                                id={`approval_status-${approval_status}`}
+                                checked={selectedFilters.approval_status.includes(approval_status)}
+                                onChange={() => handleFilterChange('approval_status', approval_status)}
                                 className="h-4 w-4"
                               />
-                              <label htmlFor={`visibility-${visibility}`}>{visibility}</label>
+                              <label htmlFor={`approval_status-${approval_status}`}>{approval_status}</label>
                             </div>
                           ))}
                         </div>
@@ -585,8 +802,8 @@ export default function EventsPage() {
                       <Input
                         id="date"
                         type="date"
-                        value={newEvent.date}
-                        onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                        value={newEvent.event_date}
+                        onChange={(e) => setNewEvent({ ...newEvent, event_date: e.target.value })}
                       />
                     </div>
                     <div className="grid gap-2">
@@ -594,22 +811,22 @@ export default function EventsPage() {
                       <Input
                         id="time"
                         type="time"
-                        value={newEvent.time}
-                        onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                        value={newEvent.start_time}
+                        onChange={(e) => setNewEvent({ ...newEvent, start_time: e.target.value })}
                       />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="location">Konum</Label>
                       <Input
                         id="location"
-                        value={newEvent.location}
-                        onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                        value={newEvent.location_name}
+                        onChange={(e) => setNewEvent({ ...newEvent, location_name: e.target.value })}
                       />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="category">Kategori</Label>
                       <Select
-                        value={newEvent.category}
+                        value={newEvent.category ?? ""}
                         onValueChange={(value) => setNewEvent({ ...newEvent, category: value })}
                       >
                         <SelectTrigger>
@@ -627,8 +844,8 @@ export default function EventsPage() {
                       <Input
                         id="capacity"
                         type="number"
-                        value={newEvent.capacity}
-                        onChange={(e) => setNewEvent({ ...newEvent, capacity: parseInt(e.target.value) })}
+                        value={newEvent.max_participants}
+                        onChange={(e) => setNewEvent({ ...newEvent, max_participants: parseInt(e.target.value) })}
                       />
                     </div>
                     <div className="grid gap-2">
@@ -648,36 +865,43 @@ export default function EventsPage() {
                         onChange={(e) => setNewEvent({ ...newEvent, organizer: e.target.value })}
                       />
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="status">Durum</Label>
-                      <Select
-                        value={newEvent.status}
-                        onValueChange={(value: "Aktif" | "Pasif" | "upcoming" | "ongoing" | "completed" | "cancelled") => 
-                          setNewEvent({ ...newEvent, status: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Durum seçin" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Aktif">Aktif</SelectItem>
-                          <SelectItem value="Pasif">Pasif</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="visibility">Görünürlük</Label>
-                      <Select
-                        value={newEvent.visibility}
-                        onValueChange={(value: "public" | "club_members") => setNewEvent({ ...newEvent, visibility: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Görünürlük seçin" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="public">Herkese Açık</SelectItem>
-                          <SelectItem value="club_members">Kulüp Üyelerine Özel</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="grid gap-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="status">Durum</Label>
+                          <Select
+                            value={newEvent.status ?? "pending"}
+                            onValueChange={(value) => setNewEvent({ ...newEvent, status: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Durum seçin" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">Onay Bekliyor</SelectItem>
+                              <SelectItem value="approved">Onaylanmış</SelectItem>
+                              <SelectItem value="rejected">Reddedildi</SelectItem>
+                              <SelectItem value="cancelled">İptal Edildi</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="approval_status">Onay Durumu</Label>
+                          <Select
+                            value={newEvent.approval_status ?? "pending"}
+                            onValueChange={(value) => setNewEvent({ ...newEvent, approval_status: value as "pending" | "approved" | "rejected" | "cancelled" })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Onay Durumu seçin" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">Onay Bekliyor</SelectItem>
+                              <SelectItem value="approved">Onaylanmış</SelectItem>
+                              <SelectItem value="rejected">Reddedildi</SelectItem>
+                              <SelectItem value="cancelled">İptal Edildi</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="flex justify-end">
@@ -699,7 +923,7 @@ export default function EventsPage() {
               </TableRow>
             </TableHeader>
                 <TableBody className="bg-white divide-y divide-gray-200">
-                  {filteredEvents.map((event) => (
+                  {events.map((event) => (
                     <tr 
                       key={event.id}
                       className={`
@@ -712,29 +936,15 @@ export default function EventsPage() {
                       onClick={() => setSelectedEvent(event)}
                     >
                       <td className="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900">{event.title}</td>
-                      <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{new Date(event.date).toLocaleDateString('tr-TR')}</td>
-                      <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{event.category}</td>
+                      <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{formatDate(event.event_date)}</td>
                       <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
-                        <Badge 
-                          variant={
-                            event.status === "Aktif" || event.status === "upcoming" ? "default" :
-                            event.status === "ongoing" ? "outline" :
-                            event.status === "completed" ? "secondary" :
-                            "destructive"
-                          }
-                        >
-                          {event.status}
-                        </Badge>
+                        {event.sport ? event.sport.name : 'Belirtilmemiş'}
                       </td>
                       <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
-                        {event.isApproved ? 
-                          <Badge variant="outline" className="border-blue-500 text-blue-600 bg-blue-50">
-                            Onaylanmış
-                          </Badge> : 
-                          <Badge variant="outline" className="border-yellow-500 text-yellow-600 bg-yellow-50">
-                            Onay Bekliyor
-                          </Badge>
-                        }
+                        {getStatusBadge(event.status)}
+                      </td>
+                      <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
+                        {getApprovalBadge(event.approval_status)}
                       </td>
                       <td className="py-4 px-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end">
@@ -761,9 +971,9 @@ export default function EventsPage() {
           </CardHeader>
           <CardContent>
             <div className="mb-4">
-              <h3 className="text-sm font-medium mb-2">Onay Bekleyen Etkinlikler ({pendingApprovalEvents.length})</h3>
+              <h3 className="text-sm font-medium mb-2">Onay Bekleyen Etkinlikler ({events.filter(e => e.status === "pending").length})</h3>
             </div>
-            {pendingApprovalEvents.length > 0 ? (
+            {events.filter(e => e.status === "pending").length > 0 ? (
               <div className="overflow-auto">
                 <Table className="min-w-full divide-y divide-gray-200">
                   <TableHeader>
@@ -776,7 +986,7 @@ export default function EventsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody className="bg-white divide-y divide-gray-200">
-                    {pendingApprovalEvents.map((event) => (
+                    {events.filter(e => e.status === "pending").map((event) => (
                       <tr 
                         key={event.id}
                         className="hover:bg-orange-50 cursor-pointer"
@@ -786,9 +996,13 @@ export default function EventsPage() {
                         }}
                       >
                         <td className="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900">{event.title}</td>
-                        <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{event.organizer}</td>
-                        <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{new Date(event.date).toLocaleDateString('tr-TR')}</td>
-                        <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{event.category}</td>
+                        <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
+                          {event.creator ? `${event.creator.first_name} ${event.creator.last_name}` : 'Bilinmiyor'}
+                        </td>
+                        <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{formatDate(event.event_date)}</td>
+                        <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
+                          {event.sport ? event.sport.name : 'Belirtilmemiş'}
+                        </td>
                         <td className="py-4 px-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex justify-end gap-2">
                             <Button 
@@ -862,7 +1076,7 @@ export default function EventsPage() {
                 <div className="space-y-6">
                   <div className="relative h-48 w-full rounded-lg overflow-hidden">
                     <Image
-                      src={selectedEvent.image}
+                      src={selectedEvent.image || defaultImage}
                       alt={selectedEvent.title}
                       fill
                       className="object-cover"
@@ -871,91 +1085,46 @@ export default function EventsPage() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-2xl font-semibold">{selectedEvent.title}</h3>
-                      <Badge variant={selectedEvent.status === "Aktif" ? "outline" : "secondary"} className={selectedEvent.status === "Aktif" ? "border-green-500 text-green-600" : ""}>
-                        {selectedEvent.status}
-                      </Badge>
+                      {getStatusBadge(selectedEvent.status)}
                     </div>
                     <div className="space-y-2 text-sm text-gray-600">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4" />
-                        <span>{new Date(selectedEvent.date).toLocaleDateString('tr-TR')}</span>
+                        <span>{formatDate(selectedEvent.event_date)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4" />
-                        <span>{selectedEvent.time}</span>
+                        <span>{selectedEvent.start_time ? formatDate(selectedEvent.start_time).split(',')[1] : ''} - {selectedEvent.end_time ? formatDate(selectedEvent.end_time).split(',')[1] : ''}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4" />
-                        <span>{selectedEvent.location}</span>
+                        <span>{selectedEvent.location_name}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
-                        <span>Kapasite: {selectedEvent.capacity} kişi</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Tag className="h-4 w-4" />
-                        <span>Ücret: {selectedEvent.price} TL</span>
+                        <span>Kapasite: {selectedEvent.max_participants} kişi</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Trophy className="h-4 w-4" />
-                        <span>Organizatör: {selectedEvent.organizer}</span>
+                        <span>Spor: {selectedEvent.sport ? selectedEvent.sport.name : 'Belirtilmemiş'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Tag className="h-4 w-4" />
+                        <span>Organizatör: {selectedEvent.creator ? `${selectedEvent.creator.first_name} ${selectedEvent.creator.last_name}` : 'Belirtilmemiş'}</span>
                       </div>
                     </div>
                     <div className="pt-4">
                       <h4 className="font-medium mb-2">Etkinlik Detayları</h4>
                       <p className="text-sm text-gray-600 whitespace-pre-line">{selectedEvent.description}</p>
                     </div>
-                    {selectedEvent.requirements && selectedEvent.requirements.length > 0 && (
-                      <div className="pt-4">
-                        <h4 className="font-medium mb-2">Gerekli Ekipmanlar</h4>
-                        <ul className="list-disc pl-5 text-sm text-gray-600">
-                          {selectedEvent.requirements.map((req, index) => (
-                            <li key={index}>{req}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {selectedEvent.prizes && selectedEvent.prizes.length > 0 && (
-                      <div className="pt-4">
-                        <h4 className="font-medium mb-2">Ödüller</h4>
-                        <ul className="list-disc pl-5 text-sm text-gray-600">
-                          {selectedEvent.prizes.map((prize, index) => (
-                            <li key={index}>{prize}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
                     
                     {/* Sadece onaylanmış etkinlikler için katılımcılar bölümünü göster */}
-                    {selectedEvent.isApproved && selectedEvent.participants && selectedEvent.participants.length > 0 && (
+                    {selectedEvent.approval_status === "approved" && (
                       <div className="pt-4">
-                        <h4 className="font-medium mb-2">Katılımcılar ({selectedEvent.participants.length} / {selectedEvent.capacity})</h4>
-                        <div className="overflow-auto max-h-60 bg-gray-50 rounded-md">
-                          <table className="min-w-full text-sm">
-                            <thead className="sticky top-0 bg-gray-100">
-                              <tr>
-                                <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase">İsim</th>
-                                <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase">E-posta</th>
-                                <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase">Telefon</th>
-                                <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase">Kayıt Tarihi</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                              {selectedEvent.participants.map((participant) => (
-                                <tr 
-                                  key={participant.id} 
-                                  className="hover:bg-gray-100 cursor-pointer"
-                                  onClick={() => setSelectedParticipant(participant)}
-                                >
-                                  <td className="py-2 px-3">{participant.name}</td>
-                                  <td className="py-2 px-3 text-blue-600">{participant.email}</td>
-                                  <td className="py-2 px-3">{participant.phone || "-"}</td>
-                                  <td className="py-2 px-3">{new Date(participant.registrationDate).toLocaleDateString('tr-TR')}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                        <h4 className="font-medium mb-2">
+                          Katılımcılar ({selectedEvent.participants ? selectedEvent.participants.length : 0} / {selectedEvent.max_participants})
+                        </h4>
+                        {renderParticipants(selectedEvent.participants)}
                         <div className="mt-2 text-right">
                           <Button 
                             variant="ghost" 
@@ -964,15 +1133,6 @@ export default function EventsPage() {
                           >
                             Katılımcıları Dışa Aktar
                           </Button>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {selectedEvent.isApproved && (!selectedEvent.participants || selectedEvent.participants.length === 0) && (
-                      <div className="pt-4">
-                        <h4 className="font-medium mb-2">Katılımcılar (0 / {selectedEvent.capacity})</h4>
-                        <div className="p-4 bg-gray-50 rounded-md text-center text-gray-500">
-                          Henüz katılımcı bulunmamaktadır.
                         </div>
                       </div>
                     )}
@@ -1025,8 +1185,8 @@ export default function EventsPage() {
                       <Input
                         id="edit-date"
                         type="date"
-                        value={selectedEvent.date}
-                        onChange={(e) => handleChange('date', e.target.value)}
+                        value={selectedEvent.event_date}
+                        onChange={(e) => handleChange('event_date', e.target.value)}
                       />
                     </div>
                     <div className="grid gap-2">
@@ -1034,22 +1194,22 @@ export default function EventsPage() {
                       <Input
                         id="edit-time"
                         type="time"
-                        value={selectedEvent.time}
-                        onChange={(e) => handleChange('time', e.target.value)}
+                        value={selectedEvent.start_time}
+                        onChange={(e) => handleChange('start_time', e.target.value)}
                       />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="edit-location">Konum</Label>
                       <Input
                         id="edit-location"
-                        value={selectedEvent.location}
-                        onChange={(e) => handleChange('location', e.target.value)}
+                        value={selectedEvent.location_name}
+                        onChange={(e) => handleChange('location_name', e.target.value)}
                       />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="edit-category">Kategori</Label>
                       <Select
-                        value={selectedEvent.category}
+                        value={selectedEvent.category || ""}
                         onValueChange={(value) => handleChange('category', value)}
                       >
                         <SelectTrigger>
@@ -1067,8 +1227,8 @@ export default function EventsPage() {
                       <Input
                         id="edit-capacity"
                         type="number"
-                        value={selectedEvent.capacity}
-                        onChange={(e) => handleChange('capacity', parseInt(e.target.value))}
+                        value={selectedEvent.max_participants}
+                        onChange={(e) => handleChange('max_participants', parseInt(e.target.value))}
                       />
                     </div>
                     <div className="grid gap-2">
@@ -1094,29 +1254,33 @@ export default function EventsPage() {
                           <Label htmlFor="edit-status">Durum</Label>
                           <Select
                             value={selectedEvent.status}
-                            onValueChange={(value) => handleChange('status', value as "Aktif" | "Pasif" | "upcoming" | "ongoing" | "completed" | "cancelled")}
+                            onValueChange={(value) => handleChange('status', value as "pending" | "approved" | "rejected" | "cancelled")}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Durum seçin" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="Aktif">Aktif</SelectItem>
-                              <SelectItem value="Pasif">Pasif</SelectItem>
+                              <SelectItem value="pending">Onay Bekliyor</SelectItem>
+                              <SelectItem value="approved">Onaylanmış</SelectItem>
+                              <SelectItem value="rejected">Reddedildi</SelectItem>
+                              <SelectItem value="cancelled">İptal Edildi</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="grid gap-2">
-                          <Label htmlFor="visibility">Görünürlük</Label>
+                          <Label htmlFor="approval_status">Onay Durumu</Label>
                           <Select
-                            value={selectedEvent.visibility}
-                            onValueChange={(value: "public" | "club_members") => handleChange('visibility', value)}
+                            value={selectedEvent.approval_status}
+                            onValueChange={(value) => handleChange('approval_status', value as "pending" | "approved" | "rejected" | "cancelled")}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Görünürlük seçin" />
+                              <SelectValue placeholder="Onay Durumu seçin" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="public">Herkese Açık</SelectItem>
-                              <SelectItem value="club_members">Kulüp Üyelerine Özel</SelectItem>
+                              <SelectItem value="pending">Onay Bekliyor</SelectItem>
+                              <SelectItem value="approved">Onaylanmış</SelectItem>
+                              <SelectItem value="rejected">Reddedildi</SelectItem>
+                              <SelectItem value="cancelled">İptal Edildi</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -1153,16 +1317,35 @@ export default function EventsPage() {
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16 border-2 border-white shadow-sm">
                     <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
-                      {selectedParticipant?.name.split(' ').map(n => n[0]).join('')}
+                      {selectedParticipant?.name ? (
+                        <>
+                          {selectedParticipant.name.split(' ').map(n => n[0]).join('')}
+                        </>
+                      ) : (
+                        <>
+                          UK
+                        </>
+                      )}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <DialogTitle className="text-xl text-gray-800">{selectedParticipant?.name}</DialogTitle>
+                    <DialogTitle className="text-xl text-gray-800">
+                      {selectedParticipant?.name ? (
+                        <>
+                          {selectedParticipant.name}
+                        </>
+                      ) : (
+                        <>
+                          Kullanıcı
+                        </>
+                      )}
+                    </DialogTitle>
                     <CardDescription className="text-sm flex items-center gap-2 mt-1">
-                      <span>@{selectedParticipant?.name.toLowerCase().replace(/\s+/g, '')}</span>
-                      <Badge className="bg-green-500 hover:bg-green-600">
-                        Katılımcı
-                      </Badge>
+                      {selectedParticipant?.name && (
+                        <>
+                          @{selectedParticipant.name.toLowerCase().replace(/\s+/g, '')}
+                        </>
+                      )}
                     </CardDescription>
                   </div>
                 </div>
@@ -1200,7 +1383,7 @@ export default function EventsPage() {
                         <span className="text-sm font-medium text-gray-700">Kayıt Tarihi</span>
                       </div>
                       <span className="text-sm bg-white px-2 py-1 rounded border">
-                        {selectedParticipant?.registrationDate && new Date(selectedParticipant.registrationDate).toLocaleDateString("tr-TR")}
+                        {selectedParticipant?.registration_date && formatDate(selectedParticipant.registration_date)}
                       </span>
                     </div>
 
@@ -1285,7 +1468,7 @@ export default function EventsPage() {
                         <span className="text-sm font-medium">Hakkında Raporlar</span>
                       </div>
                       <div className="flex items-center">
-                        <Badge variant="outline" className="text-xs bg-red-50 text-red-600 border-red-200 mr-1">2</Badge>
+                        <Badge variant="outline" className="text-xs bg-red-500 text-red-600 border-red-200 mr-1">2</Badge>
                         <ChevronRight className="h-4 w-4 text-gray-400" />
                       </div>
                     </div>
@@ -1311,11 +1494,11 @@ export default function EventsPage() {
               <div className="p-3 border rounded-md hover:bg-gray-50">
                 <div className="flex justify-between items-center">
                   <h4 className="font-medium text-sm">{selectedEvent?.title}</h4>
-                  <span className="text-xs text-gray-500">{selectedEvent?.date && new Date(selectedEvent.date).toLocaleDateString("tr-TR")}</span>
+                  <span className="text-xs text-gray-500">{selectedEvent?.event_date && formatDate(selectedEvent.event_date)}</span>
                 </div>
                 <div className="flex items-center mt-1 text-xs text-gray-600">
                   <MapPin className="h-3 w-3 mr-1" />
-                  <span>{selectedEvent?.location}</span>
+                  <span>{selectedEvent?.location_name}</span>
                 </div>
               </div>
             </div>
