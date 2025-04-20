@@ -36,6 +36,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { User } from "@/interfaces/user";
+import adminService from "@/lib/services/adminService";
+import type { AdminUser, CreateUserData, UpdateRoleData } from "@/lib/services/adminService";
+import { useToast } from "@/components/ui/use-toast";
+import useAuth from "@/lib/hooks/useAuth";
 
 // Oluşturduğu Etkinlikler - Tıklanabilir
 const createdEventsData = [
@@ -140,6 +144,8 @@ type UserType = {
 };
 
 export default function UsersPage() {
+  const { toast } = useToast();
+  const { user, isLoading: authLoading, isAuthenticated, hasRequiredRole } = useAuth('admin');
   const [searchQuery, setSearchQuery] = useState("");
   const [searchField, setSearchField] = useState<"username" | "email" | "first_name" | "last_name">("username");
   const [selectedFilters, setSelectedFilters] = useState<{
@@ -147,74 +153,210 @@ export default function UsersPage() {
   }>({
     role: []
   });
-  const [users, setUsers] = useState<UserType[]>([
-    {
-      id: "1",
-      username: "john_doe",
-      password: "********",
-      email: "john@example.com",
-      first_name: "John",
-      last_name: "Doe",
-      phone: "+905551234567",
-      birthDate: "1990-01-01",
-      profile_picture: null,
-      default_location_latitude: 41.0082,
-      default_location_longitude: 28.9784,
-      role: "admin",
-      created_at: "2022-01-01T00:00:00Z",
-      updated_at: "2022-01-01T00:00:00Z",
-      userSports: ["Futbol", "Basketbol"],
-      interests: ["Spor", "Müzik", "Seyahat", "Teknoloji"],
-      createdEvents: 5,
-      eventParticipations: 10,
-      evaluationsGiven: 8,
-      evaluationsReceived: 12,
-      reportsGiven: 2,
-      reportsReceived: 0,
-      notifications: 3,
-      adminActions: 15
-    },
-    {
-      id: "2",
-      username: "jane_smith",
-      password: "********",
-      email: "jane@example.com",
-      first_name: "Jane",
-      last_name: "Smith",
-      phone: "+905559876543",
-      birthDate: "1992-05-15",
-      profile_picture: null,
-      default_location_latitude: 41.0082,
-      default_location_longitude: 28.9784,
-      role: "user",
-      created_at: "2022-02-01T00:00:00Z",
-      updated_at: "2022-02-01T00:00:00Z",
-      userSports: ["Tenis", "Yüzme"],
-      interests: ["Kitap", "Seyahat"],
-      createdEvents: 2,
-      eventParticipations: 15,
-      evaluationsGiven: 10,
-      evaluationsReceived: 5,
-      reportsGiven: 1,
-      reportsReceived: 0,
-      notifications: 5,
-      adminActions: 0
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    pages: 0
+  });
+  
+  // Kullanıcı rolleri için form state
+  const [editForm, setEditForm] = useState<{
+    userId: string;
+    role: string;
+  }>({
+    userId: "",
+    role: ""
+  });
+  
+  // Yeni kullanıcı formu için state
+  const [newUserForm, setNewUserForm] = useState<CreateUserData>({
+    username: "",
+    email: "",
+    password: "",
+    first_name: "",
+    last_name: "",
+    phone: "",
+    role: "user",
+    default_location_latitude: 41.0082,
+    default_location_longitude: 28.9784
+  });
+
+  // Kullanıcı doğrulamasını kontrol et
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      // Kullanıcı giriş yapmamışsa, toast ile bildir
+      toast({
+        title: "Yetki Hatası",
+        description: "Bu sayfayı görüntülemek için giriş yapmanız gerekiyor",
+        variant: "destructive",
+      });
+    } else if (!authLoading && !hasRequiredRole) {
+      // Kullanıcı giriş yapmış ama admin değilse, toast ile bildir
+      toast({
+        title: "Yetki Hatası",
+        description: "Bu sayfayı görüntülemek için admin yetkisine sahip olmanız gerekiyor",
+        variant: "destructive",
+      });
     }
-  ]);
+  }, [authLoading, isAuthenticated, hasRequiredRole, toast]);
+
+  // Kullanıcı verilerini API'den gelen formattan UI formatına dönüştür
+  const convertApiUserToUiFormat = (apiUser: any): UserType => {
+    // Debug için konsola rol bilgisini yazdıralım
+    console.log(`Kullanıcı ${apiUser.username} rolü:`, apiUser.role);
+    
+    // Backend'den gelen tarihleri doğru bir şekilde biçimlendir
+    let formattedCreatedAt = "";
+    try {
+      formattedCreatedAt = apiUser.created_at ? new Date(apiUser.created_at).toISOString() : "";
+    } catch (e) {
+      console.error("Tarih formatı hatası:", e);
+      formattedCreatedAt = "";
+    }
+    
+    let formattedUpdatedAt = "";
+    try {
+      formattedUpdatedAt = apiUser.updated_at ? new Date(apiUser.updated_at).toISOString() : "";
+    } catch (e) {
+      console.error("Tarih formatı hatası:", e);
+      formattedUpdatedAt = "";
+    }
+    
+    // Eksik alanlar için varsayılan değerler kullan
+    return {
+      id: apiUser.id?.toString() || "",
+      username: apiUser.username || "",
+      password: "********",
+      email: apiUser.email || "",
+      first_name: apiUser.first_name || "",
+      last_name: apiUser.last_name || "",
+      phone: apiUser.phone || "",
+      birthDate: "", // Backend'de bu alan yok
+      profile_picture: apiUser.profile_picture || null,
+      default_location_latitude: apiUser.default_location_latitude || 0,
+      default_location_longitude: apiUser.default_location_longitude || 0,
+      role: apiUser.role || "user", // Varsayılan rol user
+      created_at: formattedCreatedAt,
+      updated_at: formattedUpdatedAt,
+      userSports: [],
+      interests: [],
+      createdEvents: 0,
+      eventParticipations: 0,
+      evaluationsGiven: 0,
+      evaluationsReceived: 0,
+      reportsGiven: 0,
+      reportsReceived: 0,
+      notifications: 0,
+      adminActions: 0
+    };
+  };
+
+  // Kullanıcıları yükle
+  const fetchUsers = async () => {
+    // Eğer kullanıcının yetkisi yoksa veya giriş yapmamışsa, hemen çık
+    if (!isAuthenticated || !hasRequiredRole) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      console.log("Dashboard/users: Kullanıcılar yükleniyor...");
+      
+      // Token kontrolü - debug için
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+      
+      console.log("Dashboard/users - Token mevcut:", !!token);
+      console.log("Dashboard/users - Kullanıcı mevcut:", !!user);
+      
+      if (user) {
+        try {
+          const userData = JSON.parse(user);
+          console.log("Dashboard/users - Kullanıcı rolü:", userData.role);
+        } catch (e) {
+          console.error("Dashboard/users - Kullanıcı bilgisi parse edilemedi");
+        }
+      }
+      
+      const params: {
+        page: number;
+        limit: number;
+        query?: string;
+        searchField?: string;
+      } = {
+        page: pagination.page,
+        limit: pagination.limit
+      };
+      
+      // Arama değeri 2 karakterden uzunsa ekle
+      if (searchQuery.length > 2) {
+        params.query = searchQuery;
+        params.searchField = searchField;
+      }
+      
+      console.log("Dashboard/users - API isteği gönderiliyor:", params);
+      
+      const response = await adminService.listAllUsers(params);
+      
+      console.log("Dashboard/users - API yanıtı:", response);
+      
+      if (response.success) {
+        // Backend'den gelen kullanıcıları UI formatına çevir
+        const formattedUsers: UserType[] = response.data.users.map(convertApiUserToUiFormat);
+        
+        console.log("Dashboard/users - Kullanıcılar formatlandı:", formattedUsers.length);
+        
+        setUsers(formattedUsers);
+        setPagination(response.data.pagination);
+      } else {
+        console.error("Dashboard/users - API başarısız yanıt:", response);
+        
+        toast({
+          title: "Hata",
+          description: "Kullanıcılar yüklenirken bir hata oluştu",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Dashboard/users - Kullanıcılar yüklenirken hata:", error);
+      
+      // Hata detaylarını kontrol et
+      if (error.status === 403) {
+        console.error("Dashboard/users - Yetki hatası (403)");
+        toast({
+          title: "Yetki Hatası",
+          description: "Bu işlemi yapmak için yetkiniz bulunmuyor. Lütfen admin hesabıyla giriş yapın.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Hata",
+          description: error.message || "Kullanıcılar yüklenirken bir hata oluştu",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Sayfa yüklendiğinde ve filtreler değiştiğinde kullanıcıları yükle
+  useEffect(() => {
+    // Eğer kimlik doğrulama tamamlandıysa ve gerekli yetkiler varsa, kullanıcıları getir
+    if (!authLoading && isAuthenticated && hasRequiredRole) {
+      fetchUsers();
+    }
+  }, [pagination.page, pagination.limit, searchQuery, searchField, authLoading, isAuthenticated, hasRequiredRole]);
+
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [editingUser, setEditingUser] = useState<UserType | null>(null);
   const [selectedDetailType, setSelectedDetailType] = useState<string | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [showAddUserDialog, setShowAddUserDialog] = useState(false);
-  const [newUser, setNewUser] = useState<Partial<UserType>>({
-    username: "",
-    email: "",
-    first_name: "",
-    last_name: "",
-    phone: "",
-    role: "user",
-  });
-  const [newRole, setNewRole] = useState<string>("user");
+  const [detailLoading, setDetailLoading] = useState(false);
 
   // Sayfa yüklendiğinde ilk kullanıcıyı otomatik olarak seç
   useEffect(() => {
@@ -227,32 +369,136 @@ export default function UsersPage() {
     }
   }, [users, selectedUser]);
 
-  const handleDeleteUser = (id: string) => {
-    setUsers(users.filter(user => user.id !== id));
-    if (selectedUser && selectedUser.id === id) {
-      setSelectedUser(null);
+  // Seçili kullanıcı değiştiğinde editForm'u güncelle
+  useEffect(() => {
+    if (selectedUser) {
+      setEditForm({
+        userId: selectedUser.id,
+        role: selectedUser.role
+      });
+    }
+  }, [selectedUser]);
+
+  const handleDeleteUser = async (id: string) => {
+    try {
+      const response = await adminService.deleteUser(id);
+      
+      if (response.success) {
+        toast({
+          title: "Başarılı",
+          description: response.message || "Kullanıcı başarıyla silindi",
+        });
+        
+        // Kullanıcı listesini güncelle
+        fetchUsers();
+      } else {
+        toast({
+          title: "Hata",
+          description: "Kullanıcı silinemedi",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Kullanıcı silme hatası:", error);
+      toast({
+        title: "Hata",
+        description: "Kullanıcı silinirken bir hata oluştu",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleSaveChanges = () => {
-    if (editingUser && selectedUser) {
-      // Sadece rol değişikliklerini kaydet
-      const updatedUser: UserType = {
-        ...selectedUser,
-        role: editingUser.role,
-        updated_at: new Date().toISOString()
-      };
+  const handleSaveChanges = async () => {
+    try {
+      if (!editForm.userId || !editForm.role) {
+        toast({
+          title: "Uyarı",
+          description: "Kullanıcı ID veya rol bilgisi eksik",
+          variant: "destructive",
+        });
+        return;
+      }
       
-      // Kullanıcı listesini güncelliyoruz
-      setUsers(users.map(user => 
-        user.id === updatedUser.id ? updatedUser : user
-      ));
+      const response = await adminService.updateUserRole(editForm.userId, {
+        role: editForm.role
+      });
       
-      // Seçili kullanıcıyı güncelliyoruz
-      setSelectedUser(updatedUser);
+      if (response.success) {
+        toast({
+          title: "Başarılı",
+          description: response.message || "Kullanıcı rolü başarıyla güncellendi",
+        });
+        
+        // Kullanıcı listesini güncelle
+        fetchUsers();
+      } else {
+        toast({
+          title: "Hata",
+          description: "Kullanıcı rolü güncellenemedi",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Kullanıcı rolü güncelleme hatası:", error);
+      toast({
+        title: "Hata",
+        description: "Kullanıcı rolü güncellenirken bir hata oluştu",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Yeni kullanıcı oluşturma
+  const handleCreateUser = async () => {
+    try {
+      // Form validasyonu
+      if (!newUserForm.username || !newUserForm.email || !newUserForm.password || 
+          !newUserForm.first_name || !newUserForm.last_name || !newUserForm.phone) {
+        toast({
+          title: "Uyarı",
+          description: "Lütfen tüm zorunlu alanları doldurun",
+          variant: "destructive",
+        });
+        return;
+      }
       
-      // editingUser'ı da güncelliyoruz ki tekrar düzenleme yapılabilsin
-      setEditingUser(updatedUser);
+      const response = await adminService.createUser(newUserForm);
+      
+      if (response.success) {
+        toast({
+          title: "Başarılı",
+          description: response.message || "Yeni kullanıcı başarıyla oluşturuldu",
+        });
+        
+        // Kullanıcı listesini güncelle
+        fetchUsers();
+        
+        // Formu temizle
+        setNewUserForm({
+          username: "",
+          email: "",
+          password: "",
+          first_name: "",
+          last_name: "",
+          phone: "",
+          role: "user",
+          default_location_latitude: 41.0082,
+          default_location_longitude: 28.9784
+        });
+      } else {
+        toast({
+          title: "Hata",
+          description: "Kullanıcı oluşturulamadı",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Kullanıcı oluşturma hatası:", error);
+      toast({
+        title: "Hata",
+        description: "Kullanıcı oluşturulurken bir hata oluştu",
+        variant: "destructive",
+      });
     }
   };
 
@@ -283,31 +529,128 @@ export default function UsersPage() {
     return matchesSearch && matchesRole;
   });
 
-  // İçerik sayılarını kullanıcı ID'sine göre dinamik olarak belirle
-  const getUserData = (userId: string) => {
-    if (userId === "1") { // Ahmet
-      return {
-        createdEvents: createdEventsData.length,
-        eventParticipations: participatedEventsData.length,
-        reportsReceived: reportsDataAhmet.length
-      };
-    } else if (userId === "2") { // Ayşe
-      return {
-        createdEvents: 5,
-        eventParticipations: 15,
-        reportsReceived: reportsDataAyse.length
-      };
+  // Kullanıcı detaylarını yükle
+  const fetchUserDetails = async (userId: string) => {
+    try {
+      setDetailLoading(true);
+      const response = await adminService.getUserDetails(userId);
+      
+      console.log("Dashboard/users - Kullanıcı detayları API yanıtı:", response);
+      
+      if (response.success) {
+        // API'den gelen kullanıcı verilerini UI formatına dönüştür
+        const formattedUser = convertApiUserToUiFormat(response.data);
+        setSelectedUser(formattedUser);
+      } else {
+        toast({
+          title: "Hata",
+          description: "Kullanıcı detayları yüklenirken bir hata oluştu",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Dashboard/users - Kullanıcı detayları yükleme hatası:", error);
+      toast({
+        title: "Hata",
+        description: error.message || "Kullanıcı detayları yüklenirken bir hata oluştu",
+        variant: "destructive",
+      });
+    } finally {
+      setDetailLoading(false);
     }
-    return {
-      createdEvents: 0,
-      eventParticipations: 0,
-      reportsReceived: 0
-    };
   };
 
   const getTotalSelectedFilters = () => {
     return selectedFilters.role.length;
   };
+
+  // Kullanıcı tıklandığında
+  const handleUserClick = async (user: UserType) => {
+    console.log("Seçilen kullanıcı:", user.username, "Role:", user.role);
+    setSelectedUser(user);
+    setEditingUser(user);
+    
+    // Kullanıcı bilgilerini backend'den al ve ID'yi editForm'a kaydet
+    try {
+      await fetchUserDetails(user.id);
+    } catch (error) {
+      console.error("Kullanıcı detayları alınırken hata:", error);
+    }
+  };
+
+  // Tarih formatını düzenleyen yardımcı fonksiyon
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return '-';
+    
+    try {
+      const date = new Date(dateString);
+      
+      // Tarih geçerli mi kontrol et
+      if (isNaN(date.getTime())) {
+        return '-';
+      }
+      
+      // Türkçe formatında tarih döndür
+      return date.toLocaleDateString('tr-TR', {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error("Tarih formatı hatası:", error);
+      return '-';
+    }
+  };
+
+  // Auth yüklenirken veya kullanıcının yetkisi yoksa, uygun bekleme/hata ekranı göster
+  if (authLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <div className="w-10 h-10 border-t-2 border-primary rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-lg">Yetkilendirme kontrol ediliyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center max-w-md p-6 bg-white rounded-lg shadow-md">
+          <UserIcon className="w-12 h-12 mx-auto mb-4 text-red-500" />
+          <h2 className="text-xl font-bold mb-2">Giriş Yapılmadı</h2>
+          <p className="mb-4">Bu sayfayı görüntülemek için giriş yapmanız gerekmektedir.</p>
+          <Button 
+            onClick={() => window.location.href = '/auth/login'}
+            className="w-full"
+          >
+            Giriş Yap
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasRequiredRole) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center max-w-md p-6 bg-white rounded-lg shadow-md">
+          <Shield className="w-12 h-12 mx-auto mb-4 text-red-500" />
+          <h2 className="text-xl font-bold mb-2">Yetersiz Yetki</h2>
+          <p className="mb-4">Bu sayfayı görüntülemek için admin yetkisine sahip olmanız gerekmektedir.</p>
+          <Button 
+            onClick={() => window.location.href = '/dashboard'}
+            className="w-full"
+          >
+            Ana Sayfaya Dön
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen">
@@ -369,48 +712,101 @@ export default function UsersPage() {
                 <DialogTitle>Yeni Kullanıcı Ekle</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="first_name">Ad</Label>
-                    <Input id="first_name" />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="last_name">Soyad</Label>
-                    <Input id="last_name" />
-                  </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="username" className="text-right">
+                    Kullanıcı Adı
+                  </Label>
+                  <Input
+                    id="username"
+                    value={newUserForm.username}
+                    onChange={(e) => setNewUserForm({...newUserForm, username: e.target.value})}
+                    className="col-span-3"
+                  />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="username">Kullanıcı Adı</Label>
-                  <Input id="username" />
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="email" className="text-right">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newUserForm.email}
+                    onChange={(e) => setNewUserForm({...newUserForm, email: e.target.value})}
+                    className="col-span-3"
+                  />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="email">E-posta</Label>
-                  <Input id="email" type="email" />
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="password" className="text-right">
+                    Şifre
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={newUserForm.password}
+                    onChange={(e) => setNewUserForm({...newUserForm, password: e.target.value})}
+                    className="col-span-3"
+                  />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="password">Şifre</Label>
-                  <Input id="password" type="password" />
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="firstName" className="text-right">
+                    Ad
+                  </Label>
+                  <Input
+                    id="firstName"
+                    value={newUserForm.first_name}
+                    onChange={(e) => setNewUserForm({...newUserForm, first_name: e.target.value})}
+                    className="col-span-3"
+                  />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="phone">Telefon</Label>
-                  <Input id="phone" type="tel" />
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="lastName" className="text-right">
+                    Soyad
+                  </Label>
+                  <Input
+                    id="lastName"
+                    value={newUserForm.last_name}
+                    onChange={(e) => setNewUserForm({...newUserForm, last_name: e.target.value})}
+                    className="col-span-3"
+                  />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="birthDate">Doğum Tarihi</Label>
-                  <Input id="birthDate" type="date" />
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="phone" className="text-right">
+                    Telefon
+                  </Label>
+                  <Input
+                    id="phone"
+                    value={newUserForm.phone}
+                    onChange={(e) => setNewUserForm({...newUserForm, phone: e.target.value})}
+                    className="col-span-3"
+                  />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="role">Rol</Label>
-                  <Input id="role" />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="profile_picture">Profil Resmi URL</Label>
-                  <Input id="profile_picture" />
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="role" className="text-right">
+                    Rol
+                  </Label>
+                  <Select 
+                    value={newUserForm.role || "user"}
+                    onValueChange={(value) => setNewUserForm({...newUserForm, role: value})}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Rol seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">Kullanıcı</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="superadmin">Süper Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              <div className="flex justify-end">
-                <Button type="submit">Kullanıcı Ekle</Button>
-              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowAddUserDialog(false)}>
+                  İptal
+                </Button>
+                <Button type="submit" onClick={handleCreateUser}>
+                  Oluştur
+                </Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
@@ -422,7 +818,7 @@ export default function UsersPage() {
                 <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kullanıcı</TableHead>
                 <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">E-posta</TableHead>
                 <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telefon</TableHead>
-                <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doğum Tarihi</TableHead>
+                <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Oluşturma Tarihi</TableHead>
                 <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</TableHead>
                 <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kayıt Tarihi</TableHead>
                 <TableHead className="py-3 px-4 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</TableHead>
@@ -437,8 +833,7 @@ export default function UsersPage() {
                     borderLeft: selectedUser?.id === user.id ? '6px solid #059669' : 'none'
                   }}
                   onClick={() => {
-                    setSelectedUser(user);
-                    setEditingUser(user);
+                    handleUserClick(user);
                   }}
                 >
                   <td className="py-4 px-4 whitespace-nowrap">
@@ -455,22 +850,28 @@ export default function UsersPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                  <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{user.phone}</td>
                   <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(user.birthDate).toLocaleDateString("tr-TR")}
+                    {user.email}
+                  </td>
+                  <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
+                    {user.phone || '-'}
+                  </td>
+                  <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
+                    {formatDate(user.created_at)}
                   </td>
                   <td className="py-4 px-4 whitespace-nowrap">
                     <Badge className={
-                      user.role === "admin" 
+                      user.role === "superadmin" 
                         ? "bg-red-500 hover:bg-red-600"
+                        : user.role === "admin" 
+                        ? "bg-blue-500 hover:bg-blue-600"
                         : "bg-green-500 hover:bg-green-600"
                     }>
-                      {user.role === "admin" ? "Admin" : "Üye"}
+                      {user.role === "superadmin" ? "Süper Admin" : user.role === "admin" ? "Admin" : "Üye"}
                     </Badge>
                   </td>
                   <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(user.created_at).toLocaleDateString("tr-TR")}
+                    {formatDate(user.created_at)}
                   </td>
                   <td className="py-4 px-4 whitespace-nowrap text-right text-sm font-medium">
                     <Button 
@@ -511,11 +912,13 @@ export default function UsersPage() {
                       <CardDescription className="text-sm flex items-center gap-2 mt-1">
                         <span>@{selectedUser.username}</span>
                         <Badge className={
-                          selectedUser.role === "admin" 
+                          selectedUser.role === "superadmin" 
                             ? "bg-red-500 hover:bg-red-600"
+                            : selectedUser.role === "admin" 
+                            ? "bg-blue-500 hover:bg-blue-600"
                             : "bg-green-500 hover:bg-green-600"
                         }>
-                          {selectedUser.role === "admin" ? "Admin" : "Üye"}
+                          {selectedUser.role === "superadmin" ? "Süper Admin" : selectedUser.role === "admin" ? "Admin" : "Üye"}
                         </Badge>
                       </CardDescription>
                     </div>
@@ -546,10 +949,10 @@ export default function UsersPage() {
                       <div className="flex items-center justify-between px-1">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-purple-500" />
-                          <span className="text-sm font-medium text-gray-700">Doğum Tarihi</span>
+                          <span className="text-sm font-medium text-gray-700">Oluşturma Tarihi</span>
                         </div>
                         <span className="text-sm bg-white px-2 py-1 rounded border">
-                          {new Date(selectedUser.birthDate).toLocaleDateString("tr-TR")}
+                          {formatDate(selectedUser.created_at)}
                         </span>
                       </div>
                     </div>
@@ -557,32 +960,38 @@ export default function UsersPage() {
 
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h3 className="text-sm font-semibold text-gray-700 mb-3">Rol Yönetimi</h3>
-                    <div className="flex items-center justify-between px-1 mb-3">
-                      <div className="flex items-center gap-2">
-                        <Shield className="h-4 w-4 text-red-500" />
-                        <span className="text-sm font-medium text-gray-700">Kullanıcı Rolü</span>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm text-muted-foreground">Kullanıcı Rolü:</p>
+                        <Badge className={
+                          selectedUser?.role === "superadmin" ? "bg-red-500" : 
+                          selectedUser?.role === "admin" ? "bg-blue-500" : "bg-green-500"
+                        }>
+                          {selectedUser?.role === "superadmin" ? "Süper Admin" : 
+                           selectedUser?.role === "admin" ? "Admin" : "Kullanıcı"}
+                        </Badge>
                       </div>
+                      
+                      {/* Rol değiştirme alanı */}
                       <div className="flex items-center gap-2">
-                        <Select
-                          value={editingUser?.role || "user"}
-                          onValueChange={(value) => editingUser && setEditingUser({
-                            ...editingUser,
-                            role: value
-                          })}
+                        <Select 
+                          value={editForm.role || "user"}
+                          onValueChange={(value) => setEditForm({...editForm, role: value})}
                         >
-                          <SelectTrigger id="edit-role" className="w-[120px] h-7 text-xs">
-                            <SelectValue />
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Rol seçin" />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="user">Kullanıcı</SelectItem>
                             <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="user">Üye</SelectItem>
+                            <SelectItem value="superadmin">Süper Admin</SelectItem>
                           </SelectContent>
                         </Select>
+                        <Button onClick={handleSaveChanges} className="w-full bg-green-600 hover:bg-green-700 text-sm h-9">
+                          Rolü Güncelle
+                        </Button>
                       </div>
                     </div>
-                    <Button onClick={handleSaveChanges} className="w-full bg-green-600 hover:bg-green-700 text-sm h-9">
-                      Kaydet
-                    </Button>
                   </div>
 
                   <div className="bg-gray-50 rounded-lg p-4">
@@ -594,7 +1003,7 @@ export default function UsersPage() {
                           <span className="text-sm font-medium text-gray-700">Son Güncelleme</span>
                         </div>
                         <span className="text-sm bg-white px-2 py-1 rounded border">
-                          {new Date(selectedUser.updated_at).toLocaleDateString("tr-TR")}
+                          {formatDate(selectedUser.updated_at)}
                         </span>
                       </div>
                     </div>
@@ -824,113 +1233,20 @@ export default function UsersPage() {
                                 </TableHeader>
                                 <TableBody>
                                   {participatedEventsData.map((event) => (
-                                    <Dialog key={event.id}>
-                                      <DialogTrigger asChild>
-                                        <TableRow className="cursor-pointer hover:bg-gray-50">
-                                          <TableCell>{event.name}</TableCell>
-                                          <TableCell>{event.date}</TableCell>
-                                          <TableCell>{event.location}</TableCell>
-                                          <TableCell>
-                                            <Badge className={
-                                              event.status === "Katıldı" ? "bg-green-500" : 
-                                              event.status === "Onay Bekliyor" ? "bg-yellow-500" : 
-                                              "bg-gray-500"
-                                            }>
-                                              {event.status}
-                                            </Badge>
-                                          </TableCell>
-                                        </TableRow>
-                                      </DialogTrigger>
-                                      <DialogContent className="sm:max-w-[600px]">
-                                        <DialogHeader>
-                                          <DialogTitle>{event.name} Detayları</DialogTitle>
-                                        </DialogHeader>
-                                        <div className="py-4 space-y-3">
-                                          <Card>
-                                            <CardContent className="p-6">
-                                              <div className="space-y-4">
-                                                <div className="flex justify-between items-center">
-                                                  <h3 className="font-medium text-lg">{event.name}</h3>
-                                                  <Badge className={
-                                                    event.status === "Katıldı" ? "bg-green-500" : 
-                                                    event.status === "Onay Bekliyor" ? "bg-yellow-500" : 
-                                                    "bg-gray-500"
-                                                  }>
-                                                    {event.status}
-                                                  </Badge>
-                                                </div>
-                                                <Separator />
-                                                <div className="grid grid-cols-2 gap-4">
-                                                  <div>
-                                                    <span className="text-sm font-medium">Tarih:</span>
-                                                    <p className="text-sm">{event.date}</p>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-sm font-medium">Konum:</span>
-                                                    <p className="text-sm">{event.location}</p>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-sm font-medium">Etkinlik Sahibi:</span>
-                                                    <p className="text-sm">
-                                                      {event.name.includes("Koşusu") ? "Ali Veli" : 
-                                                       event.name.includes("Yoga") ? "Zeynep Kaya" : 
-                                                       event.name.includes("Bisiklet") ? "Mehmet Yılmaz" : "John Doe"}
-                                                    </p>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-sm font-medium">Katılım Durumu:</span>
-                                                    <p className="text-sm">{event.status}</p>
-                                                  </div>
-                                                </div>
-                                                <Separator />
-                                                <div>
-                                                  <span className="text-sm font-medium">Etkinlik Açıklaması:</span>
-                                                  <p className="text-sm mt-1">
-                                                    {event.name.includes("Koşusu") ? 
-                                                      "Caddebostan sahilinde güneş doğarken gerçekleşecek bir koşu etkinliği. Her seviyeden koşucu katılabilir." : 
-                                                    event.name.includes("Yoga") ? 
-                                                      "Stresi azaltmak ve esnekliği artırmak için profesyonel eğitmen eşliğinde yoga kampı." : 
-                                                    event.name.includes("Bisiklet") ? 
-                                                      "Belgrad Ormanı'nda doğa ile iç içe bir bisiklet turu. Kendi bisikletinizi getirmeniz gerekmektedir." : 
-                                                      "Spor etkinliği detayları."}
-                                                  </p>
-                                                </div>
-                                                <Separator />
-                                                <div>
-                                                  <span className="text-sm font-medium">Katılımcı Değerlendirmesi:</span>
-                                                  <div className="mt-2">
-                                                    {event.status === "Katıldı" ? (
-                                                      <div className="flex items-center space-x-1">
-                                                        {[1, 2, 3, 4, 5].map((star) => (
-                                                          <svg
-                                                            key={star}
-                                                            className={`w-4 h-4 ${star <= 4 ? "text-yellow-400" : "text-gray-300"}`}
-                                                            fill="currentColor"
-                                                            viewBox="0 0 20 20"
-                                                          >
-                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                                          </svg>
-                                                        ))}
-                                                        <span className="text-sm ml-1">(4/5) Çok İyi</span>
-                                                      </div>
-                                                    ) : event.status === "Onay Bekliyor" ? (
-                                                      <p className="text-sm text-yellow-600">Etkinlik katılımı onay bekliyor.</p>
-                                                    ) : (
-                                                      <p className="text-sm text-muted-foreground">Henüz değerlendirme yapılmadı.</p>
-                                                    )}
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            </CardContent>
-                                          </Card>
-                                        </div>
-                                        <DialogFooter>
-                                          <DialogClose asChild>
-                                            <Button variant="outline">Kapat</Button>
-                                          </DialogClose>
-                                        </DialogFooter>
-                                      </DialogContent>
-                                    </Dialog>
+                                    <TableRow key={event.id}>
+                                      <TableCell>{event.name}</TableCell>
+                                      <TableCell>{event.date}</TableCell>
+                                      <TableCell>{event.location}</TableCell>
+                                      <TableCell>
+                                        <Badge className={
+                                          event.status === "Katıldı" ? "bg-green-500" : 
+                                          event.status === "Onay Bekliyor" ? "bg-yellow-500" : 
+                                          "bg-gray-500"
+                                        }>
+                                          {event.status}
+                                        </Badge>
+                                      </TableCell>
+                                    </TableRow>
                                   ))}
                                 </TableBody>
                               </Table>
@@ -980,9 +1296,9 @@ export default function UsersPage() {
                             </DialogHeader>
                             <div className="py-4">
                               {(selectedUser.id === "1" && reportsDataAhmet.length > 0) ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
+            <Table>
+              <TableHeader>
+                <TableRow>
                                       <TableHead>Raporlayan</TableHead>
                                       <TableHead>Sebep</TableHead>
                                       <TableHead>Tarih</TableHead>
@@ -1261,7 +1577,7 @@ export default function UsersPage() {
         </CardContent>
               <CardFooter className="px-6 pt-0 pb-4 flex justify-center">
                 <div className="text-xs text-gray-500 mt-4">
-                  Son işlem: {new Date(selectedUser.updated_at).toLocaleString("tr-TR")}
+                  Son işlem: {formatDate(selectedUser.updated_at)}
                 </div>
               </CardFooter>
       </Card>

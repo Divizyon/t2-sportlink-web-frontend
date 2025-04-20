@@ -2,6 +2,9 @@ import api, { handleApiError } from './api';
 import type { ApiError } from './api';
 import type { AxiosError } from 'axios';
 
+// Debug modu - Sadece development için
+const debug = process.env.NODE_ENV === 'development';
+
 // Auth types
 export interface UserData {
   id: string;
@@ -46,6 +49,10 @@ class AuthService {
   // Login user
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
+      if (debug) {
+        console.log("Login isteği gönderiliyor:", `${this.BASE_PATH}/login`, credentials.email);
+      }
+      
       const response = await api.post<AuthResponse>(
         `${this.BASE_PATH}/login`,
         credentials
@@ -53,14 +60,33 @@ class AuthService {
       
       // Başarılı giriş durumunda token'ı localStorage'a kaydet
       if (response.data.token) {
-        console.log("AuthService: Token alındı, kaydediliyor...");
+        if (debug) {
+          console.log("AuthService: Token alındı:", response.data.token.substring(0, 15) + "...");
+          console.log("Kullanıcı rolü:", response.data.user.role);
+        }
+        
         this.setToken(response.data.token);
-        // Kullanıcı bilgilerini de kaydedebiliriz
+        // Kullanıcı bilgilerini de kaydedelim
         this.setUser(response.data.user);
+        
+        // Token doğru kaydedildi mi kontrol et
+        const savedToken = localStorage.getItem(this.TOKEN_KEY);
+        if (debug) {
+          console.log("Token kaydedildi mi:", !!savedToken);
+          if (savedToken) {
+            console.log("Kaydedilen token:", savedToken.substring(0, 15) + "...");
+          }
+        }
+      } else if (debug) {
+        console.warn("AuthService: Sunucudan token alınamadı!");
       }
       
       return response.data;
     } catch (error) {
+      if (debug) {
+        console.error("Login hatası:", error);
+      }
+      
       const apiError = handleApiError(error as AxiosError<ApiError>);
       
       // Email doğrulama hatasını kontrol et
@@ -138,16 +164,37 @@ class AuthService {
   
   // Basit token yönetimi
   setToken(token: string): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
+    try {
+      localStorage.setItem(this.TOKEN_KEY, token);
+      if (debug) {
+        console.log("Token localStorage'a kaydedildi");
+      }
+    } catch (error) {
+      console.error("Token kaydedilirken hata:", error);
+    }
   }
   
   removeToken(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
+    try {
+      localStorage.removeItem(this.TOKEN_KEY);
+      if (debug) {
+        console.log("Token localStorage'dan silindi");
+      }
+    } catch (error) {
+      console.error("Token silinirken hata:", error);
+    }
   }
   
   // Basit kullanıcı bilgileri yönetimi
   setUser(user: UserData): void {
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    try {
+      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+      if (debug) {
+        console.log("Kullanıcı bilgileri localStorage'a kaydedildi");
+      }
+    } catch (error) {
+      console.error("Kullanıcı bilgileri kaydedilirken hata:", error);
+    }
   }
   
   removeUser(): void {
@@ -156,8 +203,22 @@ class AuthService {
   
   // Check if user is authenticated
   isAuthenticated(): boolean {
-    const token = localStorage.getItem(this.TOKEN_KEY);
-    return !!token;
+    try {
+      const token = localStorage.getItem(this.TOKEN_KEY);
+      const authenticated = !!token;
+      
+      if (debug) {
+        console.log("Kullanıcı kimlik doğrulaması:", authenticated);
+        if (authenticated) {
+          console.log("Token mevcut:", token?.substring(0, 15) + "...");
+        }
+      }
+      
+      return authenticated;
+    } catch (error) {
+      console.error("Kimlik doğrulama hatası:", error);
+      return false;
+    }
   }
   
   // Get current user from localStorage
