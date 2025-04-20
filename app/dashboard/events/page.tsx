@@ -2,17 +2,19 @@
 
 import { useState, useEffect, useRef } from "react";
 import type { ChangeEvent } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Plus, Calendar, Users, MapPin, Pencil, Clock, Trophy, Tag, Trash, Eye, Check, Ban, X, Mail, Phone } from "lucide-react";
+import { Search, Plus, Calendar, Users, MapPin, Pencil, Clock, Trophy, Tag, Trash, Eye, Check, Ban, X, Mail, Phone, Shield, Award, ChevronRight, AlertCircle, Info } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,6 +29,7 @@ import {
 } from "@/components/ui/table";
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface Event {
   id: string;
@@ -240,6 +243,11 @@ export default function EventsPage() {
     email: "",
     phone: ""
   });
+
+  // Katılımcı istatistiklerine ilişkin popup durumları
+  const [showAttendedEvents, setShowAttendedEvents] = useState(false);
+  const [showSportsList, setShowSportsList] = useState(false);
+  const [showReportsList, setShowReportsList] = useState(false);
 
   // Sayfa yüklendiğinde ilk etkinliği otomatik seç
   useEffect(() => {
@@ -1138,68 +1146,305 @@ export default function EventsPage() {
 
       {/* Katılımcı Detay Popup */}
       {selectedParticipant && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Katılımcı Detayları</h3>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 rounded-full"
-                onClick={() => setSelectedParticipant(null)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+        <Dialog open={!!selectedParticipant} onOpenChange={(open) => !open && setSelectedParticipant(null)}>
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="px-6 pt-5 pb-3 bg-gradient-to-r from-green-50 to-blue-50 border-b">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16 border-2 border-white shadow-sm">
+                    <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
+                      {selectedParticipant?.name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <DialogTitle className="text-xl text-gray-800">{selectedParticipant?.name}</DialogTitle>
+                    <CardDescription className="text-sm flex items-center gap-2 mt-1">
+                      <span>@{selectedParticipant?.name.toLowerCase().replace(/\s+/g, '')}</span>
+                      <Badge className="bg-green-500 hover:bg-green-600">
+                        Katılımcı
+                      </Badge>
+                    </CardDescription>
+                  </div>
+                </div>
+              </div>
+            </DialogHeader>
+            <div className="px-6 pt-5 pb-4">
+              <div className="grid grid-cols-1 gap-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Kişisel Bilgiler</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between px-1">
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-blue-500" />
+                        <span className="text-sm font-medium text-gray-700">E-posta</span>
+                      </div>
+                      <span className="text-sm bg-white px-2 py-1 rounded border">{selectedParticipant?.email}</span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between px-1">
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-green-500" />
+                        <span className="text-sm font-medium text-gray-700">Telefon</span>
+                      </div>
+                      <span className="text-sm bg-white px-2 py-1 rounded border">{selectedParticipant?.phone || "Belirtilmemiş"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Etkinlik Bilgileri</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between px-1">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-purple-500" />
+                        <span className="text-sm font-medium text-gray-700">Kayıt Tarihi</span>
+                      </div>
+                      <span className="text-sm bg-white px-2 py-1 rounded border">
+                        {selectedParticipant?.registrationDate && new Date(selectedParticipant.registrationDate).toLocaleDateString("tr-TR")}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between px-1">
+                      <div className="flex items-center gap-2">
+                        <Trophy className="h-4 w-4 text-amber-500" />
+                        <span className="text-sm font-medium text-gray-700">Etkinlik</span>
+                      </div>
+                      <span className="text-sm bg-white px-2 py-1 rounded border">
+                        {selectedEvent?.title}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Rol Yönetimi</h3>
+                  <div className="flex items-center justify-between px-1 mb-3">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-red-500" />
+                      <span className="text-sm font-medium text-gray-700">Kullanıcı Rolü</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value="user"
+                        onValueChange={() => {}}
+                      >
+                        <SelectTrigger id="edit-role" className="w-[120px] h-7 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="user">Üye</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Button onClick={() => {}} className="w-full bg-green-600 hover:bg-green-700 text-sm h-9">
+                    Kaydet
+                  </Button>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Katılımcı İstatistikleri</h3>
+                  <div className="space-y-3">
+                    <div 
+                      onClick={() => setShowAttendedEvents(true)}
+                      className="flex items-center justify-between cursor-pointer bg-white hover:bg-gray-100 p-3 rounded border mb-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Award className="h-4 w-4 text-indigo-500" />
+                        <span className="text-sm font-medium">Katıldığı Etkinlikler</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Badge variant="outline" className="text-xs mr-1">1</Badge>
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                      </div>
+                    </div>
+                    
+                    <div 
+                      onClick={() => setShowSportsList(true)}
+                      className="flex items-center justify-between cursor-pointer bg-white hover:bg-gray-100 p-3 rounded border mb-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Trophy className="h-4 w-4 text-amber-500" />
+                        <span className="text-sm font-medium">Spor Dalları</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="flex flex-wrap gap-1 justify-end items-center mr-1">
+                          <Badge variant="outline" className="text-xs">{selectedEvent?.category || "Genel"}</Badge>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                      </div>
+                    </div>
+
+                    <div 
+                      onClick={() => setShowReportsList(true)}
+                      className="flex items-center justify-between cursor-pointer bg-white hover:bg-gray-100 p-3 rounded border mb-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-red-500" />
+                        <span className="text-sm font-medium">Hakkında Raporlar</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Badge variant="outline" className="text-xs bg-red-50 text-red-600 border-red-200 mr-1">2</Badge>
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="p-6">
-              <div className="flex flex-col items-center mb-6">
-                <div className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center mb-4">
-                  <span className="text-2xl font-bold text-green-600">
-                    {selectedParticipant?.name.split(' ').map(n => n[0]).join('')}
-                  </span>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Katıldığı Etkinlikler Popup */}
+      <Dialog open={showAttendedEvents} onOpenChange={setShowAttendedEvents}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Katıldığı Etkinlikler</DialogTitle>
+            <DialogDescription>
+              Kullanıcının katıldığı tüm etkinliklerin listesi
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-3">
+              <div className="p-3 border rounded-md hover:bg-gray-50">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium text-sm">{selectedEvent?.title}</h4>
+                  <span className="text-xs text-gray-500">{selectedEvent?.date && new Date(selectedEvent.date).toLocaleDateString("tr-TR")}</span>
                 </div>
-                <h4 className="text-xl font-semibold">{selectedParticipant?.name}</h4>
-                <p className="text-gray-500 text-sm">Kayıt: {new Date(selectedParticipant?.registrationDate || "").toLocaleDateString('tr-TR')}</p>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-md">
-                  <Mail className="h-5 w-5 text-blue-500" />
-                  <div>
-                    <div className="text-xs text-gray-500">E-posta</div>
-                    <div className="text-sm font-medium">{selectedParticipant?.email}</div>
-                  </div>
+                <div className="flex items-center mt-1 text-xs text-gray-600">
+                  <MapPin className="h-3 w-3 mr-1" />
+                  <span>{selectedEvent?.location}</span>
                 </div>
-                
-                <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-md">
-                  <Phone className="h-5 w-5 text-green-500" />
-                  <div>
-                    <div className="text-xs text-gray-500">Telefon</div>
-                    <div className="text-sm font-medium">{selectedParticipant?.phone || "Belirtilmemiş"}</div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-md">
-                  <Calendar className="h-5 w-5 text-purple-500" />
-                  <div>
-                    <div className="text-xs text-gray-500">Etkinlik</div>
-                    <div className="text-sm font-medium">{selectedEvent?.title}</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-6 flex gap-2">
-                <Button className="w-full" variant="outline" onClick={() => setSelectedParticipant(null)}>
-                  Kapat
-                </Button>
-                <Button className="w-full" variant="default">
-                  Mesaj Gönder
-                </Button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+          <div className="flex justify-end">
+            <DialogClose asChild>
+              <Button variant="outline">Kapat</Button>
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Spor Dalları Popup */}
+      <Dialog open={showSportsList} onOpenChange={setShowSportsList}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Tercih Ettiği Spor Dalları</DialogTitle>
+            <DialogDescription>
+              Kullanıcının tercih ettiği spor dalları
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-3">
+              <div className="p-3 border rounded-md hover:bg-gray-50">
+                <div className="flex items-center">
+                  <Badge className="mr-2">{selectedEvent?.category || "Genel"}</Badge>
+                  <span className="text-sm text-gray-700">
+                    {selectedEvent?.category === "Futbol" ? "11 kişilik takım sporu" : 
+                     selectedEvent?.category === "Basketbol" ? "5 kişilik takım sporu" : 
+                     selectedEvent?.category === "Voleybol" ? "6 kişilik takım sporu" : 
+                     "Spor dalı hakkında bilgi bulunmuyor"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <DialogClose asChild>
+              <Button variant="outline">Kapat</Button>
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Hakkında Raporlar Popup */}
+      <Dialog open={showReportsList} onOpenChange={setShowReportsList}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Hakkında Yapılan Raporlar</DialogTitle>
+            <DialogDescription>
+              Kullanıcı hakkında yapılan raporların listesi
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-3">
+              <div className="p-3 border rounded-md hover:bg-gray-50">
+                <div className="flex justify-between items-center mb-1">
+                  <div className="flex items-center">
+                    <Badge variant="outline" className="text-xs mr-2 text-red-600 border-red-200 bg-red-50">
+                      Uygunsuz Davranış
+                    </Badge>
+                  </div>
+                  <span className="text-xs text-gray-500">22.06.2024</span>
+                </div>
+                <p className="text-xs text-gray-600 mt-2">
+                  Etkinlik sırasında diğer katılımcılara karşı uygunsuz davranışlar sergiledi.
+                </p>
+                <div className="flex items-center justify-between mt-3">
+                  <div className="flex items-center">
+                    <span className="text-xs text-gray-500">Rapor Eden: Ahmet Demir</span>
+                  </div>
+                  <Badge className="text-xs bg-green-500">
+                    Çözüldü
+                  </Badge>
+                </div>
+              </div>
+              
+              <div className="p-3 border rounded-md hover:bg-gray-50">
+                <div className="flex justify-between items-center mb-1">
+                  <div className="flex items-center">
+                    <Badge variant="outline" className="text-xs mr-2 text-red-600 border-red-200 bg-red-50">
+                      Katılmama
+                    </Badge>
+                  </div>
+                  <span className="text-xs text-gray-500">15.05.2024</span>
+                </div>
+                <p className="text-xs text-gray-600 mt-2">
+                  Kayıt olduğu halde etkinliğe katılmadı ve haber vermedi.
+                </p>
+                <div className="flex items-center justify-between mt-3">
+                  <div className="flex items-center">
+                    <span className="text-xs text-gray-500">Rapor Eden: Mehmet Yılmaz</span>
+                  </div>
+                  <Badge className="text-xs bg-blue-500">
+                    İncelemede
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="p-3 border rounded-md hover:bg-gray-50">
+                <div className="flex justify-between items-center mb-1">
+                  <div className="flex items-center">
+                    <Badge variant="outline" className="text-xs mr-2 text-red-600 border-red-200 bg-red-50">
+                      Sözlü Taciz
+                    </Badge>
+                  </div>
+                  <span className="text-xs text-gray-500">03.04.2024</span>
+                </div>
+                <p className="text-xs text-gray-600 mt-2">
+                  Etkinlik sırasında sözlü tacizde bulunduğu iddia edildi.
+                </p>
+                <div className="flex items-center justify-between mt-3">
+                  <div className="flex items-center">
+                    <span className="text-xs text-gray-500">Rapor Eden: Zeynep Kaya</span>
+                  </div>
+                  <Badge className="text-xs bg-gray-500">
+                    İncelenmedi
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <DialogClose asChild>
+              <Button variant="outline">Kapat</Button>
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

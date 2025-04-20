@@ -14,7 +14,6 @@ const profileSchema = yup.object().shape({
   lastName: yup.string().required('Soyad alanı zorunludur'),
   email: yup.string().email('Geçerli bir e-posta adresi giriniz').required('E-posta alanı zorunludur'),
   phone: yup.string().matches(/^[0-9]+$/, 'Geçerli bir telefon numarası giriniz'),
-  bio: yup.string().max(500, 'Biyografi en fazla 500 karakter olabilir'),
   role: yup.string().required('Rol seçimi zorunludur'),
 });
 
@@ -33,7 +32,6 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
       lastName: initialData?.lastName || '',
       email: initialData?.email || '',
       phone: initialData?.phone || '',
-      bio: initialData?.bio || '',
       role: initialData?.role || '',
     },
   });
@@ -124,8 +122,8 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="developer">Geliştirici</SelectItem>
-                  <SelectItem value="designer">Tasarımcı</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="user">Kullanıcı</SelectItem>
                   <SelectItem value="manager">Yönetici</SelectItem>
                 </SelectContent>
               </Select>
@@ -134,35 +132,7 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="bio"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Biyografi</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Kendinizden kısaca bahsedin..."
-                  className="min-h-[100px]"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                En fazla 500 karakter girebilirsiniz.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         <div className="flex justify-end space-x-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => form.reset()}
-          >
-            Sıfırla
-          </Button>
           <Button type="submit">
             Kaydet
           </Button>

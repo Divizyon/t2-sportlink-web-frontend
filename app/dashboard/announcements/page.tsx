@@ -54,7 +54,6 @@ interface Announcement {
   category: string
   date: string
   status: "Aktif" | "Pasif" | "Taslak"
-  priority: "Düşük" | "Orta" | "Yüksek" | "Kritik"
   image?: string
   author: string
   targetAudience: string[]
@@ -71,7 +70,6 @@ export default function AnnouncementsPage() {
       category: "Etkinlik",
       date: "2023-05-15",
       status: "Aktif",
-      priority: "Yüksek",
       image: "/images/summer-camp.jpg",
       author: "Spor Koordinatörü",
       targetAudience: ["Üyeler", "Veliler"],
@@ -85,7 +83,6 @@ export default function AnnouncementsPage() {
       category: "Bilgilendirme",
       date: "2023-06-10",
       status: "Aktif",
-      priority: "Kritik",
       image: "/images/maintenance.jpg",
       author: "Tesis Müdürü",
       targetAudience: ["Tüm Üyeler"],
@@ -99,7 +96,6 @@ export default function AnnouncementsPage() {
     content: "",
     category: "",
     status: "Aktif",
-    priority: "Orta",
     author: "",
     targetAudience: [],
     expiryDate: ""
@@ -115,14 +111,12 @@ export default function AnnouncementsPage() {
   const [selectedFilters, setSelectedFilters] = useState<{
     category: string[];
     status: string[];
-    priority: string[];
   }>({
     category: [],
-    status: [],
-    priority: []
+    status: []
   });
 
-  const handleFilterChange = (type: 'category' | 'status' | 'priority', value: string) => {
+  const handleFilterChange = (type: 'category' | 'status', value: string) => {
     setSelectedFilters(prev => {
       const currentFilters = prev[type];
       if (currentFilters.includes(value)) {
@@ -149,10 +143,7 @@ export default function AnnouncementsPage() {
     const matchesStatus = selectedFilters.status.length === 0 || 
       selectedFilters.status.includes(item.status);
 
-    const matchesPriority = selectedFilters.priority.length === 0 || 
-      selectedFilters.priority.includes(item.priority);
-
-    return matchesSearch && matchesCategory && matchesStatus && matchesPriority;
+    return matchesSearch && matchesCategory && matchesStatus;
   });
 
   const getTotalSelectedFilters = () => {
@@ -175,7 +166,6 @@ export default function AnnouncementsPage() {
       content: "",
       category: "",
       status: "Aktif",
-      priority: "Orta",
       author: "",
       targetAudience: [],
       expiryDate: ""
@@ -201,16 +191,6 @@ export default function AnnouncementsPage() {
     
     if (selectedAnnouncement?.id === id) {
       setSelectedAnnouncement(updatedAnnouncements.length > 0 ? updatedAnnouncements[0] : undefined)
-    }
-  }
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "Düşük": return "bg-blue-100 text-blue-800"
-      case "Orta": return "bg-green-100 text-green-800"
-      case "Yüksek": return "bg-orange-100 text-orange-800"
-      case "Kritik": return "bg-red-100 text-red-800"
-      default: return "bg-gray-100 text-gray-800"
     }
   }
 
@@ -325,38 +305,6 @@ export default function AnnouncementsPage() {
                     <SelectItem value="Bilgilendirme">Bilgilendirme</SelectItem>
                     <SelectItem value="Bakım">Bakım</SelectItem>
                     <SelectItem value="Diğer">Diğer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="priority" className="text-right">
-                  Öncelik
-                </Label>
-                <Select
-                  value={editingAnnouncement?.priority || newAnnouncement.priority || "Orta"}
-                  onValueChange={(value: "Düşük" | "Orta" | "Yüksek" | "Kritik") => {
-                    if (editingAnnouncement) {
-                      setEditingAnnouncement({
-                        ...editingAnnouncement,
-                        priority: value,
-                      })
-                    } else {
-                      setNewAnnouncement({
-                        ...newAnnouncement,
-                        priority: value,
-                      })
-                    }
-                  }}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Öncelik seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Düşük">Düşük</SelectItem>
-                    <SelectItem value="Orta">Orta</SelectItem>
-                    <SelectItem value="Yüksek">Yüksek</SelectItem>
-                    <SelectItem value="Kritik">Kritik</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -595,23 +543,6 @@ export default function AnnouncementsPage() {
                       ))}
                     </div>
                   </div>
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Öncelik</h4>
-                    <div className="space-y-2">
-                      {['Düşük', 'Orta', 'Yüksek', 'Kritik'].map((priority) => (
-                        <div key={priority} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={`priority-${priority}`}
-                            checked={selectedFilters.priority.includes(priority)}
-                            onChange={() => handleFilterChange('priority', priority)}
-                            className="h-4 w-4"
-                          />
-                          <label htmlFor={`priority-${priority}`}>{priority}</label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
                 </div>
               </DialogContent>
             </Dialog>
@@ -621,7 +552,6 @@ export default function AnnouncementsPage() {
               <TableRow>
                 <TableHead>Başlık</TableHead>
                 <TableHead>Kategori</TableHead>
-                <TableHead>Öncelik</TableHead>
                 <TableHead>Tarih</TableHead>
                 <TableHead>Durum</TableHead>
                 <TableHead className="w-[100px]">İşlemler</TableHead>
@@ -636,11 +566,6 @@ export default function AnnouncementsPage() {
                 >
                   <TableCell className="font-medium">{announcement.title}</TableCell>
                   <TableCell>{announcement.category}</TableCell>
-                  <TableCell>
-                    <Badge className={getPriorityColor(announcement.priority)}>
-                      {announcement.priority}
-                    </Badge>
-                  </TableCell>
                   <TableCell>{announcement.date}</TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(announcement.status)}>
@@ -687,9 +612,6 @@ export default function AnnouncementsPage() {
                   <div className="flex flex-col gap-2 items-end">
                     <Badge className={getStatusColor(selectedAnnouncement.status)}>
                       {selectedAnnouncement.status}
-                    </Badge>
-                    <Badge className={getPriorityColor(selectedAnnouncement.priority)}>
-                      {selectedAnnouncement.priority}
                     </Badge>
                   </div>
                 </div>

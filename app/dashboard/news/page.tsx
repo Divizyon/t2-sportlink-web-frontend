@@ -34,9 +34,7 @@ interface News {
   category: string;
   date: string;
   status: "Aktif" | "Pasif" | "Taslak" | "Onay Bekliyor";
-  priority: "Düşük" | "Orta" | "Yüksek" | "Kritik";
   image: string;
-  author: string;
   sourceUrl: string;
   views: number;
 }
@@ -50,9 +48,7 @@ export default function NewsPage() {
       category: "Futbol",
       date: "2023-04-15",
       status: "Aktif",
-      priority: "Yüksek",
       image: "/images/fenerbahce.jpg",
-      author: "Ahmet Yılmaz",
       sourceUrl: "",
       views: 1250
     },
@@ -63,9 +59,7 @@ export default function NewsPage() {
       category: "Basketbol",
       date: "2023-04-16",
       status: "Aktif",
-      priority: "Orta",
       image: "/images/nba.jpg",
-      author: "Mehmet Demir",
       sourceUrl: "",
       views: 980
     }
@@ -79,9 +73,7 @@ export default function NewsPage() {
       category: "Voleybol",
       date: "2023-04-17",
       status: "Onay Bekliyor",
-      priority: "Yüksek",
       image: "/images/voleybol.jpg",
-      author: "Spor Haber",
       sourceUrl: "https://www.sporhaber.com/voleybol/milli-takim",
       views: 0
     }
@@ -134,9 +126,7 @@ export default function NewsPage() {
         category: "Genel",
         date: new Date().toISOString().split('T')[0] || "",
         status: "Onay Bekliyor",
-        priority: "Orta",
         image,
-        author: "Otomatik Sistem",
         sourceUrl: sourceUrl,
         views: 0
       };
@@ -163,9 +153,7 @@ export default function NewsPage() {
     category: "",
     date: new Date().toISOString().split('T')[0] || "",
     status: "Aktif",
-    priority: "Orta",
     image: "",
-    author: "",
     sourceUrl: ""
   });
 
@@ -178,15 +166,13 @@ export default function NewsPage() {
   const [selectedFilters, setSelectedFilters] = useState<{
     category: string[];
     status: string[];
-    author: string[];
   }>({
     category: [],
-    status: [],
-    author: []
+    status: []
   });
 
   const handleAddNews = () => {
-    if (!newNews.title || !newNews.content || !newNews.category || !newNews.author) {
+    if (!newNews.title || !newNews.content || !newNews.category) {
       return;
     }
 
@@ -202,9 +188,7 @@ export default function NewsPage() {
       category: "",
       date: new Date().toISOString().split('T')[0],
       status: "Aktif",
-      priority: "Orta",
       image: "",
-      author: "",
       sourceUrl: ""
     });
     setIsUrlDialogOpen(false);
@@ -226,7 +210,7 @@ export default function NewsPage() {
     }
   };
 
-  const handleFilterChange = (type: 'category' | 'status' | 'author', value: string) => {
+  const handleFilterChange = (type: 'category' | 'status', value: string) => {
     setSelectedFilters(prev => {
       const currentFilters = prev[type];
       if (currentFilters.includes(value)) {
@@ -253,10 +237,7 @@ export default function NewsPage() {
     const matchesStatus = selectedFilters.status.length === 0 || 
       selectedFilters.status.includes(item.status);
 
-    const matchesAuthor = selectedFilters.author.length === 0 || 
-      selectedFilters.author.includes(item.author);
-
-    return matchesSearch && matchesCategory && matchesStatus && matchesAuthor;
+    return matchesSearch && matchesCategory && matchesStatus;
   });
 
   const getTotalSelectedFilters = () => {
@@ -378,37 +359,12 @@ export default function NewsPage() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="author">Yazar</Label>
-                  <Input
-                    id="author"
-                    value={newNews.author}
-                    onChange={(e) => setNewNews({ ...newNews, author: e.target.value })}
-                  />
-                </div>
-                <div className="grid gap-2">
                   <Label htmlFor="image">Görsel URL</Label>
                   <Input
                     id="image"
                     value={newNews.image}
                     onChange={(e) => setNewNews({ ...newNews, image: e.target.value })}
                   />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="priority">Öncelik</Label>
-                  <Select
-                    value={newNews.priority}
-                    onValueChange={(value: "Düşük" | "Orta" | "Yüksek" | "Kritik") => setNewNews({ ...newNews, priority: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Öncelik seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Düşük">Düşük</SelectItem>
-                      <SelectItem value="Orta">Orta</SelectItem>
-                      <SelectItem value="Yüksek">Yüksek</SelectItem>
-                      <SelectItem value="Kritik">Kritik</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="status">Durum</Label>
@@ -492,23 +448,6 @@ export default function NewsPage() {
                                   className="h-4 w-4"
                                 />
                                 <label htmlFor={`status-${status}`}>{status}</label>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="space-y-4">
-                          <h4 className="font-medium">Yazar</h4>
-                          <div className="space-y-2">
-                            {['Ahmet Yılmaz', 'Mehmet Demir'].map((author) => (
-                              <div key={author} className="flex items-center space-x-2">
-                                <input
-                                  type="checkbox"
-                                  id={`author-${author}`}
-                                  checked={selectedFilters.author.includes(author)}
-                                  onChange={() => handleFilterChange('author', author)}
-                                  className="h-4 w-4"
-                                />
-                                <label htmlFor={`author-${author}`}>{author}</label>
                               </div>
                             ))}
                           </div>
@@ -688,7 +627,7 @@ export default function NewsPage() {
                       <div>
                         <h2 className="text-2xl font-bold">{(selectedNews || selectedPendingNews)?.title}</h2>
                         <p className="text-sm text-muted-foreground">
-                          {(selectedNews || selectedPendingNews)?.category} | {(selectedNews || selectedPendingNews)?.date} | {(selectedNews || selectedPendingNews)?.author}
+                          {(selectedNews || selectedPendingNews)?.category} | {(selectedNews || selectedPendingNews)?.date}
                         </p>
                         {(selectedNews || selectedPendingNews)?.sourceUrl && (
                           <a 
@@ -754,7 +693,7 @@ export default function NewsPage() {
                       <div className="grid gap-2">
                         <Label htmlFor="edit-category">Kategori</Label>
                         <Select
-                          value={selectedNews?.category || selectedPendingNews?.category}
+                          value={selectedNews?.category || selectedPendingNews?.category || ""}
                           onValueChange={(value) => {
                             if (selectedNews) {
                               setSelectedNews({ ...selectedNews, category: value });
@@ -789,20 +728,6 @@ export default function NewsPage() {
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="edit-author">Yazar</Label>
-                        <Input
-                          id="edit-author"
-                          value={selectedNews?.author || selectedPendingNews?.author}
-                          onChange={(e) => {
-                            if (selectedNews) {
-                              setSelectedNews({ ...selectedNews, author: e.target.value });
-                            } else if (selectedPendingNews) {
-                              setSelectedPendingNews({ ...selectedPendingNews, author: e.target.value });
-                            }
-                          }}
-                        />
-                      </div>
-                      <div className="grid gap-2">
                         <Label htmlFor="edit-image">Görsel URL</Label>
                         <Input
                           id="edit-image"
@@ -817,32 +742,9 @@ export default function NewsPage() {
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="edit-priority">Öncelik</Label>
-                        <Select
-                          value={selectedNews?.priority || selectedPendingNews?.priority}
-                          onValueChange={(value: "Düşük" | "Orta" | "Yüksek" | "Kritik") => {
-                            if (selectedNews) {
-                              setSelectedNews({ ...selectedNews, priority: value });
-                            } else if (selectedPendingNews) {
-                              setSelectedPendingNews({ ...selectedPendingNews, priority: value });
-                            }
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Öncelik seçin" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Düşük">Düşük</SelectItem>
-                            <SelectItem value="Orta">Orta</SelectItem>
-                            <SelectItem value="Yüksek">Yüksek</SelectItem>
-                            <SelectItem value="Kritik">Kritik</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid gap-2">
                         <Label htmlFor="edit-status">Durum</Label>
                         <Select
-                          value={selectedNews?.status || selectedPendingNews?.status}
+                          value={selectedNews?.status || selectedPendingNews?.status || "Aktif"}
                           onValueChange={(value: "Aktif" | "Pasif" | "Taslak" | "Onay Bekliyor") => {
                             if (selectedNews) {
                               setSelectedNews({ ...selectedNews, status: value });
