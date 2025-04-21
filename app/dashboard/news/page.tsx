@@ -446,8 +446,7 @@ export default function NewsPage() {
 
   return (
     <div className="h-full p-4 space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Haberler</h1>
+      <div className="flex justify-end items-center">
         <div className="flex gap-2">
           <Dialog open={isUrlDialogOpen} onOpenChange={setIsUrlDialogOpen}>
             <DialogTrigger asChild>
