@@ -3,12 +3,24 @@
 import React, { useState, useEffect } from "react"
 import { format, addMonths, subMonths, isSameMonth, isWithinInterval, parseISO, subDays, addDays } from "date-fns"
 import { tr } from "date-fns/locale"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Calendar, Newspaper, Megaphone, TrendingUp, User, Activity, Download } from "lucide-react"
+import { Calendar, Newspaper, Megaphone, TrendingUp, User, Activity, Download, ChevronRight, ExternalLink } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { SportEventsChart } from "@/components/dashboard/sport-events-chart"
+import { SportPopularityChart } from "@/components/dashboard/sport-popularity-chart"
+import Link from "next/link"
+import { useSearchParams, useRouter } from "next/navigation"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog"
 import type { DateRange } from "react-day-picker"
 
 // Farklı tarihlerdeki verileri simüle eden objeler
@@ -274,15 +286,141 @@ const statsData = {
 }
 
 export default function DashboardPage() {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: new Date(),
-    to: undefined
-  })
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const dialogType = searchParams.get('dialog');
+  
+  // Dialog açık/kapalı durumları
+  const [openDialogs, setOpenDialogs] = useState<{
+    events: boolean;
+    news: boolean;
+    announcements: boolean;
+  }>({
+    events: false,
+    news: false,
+    announcements: false
+  });
+
+  // URL'den gelen dialog parametresine göre dialog durumunu ayarla
+  useEffect(() => {
+    if (dialogType) {
+      setOpenDialogs({
+        events: dialogType === 'events',
+        news: dialogType === 'news',
+        announcements: dialogType === 'announcements'
+      });
+    }
+  }, [dialogType]);
+
+  // Sayfa yüklendiğinde localStorage'dan son açık dialog kontrolü
+  useEffect(() => {
+    // Client-side'da çalıştığını kontrol et
+    if (typeof window !== 'undefined') {
+      const returnDialog = new URLSearchParams(window.location.search).get('returnDialog');
+      const lastOpenDialog = localStorage.getItem('lastOpenDialog');
+      
+      // URL'de returnDialog parametresi varsa veya localStorage'da kayıt varsa
+      if (returnDialog || lastOpenDialog) {
+        const dialogToOpen = returnDialog || lastOpenDialog || '';
+        
+        // Dialog'u aç
+        setOpenDialogs(prev => ({
+          ...prev,
+          events: dialogToOpen === 'events',
+          news: dialogToOpen === 'news',
+          announcements: dialogToOpen === 'announcements'
+        }));
+        
+        // URL'yi güncelle
+        router.push(`/dashboard?dialog=${dialogToOpen}`, { scroll: false });
+        
+        // Temizle
+        localStorage.removeItem('lastOpenDialog');
+      }
+    }
+  }, []); // Bu effect sadece sayfa yüklendiğinde çalışsın
+
+  // Dialog durumu değiştiğinde URL'yi güncelle
+  const handleDialogChange = (type: 'events' | 'news' | 'announcements', isOpen: boolean) => {
+    setOpenDialogs(prev => ({ ...prev, [type]: isOpen }));
+    
+    if (isOpen) {
+      // Dialog açıldığında URL'yi güncelle
+      router.push(`/dashboard?dialog=${type}`, { scroll: false });
+    } else if (dialogType) {
+      // Dialog kapandığında URL'den parametre kaldır
+      router.push('/dashboard', { scroll: false });
+    }
+  };
+
+  const [date, setDate] = useState(new Date())
   const [stats, setStats] = useState(statsData.current)
+  const [selectedDateRange, setSelectedDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 6),
+    to: new Date(),
+  })
+
+  // Daha fazla örnek veri oluşturalım
+  const allEvents = [
+    { id: "1", name: "Futbol Turnuvası", date: "15 Nisan 2024" },
+    { id: "2", name: "Basketbol Maçı", date: "20 Nisan 2024" },
+    { id: "3", name: "Yüzme Yarışması", date: "18 Nisan 2024" },
+    { id: "4", name: "Tenis Turnuvası", date: "16 Nisan 2024" },
+    { id: "5", name: "Atletizm Koşusu", date: "14 Nisan 2024" },
+    { id: "6", name: "Bisiklet Turu", date: "12 Nisan 2024" },
+    { id: "7", name: "Halı Saha Maçı", date: "10 Nisan 2024" },
+  ];
+
+  const allNews = [
+    { id: "1", title: "Fenerbahçe'den Muhteşem Galibiyet", date: "15 Nisan 2024" },
+    { id: "2", title: "Basketbolda Büyük Başarı", date: "14 Nisan 2024" },
+    { id: "3", title: "Yeni Spor Tesisi Açıldı", date: "13 Nisan 2024" },
+    { id: "4", title: "Spor Kulübü Başarıları", date: "12 Nisan 2024" },
+    { id: "5", title: "Ulusal Turnuva Haberleri", date: "11 Nisan 2024" },
+    { id: "6", title: "Basketbol Milli Takımı", date: "10 Nisan 2024" },
+    { id: "7", title: "Yüzücülerimizin Başarısı", date: "09 Nisan 2024" },
+  ];
+
+  const allAnnouncements = [
+    { id: "1", title: "Spor Tesisi Bakım Çalışması", content: "20-22 Nisan tarihleri arasında spor tesisimizde bakım çalışması yapılacaktır." },
+    { id: "2", title: "Yaz Spor Okulu Kayıtları", content: "2024 yaz spor okulu kayıtları başlamıştır. Son başvuru tarihi 30 Nisan 2024'tür." },
+    { id: "3", title: "Yaz Spor Okulu Programı", content: "Yaz spor okulu kayıtları ve program detayları açıklandı." },
+    { id: "4", title: "Bakım Çalışması Ertelendi", content: "Planlanan bakım çalışması ileri bir tarihe ertelenmiştir." },
+    { id: "5", title: "Yeni Eğitmen Alımı", content: "Spor tesisimiz için yeni eğitmenler alınacaktır." },
+    { id: "6", title: "Üyelik Yenileme Duyurusu", content: "Üyelik yenileme işlemleri başlamıştır." },
+    { id: "7", title: "Etkinlik İptali", content: "22 Nisan tarihindeki etkinlik iptal edilmiştir." },
+  ];
+
+  // Son 24 saat içindeki içerikleri filtreleyen yardımcı fonksiyon
+  // Helper function that filters content from the last 24 hours
+  const getLast24HoursItems = () => {
+    const last24Hours = subDays(new Date(), 1);
+    
+    // Tüm veri kümesinden son 24 saatteki öğeleri filtreleme
+    // Filtering items from the last 24 hours from the entire dataset
+    const last24HoursEvents = allEvents.filter(event => {
+      // Tarih string'ini Date objesine çevirme
+      const eventDate = new Date(event.date.split(' ')[0] + ' ' + new Date().getFullYear());
+      return eventDate >= last24Hours;
+    });
+    
+    const last24HoursNews = allNews.filter(news => {
+      const newsDate = new Date(news.date.split(' ')[0] + ' ' + new Date().getFullYear());
+      return newsDate >= last24Hours;
+    });
+    
+    const last24HoursAnnouncements = allAnnouncements;
+    
+    return { last24HoursEvents, last24HoursNews, last24HoursAnnouncements };
+  };
+  
+  // Son 24 saatteki içerikler
+  // Content from the last 24 hours
+  const { last24HoursEvents, last24HoursNews, last24HoursAnnouncements } = getLast24HoursItems();
 
   // Tarih aralığı değiştiğinde istatistikleri güncelle
   useEffect(() => {
-    if (!dateRange?.from) {
+    if (!selectedDateRange?.from) {
       setStats(statsData.current)
       return
     }
@@ -292,24 +430,24 @@ export default function DashboardPage() {
     const twoPrevMonth = subMonths(new Date(), 2)
 
     // Sadece başlangıç tarihi seçilmişse, o aya göre veri göster
-    if (!dateRange.to) {
-      if (isSameMonth(dateRange.from, currentMonth)) {
+    if (!selectedDateRange.to) {
+      if (isSameMonth(selectedDateRange.from, currentMonth)) {
         setStats(statsData.current)
-      } else if (isSameMonth(dateRange.from, prevMonth)) {
+      } else if (isSameMonth(selectedDateRange.from, prevMonth)) {
         setStats(statsData.previousMonth)
-      } else if (isSameMonth(dateRange.from, twoPrevMonth)) {
+      } else if (isSameMonth(selectedDateRange.from, twoPrevMonth)) {
         setStats(statsData.twoMonthsAgo)
       } else {
-        generateRandomStats(dateRange.from)
+        generateRandomStats(selectedDateRange.from)
       }
       return
     }
 
     // Tarih aralığı seçilmişse, bu aralığa göre özel veri oluştur
     // Gerçek uygulamada burada API çağrısı yapılabilir
-    generateRangeStats(dateRange)
+    generateRangeStats(selectedDateRange)
     
-  }, [dateRange])
+  }, [selectedDateRange])
 
   // Rastgele veri oluşturan fonksiyon
   const generateRandomStats = (date: Date) => {
@@ -469,14 +607,14 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-h-[calc(100vh-4rem)] overflow-y-auto pb-8">
       {/* Header with Report Buttons */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between sticky top-0 bg-background py-4 z-10">
         <h2 className="text-3xl font-bold tracking-tight">Gösterge Paneli</h2>
         <div className="flex items-center space-x-4">
           <DateRangePicker 
-            dateRange={dateRange} 
-            setDateRange={setDateRange}
+            dateRange={selectedDateRange} 
+            setDateRange={setSelectedDateRange}
             placeholder="Tarih Aralığı Seçin"
           />
           <Button>
@@ -488,7 +626,7 @@ export default function DashboardPage() {
 
       {/* Analytics Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="transition-colors duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Toplam Etkinlik</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -500,7 +638,7 @@ export default function DashboardPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="transition-colors duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Toplam Haber</CardTitle>
             <Newspaper className="h-4 w-4 text-muted-foreground" />
@@ -512,7 +650,7 @@ export default function DashboardPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="transition-colors duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Toplam Duyuru</CardTitle>
             <Megaphone className="h-4 w-4 text-muted-foreground" />
@@ -524,7 +662,7 @@ export default function DashboardPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="transition-colors duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Toplam Kullanıcı</CardTitle>
             <User className="h-4 w-4 text-muted-foreground" />
@@ -538,99 +676,276 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Activity and Exercise Charts */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="col-span-1">
-          <CardHeader>
-            <CardTitle>Etkinlik Analizi</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Etkinlik</TableHead>
-                  <TableHead>Tarih</TableHead>
-                  <TableHead>Katılımcı</TableHead>
-                  <TableHead>Memnuniyet %</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {stats.eventAnalysis.map((event, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">{event.name}</TableCell>
-                    <TableCell>{event.date}</TableCell>
-                    <TableCell>{event.participants}</TableCell>
-                    <TableCell>{event.satisfaction}%</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+      {/* Sports Charts */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
         <SportEventsChart 
-          className="col-span-1"
+          className="md:col-span-1 lg:col-span-1"
           title="Tarihe Göre Spor Etkinlikleri"
           description="Seçili tarih aralığında spor dallarına göre etkinlik sayıları"
           data={stats.sportsByDate}
-          dateRange={dateRange}
+          dateRange={selectedDateRange}
+        />
+        
+        <SportPopularityChart
+          className="md:col-span-1 lg:col-span-1"
+          title="Popüler Spor Dalları"
+          description="En çok ilgi gören spor dalları"
+          data={stats.sportsPercentages}
         />
       </div>
 
+      {/* Etkinlik Analizi */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Etkinlik Analizi</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Etkinlik</TableHead>
+                <TableHead>Tarih</TableHead>
+                <TableHead>Katılımcı</TableHead>
+                <TableHead>Memnuniyet %</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {stats.eventAnalysis.map((event, index) => (
+                <TableRow key={index}>
+                  <TableCell className="font-medium">{event.name}</TableCell>
+                  <TableCell>{event.date}</TableCell>
+                  <TableCell>{event.participants}</TableCell>
+                  <TableCell>{event.satisfaction}%</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
       {/* Additional Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>Son Etkinlikler</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {stats.latestEvents.map((event, index) => (
-                <div key={index} className="flex items-center">
-                  <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <div className="ml-2">
-                    <p className="text-sm font-medium">{event.name}</p>
-                    <p className="text-xs text-muted-foreground">{event.date}</p>
-                  </div>
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        {/* Son Etkinlikler */}
+        <Card className="cursor-pointer hover:shadow-md transition-shadow etkinlikler-karti card-hover">
+          <Dialog open={openDialogs.events} onOpenChange={(isOpen) => handleDialogChange('events', isOpen)}>
+            <DialogTrigger className="w-full text-left">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Son Etkinlikler (24 Saat)</CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {last24HoursEvents.length > 0 ? (
+                    allEvents.slice(0, 5).map((event, index) => (
+                      <div key={index} className="flex items-center">
+                        <div className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+                        <div className="flex-1 space-y-1">
+                          <p className="text-sm font-medium">{event.name}</p>
+                          <p className="text-xs text-muted-foreground">{event.date}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <span className="text-sm text-muted-foreground">Son 24 saatte etkinlik bulunmadı.</span>
+                      <span className="text-sm text-muted-foreground">No events found in the last 24 hours.</span>
+                    </>
+                  )}
                 </div>
-              ))}
-            </div>
-          </CardContent>
+              </CardContent>
+              {allEvents.length > 5 && (
+                <CardFooter className="flex justify-between pt-0">
+                  <div />
+                  <div className="flex items-center text-sm text-blue-600">
+                    Tümünü Gör 
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </div>
+                </CardFooter>
+              )}
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Tüm Etkinlikler</DialogTitle>
+                <DialogDescription>Son dönemdeki tüm etkinliklerin listesi</DialogDescription>
+              </DialogHeader>
+              <div className="max-h-[60vh] overflow-y-auto mt-4">
+                <div className="space-y-4">
+                  {allEvents.map((event, index) => (
+                    <div key={index}>
+                      <Link 
+                        href={`/dashboard/events?id=${event.id}&returnDialog=events`} 
+                        passHref 
+                        className="block"
+                        onClick={() => {
+                          // Link tıklandığında dialog açık kalacak şekilde URL'yi kaydet
+                          localStorage.setItem('lastOpenDialog', 'events');
+                        }}
+                      >
+                        <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
+                          <div className="flex items-center">
+                            <div className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+                            <div className="flex-1 space-y-1">
+                              <p className="text-sm font-medium">{event.name}</p>
+                              <p className="text-xs text-muted-foreground">{event.date}</p>
+                            </div>
+                          </div>
+                          <ExternalLink className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Son Haberler</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {stats.latestNews.map((news, index) => (
-                <div key={index} className="flex items-center">
-                  <Newspaper className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <div className="ml-2">
-                    <p className="text-sm font-medium">{news.title}</p>
-                    <p className="text-xs text-muted-foreground">{news.date}</p>
-                  </div>
+
+        {/* Son Haberler */}
+        <Card className="cursor-pointer hover:shadow-md transition-shadow haberler-karti card-hover">
+          <Dialog open={openDialogs.news} onOpenChange={(isOpen) => handleDialogChange('news', isOpen)}>
+            <DialogTrigger className="w-full text-left">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Son Haberler (24 Saat)</CardTitle>
+                <Newspaper className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {last24HoursNews.length > 0 ? (
+                    allNews.slice(0, 5).map((news, index) => (
+                      <div key={index} className="flex items-center">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
+                        <div className="flex-1 space-y-1">
+                          <p className="text-sm font-medium">{news.title}</p>
+                          <p className="text-xs text-muted-foreground">{news.date}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <span className="text-sm text-muted-foreground">Son 24 saatte haber bulunmadı.</span>
+                      <span className="text-sm text-muted-foreground">No news found in the last 24 hours.</span>
+                    </>
+                  )}
                 </div>
-              ))}
-            </div>
-          </CardContent>
+              </CardContent>
+              {allNews.length > 5 && (
+                <CardFooter className="flex justify-between pt-0">
+                  <div />
+                  <div className="flex items-center text-sm text-blue-600">
+                    Tümünü Gör 
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </div>
+                </CardFooter>
+              )}
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Tüm Haberler</DialogTitle>
+                <DialogDescription>Son dönemdeki tüm haberlerin listesi</DialogDescription>
+              </DialogHeader>
+              <div className="max-h-[60vh] overflow-y-auto mt-4">
+                <div className="space-y-4">
+                  {allNews.map((news, index) => (
+                    <div key={index}>
+                      <Link 
+                        href={`/dashboard/news?id=${news.id}&returnDialog=news`} 
+                        passHref 
+                        className="block"
+                        onClick={() => {
+                          localStorage.setItem('lastOpenDialog', 'news');
+                        }}
+                      >
+                        <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
+                          <div className="flex items-center">
+                            <div className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
+                            <div className="flex-1 space-y-1">
+                              <p className="text-sm font-medium">{news.title}</p>
+                              <p className="text-xs text-muted-foreground">{news.date}</p>
+                            </div>
+                          </div>
+                          <ExternalLink className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Son Duyurular</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {stats.latestAnnouncements.map((announcement, index) => (
-                <div key={index} className="flex items-center">
-                  <Megaphone className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <div className="ml-2">
-                    <p className="text-sm font-medium">{announcement.title}</p>
-                    <p className="text-xs text-muted-foreground">{announcement.content.substring(0, 50)}...</p>
-                  </div>
+
+        {/* Son Duyurular */}
+        <Card className="cursor-pointer hover:shadow-md transition-shadow duyurular-karti card-hover">
+          <Dialog open={openDialogs.announcements} onOpenChange={(isOpen) => handleDialogChange('announcements', isOpen)}>
+            <DialogTrigger className="w-full text-left">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Son Duyurular (24 Saat)</CardTitle>
+                <Megaphone className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {last24HoursAnnouncements.length > 0 ? (
+                    allAnnouncements.slice(0, 5).map((announcement, index) => (
+                      <div key={index} className="flex items-center">
+                        <div className="w-2 h-2 rounded-full bg-yellow-500 mr-2" />
+                        <div className="flex-1 space-y-1">
+                          <p className="text-sm font-medium">{announcement.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">{announcement.content}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <span className="text-sm text-muted-foreground">Son 24 saatte duyuru bulunmadı.</span>
+                      <span className="text-sm text-muted-foreground">No announcements found in the last 24 hours.</span>
+                    </>
+                  )}
                 </div>
-              ))}
-            </div>
-          </CardContent>
+              </CardContent>
+              {allAnnouncements.length > 5 && (
+                <CardFooter className="flex justify-between pt-0">
+                  <div />
+                  <div className="flex items-center text-sm text-blue-600">
+                    Tümünü Gör 
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </div>
+                </CardFooter>
+              )}
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Tüm Duyurular</DialogTitle>
+                <DialogDescription>Son dönemdeki tüm duyuruların listesi</DialogDescription>
+              </DialogHeader>
+              <div className="max-h-[60vh] overflow-y-auto mt-4">
+                <div className="space-y-4">
+                  {allAnnouncements.map((announcement, index) => (
+                    <div key={index}>
+                      <Link 
+                        href={`/dashboard/announcements?id=${announcement.id}&returnDialog=announcements`} 
+                        passHref 
+                        className="block"
+                        onClick={() => {
+                          localStorage.setItem('lastOpenDialog', 'announcements');
+                        }}
+                      >
+                        <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
+                          <div className="flex items-center">
+                            <div className="w-2 h-2 rounded-full bg-yellow-500 mr-2" />
+                            <div className="flex-1 space-y-1">
+                              <p className="text-sm font-medium">{announcement.title}</p>
+                              <p className="text-xs text-muted-foreground">{announcement.content}</p>
+                            </div>
+                          </div>
+                          <ExternalLink className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </Card>
       </div>
     </div>

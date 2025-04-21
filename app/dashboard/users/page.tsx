@@ -141,17 +141,27 @@ type UserType = {
   reportsReceived: number;
   notifications: number;
   adminActions: number;
+  matchScore?: number;
+  [key: string]: any;
 };
 
 export default function UsersPage() {
   const { toast } = useToast();
   const { user, isLoading: authLoading, isAuthenticated, hasRequiredRole } = useAuth('admin');
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchField, setSearchField] = useState<"username" | "email" | "first_name" | "last_name">("username");
-  const [selectedFilters, setSelectedFilters] = useState<{
-    role: string[];
+  const [searchField, setSearchField] = useState("username");
+  const [selectedColumns, setSelectedColumns] = useState<{
+    email: boolean;
+    phone: boolean;
+    role: boolean;
+    first_name: boolean;
+    last_name: boolean;
   }>({
-    role: []
+    email: true,
+    phone: true,
+    role: true,
+    first_name: true,
+    last_name: true
   });
   const [users, setUsers] = useState<UserType[]>([]);
   const [loading, setLoading] = useState(false);
@@ -502,66 +512,63 @@ export default function UsersPage() {
     }
   };
 
-  const handleFilterChange = (type: 'role', value: string) => {
-    setSelectedFilters(prev => {
-      const currentFilters = prev[type];
-      if (currentFilters.includes(value)) {
-        return {
-          ...prev,
-          [type]: currentFilters.filter(item => item !== value)
-        };
-      } else {
-        return {
-          ...prev,
-          [type]: [...currentFilters, value]
-        };
-      }
-    });
+  const handleColumnToggle = (column: keyof typeof selectedColumns) => {
+    setSelectedColumns(prev => ({
+      ...prev,
+      [column]: !prev[column]
+    }));
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = searchQuery === "" || 
-      user[searchField].toLowerCase().includes(searchQuery.toLowerCase());
+  const getSearchFields = () => {
+    const fields: string[] = [];
+    if (selectedColumns.first_name) fields.push('first_name');
+    if (selectedColumns.last_name) fields.push('last_name');
+    if (selectedColumns.email) fields.push('email');
+    if (selectedColumns.phone) fields.push('phone');
+    return fields.length > 0 ? fields : ['first_name']; // En az bir alan seçili olmalı
+  };
 
-    const matchesRole = selectedFilters.role.length === 0 || 
-      selectedFilters.role.includes(user.role);
+  const calculateMatchScore = (user: UserType, query: string, field: string): number => {
+    if (!user || !query || !field) return 0;
+    
+    const value = user[field as keyof UserType];
+    if (typeof value !== 'string') return 0;
+    
+    const normalizedValue = value.toLowerCase();
+    const normalizedQuery = query.toLowerCase();
+    
+    if (normalizedValue === normalizedQuery) return 100;
+    if (normalizedValue.includes(normalizedQuery)) return 75;
+    if (normalizedValue.startsWith(normalizedQuery)) return 50;
+    return 0;
+  };
 
-    return matchesSearch && matchesRole;
-  });
+  const filterUsers = () => {
+    if (!users) return [];
 
-  // Kullanıcı detaylarını yükle
-  const fetchUserDetails = async (userId: string) => {
-    try {
-      setDetailLoading(true);
-      const response = await adminService.getUserDetails(userId);
-      
-      console.log("Dashboard/users - Kullanıcı detayları API yanıtı:", response);
-      
-      if (response.success) {
-        // API'den gelen kullanıcı verilerini UI formatına dönüştür
-        const formattedUser = convertApiUserToUiFormat(response.data);
-        setSelectedUser(formattedUser);
-      } else {
-        toast({
-          title: "Hata",
-          description: "Kullanıcı detayları yüklenirken bir hata oluştu",
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error("Dashboard/users - Kullanıcı detayları yükleme hatası:", error);
-      toast({
-        title: "Hata",
-        description: error?.message || "Kullanıcı detayları yüklenirken bir hata oluştu",
-        variant: "destructive",
-      });
-    } finally {
-      setDetailLoading(false);
+    let filteredUsers = [...users];
+
+    // Arama sorgusu varsa filtreleme yapalım
+    if (searchQuery.trim()) {
+      const fields = getSearchFields();
+      filteredUsers = filteredUsers.map(user => {
+        // Her kullanıcı için her arama alanındaki en yüksek eşleşme skorunu kullan
+        const maxScore = Math.max(
+          ...fields.map(field => calculateMatchScore(user, searchQuery, field))
+        );
+        return { ...user, matchScore: maxScore };
+      }).filter(user => user.matchScore > 0) // Eşleşen sonuçları filtrele
+        .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0)); // Eşleşme skoruna göre sırala
     }
+
+    return filteredUsers;
   };
+
+  const filteredUsers = filterUsers();
 
   const getTotalSelectedFilters = () => {
-    return selectedFilters.role.length;
+    const columns = Object.values(selectedColumns).filter(Boolean).length;
+    return columns;
   };
 
   // Kullanıcı tıklandığında
@@ -601,6 +608,37 @@ export default function UsersPage() {
     } catch (error) {
       console.error("Tarih formatı hatası:", error);
       return '-';
+    }
+  };
+
+  // Kullanıcı detaylarını yükle
+  const fetchUserDetails = async (userId: string) => {
+    try {
+      setDetailLoading(true);
+      const response = await adminService.getUserDetails(userId);
+      
+      console.log("Dashboard/users - Kullanıcı detayları API yanıtı:", response);
+      
+      if (response.success) {
+        // API'den gelen kullanıcı verilerini UI formatına dönüştür
+        const formattedUser = convertApiUserToUiFormat(response.data);
+        setSelectedUser(formattedUser);
+      } else {
+        toast({
+          title: "Hata",
+          description: "Kullanıcı detayları yüklenirken bir hata oluştu",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Dashboard/users - Kullanıcı detayları yükleme hatası:", error);
+      toast({
+        title: "Hata",
+        description: error?.message || "Kullanıcı detayları yüklenirken bir hata oluştu",
+        variant: "destructive",
+      });
+    } finally {
+      setDetailLoading(false);
     }
   };
 
@@ -680,20 +718,38 @@ export default function UsersPage() {
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="space-y-4">
-                    <h4 className="font-medium">Rol</h4>
+                    <h4 className="font-medium">Gösterilecek Özellikler</h4>
                     <div className="space-y-2">
-                      {['Admin', 'Kullanıcı', 'Yönetici'].map((role) => (
-                        <div key={role} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={`role-${role}`}
-                            checked={selectedFilters.role.includes(role)}
-                            onChange={() => handleFilterChange('role', role)}
-                            className="h-4 w-4"
-                          />
-                          <label htmlFor={`role-${role}`}>{role}</label>
-                        </div>
-                      ))}
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="column-email"
+                          checked={selectedColumns.email}
+                          onChange={() => handleColumnToggle('email')}
+                          className="h-4 w-4"
+                        />
+                        <label htmlFor="column-email">E-posta</label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="column-phone"
+                          checked={selectedColumns.phone}
+                          onChange={() => handleColumnToggle('phone')}
+                          className="h-4 w-4"
+                        />
+                        <label htmlFor="column-phone">Telefon</label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="column-role"
+                          checked={selectedColumns.role}
+                          onChange={() => handleColumnToggle('role')}
+                          className="h-4 w-4"
+                        />
+                        <label htmlFor="column-role">Rol</label>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -816,17 +872,21 @@ export default function UsersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kullanıcı</TableHead>
-                <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">E-posta</TableHead>
-                <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telefon</TableHead>
-                <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Oluşturma Tarihi</TableHead>
-                <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</TableHead>
-                <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kayıt Tarihi</TableHead>
+                {selectedColumns.email && (
+                  <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">E-posta</TableHead>
+                )}
+                {selectedColumns.phone && (
+                  <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telefon</TableHead>
+                )}
+                {selectedColumns.role && (
+                  <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</TableHead>
+                )}
                 <TableHead className="py-3 px-4 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="bg-white divide-y divide-gray-200">
               {filteredUsers.map((user) => (
-                <tr 
+                <TableRow 
                   key={user.id}
                   className="hover:bg-green-50 cursor-pointer"
                   style={{
@@ -836,7 +896,7 @@ export default function UsersPage() {
                     handleUserClick(user);
                   }}
                 >
-                  <td className="py-4 px-4 whitespace-nowrap">
+                  <TableCell className="py-4 px-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
                         <Avatar>
@@ -845,35 +905,41 @@ export default function UsersPage() {
                         </Avatar>
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{user.first_name} {user.last_name}</div>
+                        {(selectedColumns.first_name || selectedColumns.last_name) && (
+                          <div className="text-sm font-medium text-gray-900">
+                            {selectedColumns.first_name ? user.first_name : ""}
+                            {selectedColumns.first_name && selectedColumns.last_name ? " " : ""}
+                            {selectedColumns.last_name ? user.last_name : ""}
+                          </div>
+                        )}
                         <div className="text-sm text-gray-500">@{user.username}</div>
                       </div>
                     </div>
-                  </td>
-                  <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.email}
-                  </td>
-                  <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.phone || '-'}
-                  </td>
-                  <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(user.created_at)}
-                  </td>
-                  <td className="py-4 px-4 whitespace-nowrap">
-                    <Badge className={
-                      user.role === "superadmin" 
-                        ? "bg-red-500 hover:bg-red-600"
-                        : user.role === "admin" 
-                        ? "bg-blue-500 hover:bg-blue-600"
-                        : "bg-green-500 hover:bg-green-600"
-                    }>
-                      {user.role === "superadmin" ? "Süper Admin" : user.role === "admin" ? "Admin" : "Üye"}
-                    </Badge>
-                  </td>
-                  <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(user.created_at)}
-                  </td>
-                  <td className="py-4 px-4 whitespace-nowrap text-right text-sm font-medium">
+                  </TableCell>
+                  {selectedColumns.email && (
+                    <TableCell className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.email}
+                    </TableCell>
+                  )}
+                  {selectedColumns.phone && (
+                    <TableCell className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.phone || '-'}
+                    </TableCell>
+                  )}
+                  {selectedColumns.role && (
+                    <TableCell className="py-4 px-4 whitespace-nowrap">
+                      <Badge className={
+                        user.role === "superadmin" 
+                          ? "bg-red-500 hover:bg-red-600"
+                          : user.role === "admin" 
+                          ? "bg-blue-500 hover:bg-blue-600"
+                          : "bg-green-500 hover:bg-green-600"
+                      }>
+                        {user.role === "superadmin" ? "Süper Admin" : user.role === "admin" ? "Admin" : "Üye"}
+                      </Badge>
+                    </TableCell>
+                  )}
+                  <TableCell className="py-4 px-4 whitespace-nowrap text-right text-sm font-medium">
                     <Button 
                       variant="ghost" 
                       size="icon" 
@@ -885,8 +951,8 @@ export default function UsersPage() {
                     >
                       <Trash className="h-4 w-4" />
                     </Button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
             </TableBody>
           </Table>
@@ -897,20 +963,20 @@ export default function UsersPage() {
       <div className="w-1/3 p-4 overflow-auto">
         {selectedUser ? (
           <div className="space-y-4">
-      <Card>
+            <Card>
               <CardHeader className="px-6 pt-5 pb-3 bg-gradient-to-r from-green-50 to-blue-50 border-b">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <Avatar className="h-16 w-16 border-2 border-white shadow-sm">
                       <AvatarImage src={selectedUser.profile_picture || ""} />
                       <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
-                        {selectedUser.first_name.charAt(0)}{selectedUser.last_name.charAt(0)}
+                        {selectedUser?.first_name?.charAt(0)}{selectedUser?.last_name?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <CardTitle className="text-xl text-gray-800">{selectedUser.first_name} {selectedUser.last_name}</CardTitle>
+                      <CardTitle className="text-xl text-gray-800">{selectedUser?.first_name} {selectedUser?.last_name}</CardTitle>
                       <CardDescription className="text-sm flex items-center gap-2 mt-1">
-                        <span>@{selectedUser.username}</span>
+                        <span>@{selectedUser?.username}</span>
                         <Badge className={
                           selectedUser.role === "superadmin" 
                             ? "bg-red-500 hover:bg-red-600"
@@ -924,7 +990,7 @@ export default function UsersPage() {
                     </div>
                   </div>
                 </div>
-        </CardHeader>
+              </CardHeader>
               <CardContent className="px-6 pt-5">
                 <div className="grid grid-cols-1 gap-6">
                   <div className="bg-gray-50 rounded-lg p-4">
@@ -932,10 +998,18 @@ export default function UsersPage() {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between px-1">
                         <div className="flex items-center gap-2">
+                          <UserIcon className="h-4 w-4 text-purple-500" />
+                          <span className="text-sm font-medium text-gray-700">Ad Soyad</span>
+                        </div>
+                        <span className="text-sm bg-white px-2 py-1 rounded border">{selectedUser?.first_name} {selectedUser?.last_name}</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between px-1">
+                        <div className="flex items-center gap-2">
                           <Mail className="h-4 w-4 text-blue-500" />
                           <span className="text-sm font-medium text-gray-700">E-posta</span>
                         </div>
-                        <span className="text-sm bg-white px-2 py-1 rounded border">{selectedUser.email}</span>
+                        <span className="text-sm bg-white px-2 py-1 rounded border">{selectedUser?.email}</span>
                       </div>
                       
                       <div className="flex items-center justify-between px-1">
@@ -943,17 +1017,7 @@ export default function UsersPage() {
                           <Phone className="h-4 w-4 text-green-500" />
                           <span className="text-sm font-medium text-gray-700">Telefon</span>
                         </div>
-                        <span className="text-sm bg-white px-2 py-1 rounded border">{selectedUser.phone}</span>
-                      </div>
-                      
-                      <div className="flex items-center justify-between px-1">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-purple-500" />
-                          <span className="text-sm font-medium text-gray-700">Oluşturma Tarihi</span>
-                        </div>
-                        <span className="text-sm bg-white px-2 py-1 rounded border">
-                          {formatDate(selectedUser.created_at)}
-                        </span>
+                        <span className="text-sm bg-white px-2 py-1 rounded border">{selectedUser?.phone}</span>
                       </div>
                     </div>
                   </div>
@@ -990,21 +1054,6 @@ export default function UsersPage() {
                         <Button onClick={handleSaveChanges} className="w-full bg-green-600 hover:bg-green-700 text-sm h-9">
                           Rolü Güncelle
                         </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Sistem Bilgileri</h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between px-1">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-amber-500" />
-                          <span className="text-sm font-medium text-gray-700">Son Güncelleme</span>
-                        </div>
-                        <span className="text-sm bg-white px-2 py-1 rounded border">
-                          {formatDate(selectedUser.updated_at)}
-                        </span>
                       </div>
                     </div>
                   </div>
@@ -1137,7 +1186,7 @@ export default function UsersPage() {
                                                     <div>
                                                       <span className="text-sm font-medium">Açıklama:</span>
                                                       <p className="text-sm mt-1">
-                                                        Bu etkinlik {selectedUser.first_name} {selectedUser.last_name} tarafından {event.date} tarihinde oluşturulmuştur. Etkinlik {event.location} konumunda gerçekleşecek ve şu anda {event.participants} katılımcı bulunmaktadır.
+                                                        Bu etkinlik {selectedUser?.first_name} {selectedUser?.last_name} tarafından {event.date} tarihinde oluşturulmuştur. Etkinlik {event.location} konumunda gerçekleşecek ve şu anda {event.participants} katılımcı bulunmaktadır.
                                                       </p>
                                                     </div>
                                                     <Separator />
@@ -1269,13 +1318,13 @@ export default function UsersPage() {
                       </Dialog>
                       
                       {/* Hakkında Raporlar - Tıklanabilir - Admin kullanıcılarda görünmez */}
-                      {selectedUser.role !== "admin" && (
+                      {selectedUser.role !== "admin" && selectedUser.role !== "superadmin" && (
                         <Dialog>
                           <DialogTrigger asChild>
                             <div className="flex items-center justify-between cursor-pointer bg-white hover:bg-gray-100 p-3 rounded border">
                               <div className="flex items-center gap-2">
                                 <AlertTriangle className="h-4 w-4 text-red-500" />
-                                <span className="text-sm font-medium">Hakkında Raporlar</span>
+                                <span className="text-sm font-medium">Hakkındaki Raporlar</span>
                               </div>
                               <div className="flex items-center">
                                 <Badge className={`${
@@ -1292,7 +1341,7 @@ export default function UsersPage() {
                           </DialogTrigger>
                           <DialogContent className="sm:max-w-[600px]">
                             <DialogHeader>
-                              <DialogTitle>Kullanıcı Hakkında Raporlar</DialogTitle>
+                              <DialogTitle>Kullanıcı Hakkındaki Raporlar</DialogTitle>
                             </DialogHeader>
                             <div className="py-4">
                               {(selectedUser.id === "1" && reportsDataAhmet.length > 0) ? (
@@ -1576,11 +1625,8 @@ export default function UsersPage() {
                 </div>
         </CardContent>
               <CardFooter className="px-6 pt-0 pb-4 flex justify-center">
-                <div className="text-xs text-gray-500 mt-4">
-                  Son işlem: {formatDate(selectedUser.updated_at)}
-                </div>
               </CardFooter>
-      </Card>
+            </Card>
           </div>
         ) : (
           <div className="h-full flex items-center justify-center text-muted-foreground">

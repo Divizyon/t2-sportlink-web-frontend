@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { differenceInDays, differenceInWeeks, differenceInMonths, format, startOfWeek, startOfMonth, addDays, addWeeks, addMonths, isBefore, endOfWeek, endOfMonth } from "date-fns"
 import { tr } from "date-fns/locale"
+import { useTheme } from "next-themes"
 
 // Demo tarih verileri - gerçek verilerle değiştirilmeli
 const defaultData = [
@@ -95,6 +96,9 @@ export function SportEventsChart({
   className = "",
   dateRange
 }: SportEventsChartProps) {
+  const { theme } = useTheme()
+  const isDark = theme === "dark"
+  
   // Mevcut verilerde bulunan tüm spor dallarını tespit eden yardımcı fonksiyon
   const getSportTypes = () => {
     if (!chartData || chartData.length === 0) return Object.keys(sportColors);
@@ -326,158 +330,163 @@ export function SportEventsChart({
     groupDataByDateRange();
   }, [dateRange, chartData]);
 
+  // Recharts için tema renklerini belirle
+  const getChartColors = () => {
+    return {
+      gridColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+      textColor: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.7)",
+      tooltipBg: isDark ? "#1e293b" : "#ffffff",
+      tooltipBorder: isDark ? "#334155" : "#e2e8f0"
+    }
+  }
+  
+  const chartColors = getChartColors()
+
   return (
     <Card className={className}>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg text-center">{title}</CardTitle>
-        <CardDescription className="text-center text-sm">{getFormattedDateTitle()}</CardDescription>
-      </CardHeader>
-      <CardContent className="pt-0">
-        {/* Filtre butonu */}
-        <div className="flex justify-end mb-4">
-          <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="relative">
-                <Filter className="mr-2 h-4 w-4" />
-                <span>Filtrele</span>
-                {getVisibleSportsCount() > 0 && (
-                  <Badge variant="secondary" className="ml-2 px-1 py-0 h-5 min-w-5 text-xs rounded-full">
-                    {getVisibleSportsCount()}
-                  </Badge>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="flex justify-between items-center">
-                <span>Spor Dalları</span>
-                <div className="flex gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className={`h-6 w-6 ${isAllSelected() ? 'bg-primary/10' : ''}`}
-                    onClick={() => toggleAllSports(true)}
-                    title="Tümünü Seç"
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className={`h-6 w-6 ${isNoneSelected() ? 'bg-primary/10' : ''}`}
-                    onClick={() => toggleAllSports(false)}
-                    title="Tümünü Kaldır"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              
-              {/* Spor dalları */}
-              <div className="max-h-[200px] overflow-y-auto py-1">
-                {sportTypes.map((sport) => (
-                  <div 
-                    key={sport} 
-                    className="flex items-center px-2 py-1.5 hover:bg-accent/50 rounded-sm cursor-pointer"
-                    onClick={() => toggleTempSportVisibility(sport)}
-                  >
-                    <Checkbox 
-                      id={`filter-${sport}`} 
-                      checked={tempVisibleSports[sport] || false}
-                      onCheckedChange={() => toggleTempSportVisibility(sport)}
-                      className="mr-2"
-                    />
-                    <label 
-                      htmlFor={`filter-${sport}`} 
-                      className="flex items-center cursor-pointer text-sm w-full"
-                    >
-                      <div 
-                        className="w-3 h-3 mr-2 rounded-full" 
-                        style={{ 
-                          backgroundColor: sportColors[sport as keyof typeof sportColors] || '#888' 
-                        }}
-                      />
-                      {sport}
-                    </label>
-                  </div>
-                ))}
-              </div>
-              
-              <DropdownMenuSeparator />
-              <div className="flex justify-between p-2 border-t">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={cancelFilters}
-                  className="h-8"
-                >
-                  İptal
-                </Button>
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  onClick={saveFilters}
-                  className="h-8"
-                >
-                  <Save className="mr-2 h-3.5 w-3.5" />
-                  Kaydet
-                </Button>
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <div className="space-y-1">
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{getFormattedDateTitle()}</CardDescription>
         </div>
-
-        <div className="h-[260px] w-full">
+        <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="relative">
+              <Filter className="mr-2 h-4 w-4" />
+              <span>Filtrele</span>
+              {getVisibleSportsCount() > 0 && (
+                <Badge variant="secondary" className="ml-2 px-1 py-0 h-5 min-w-5 text-xs rounded-full">
+                  {getVisibleSportsCount()}
+                </Badge>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="flex justify-between items-center">
+              <span>Spor Dalları</span>
+              <div className="flex gap-1">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className={`h-6 w-6 ${isAllSelected() ? 'bg-primary/10' : ''}`}
+                  onClick={() => toggleAllSports(true)}
+                  title="Tümünü Seç"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className={`h-6 w-6 ${isNoneSelected() ? 'bg-primary/10' : ''}`}
+                  onClick={() => toggleAllSports(false)}
+                  title="Tümünü Kaldır"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            
+            {/* Spor dalları */}
+            <div className="max-h-[200px] overflow-y-auto py-1">
+              {sportTypes.map((sport) => (
+                <div 
+                  key={sport} 
+                  className="flex items-center px-2 py-1.5 hover:bg-accent/50 rounded-sm cursor-pointer"
+                  onClick={() => toggleTempSportVisibility(sport)}
+                >
+                  <Checkbox 
+                    id={`filter-${sport}`} 
+                    checked={tempVisibleSports[sport] || false}
+                    onCheckedChange={() => toggleTempSportVisibility(sport)}
+                    className="mr-2"
+                  />
+                  <label 
+                    htmlFor={`filter-${sport}`} 
+                    className="flex items-center cursor-pointer text-sm w-full"
+                  >
+                    <div 
+                      className="w-3 h-3 mr-2 rounded-full" 
+                      style={{ 
+                        backgroundColor: sportColors[sport as keyof typeof sportColors] || '#888' 
+                      }}
+                    />
+                    {sport}
+                  </label>
+                </div>
+              ))}
+            </div>
+            
+            <DropdownMenuSeparator />
+            <div className="flex justify-between p-2 border-t">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={cancelFilters}
+                className="h-8"
+              >
+                İptal
+              </Button>
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={saveFilters}
+                className="h-8"
+              >
+                <Save className="mr-2 h-3.5 w-3.5" />
+                Kaydet
+              </Button>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart 
-              data={groupedData} 
-              margin={{ top: 15, right: 20, left: 5, bottom: 20 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" strokeOpacity={0.7} />
+            <LineChart data={groupedData} margin={{ top: 5, right: 30, left: 20, bottom: 20 }}>
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                vertical={false} 
+                stroke={chartColors.gridColor}
+              />
               <XAxis 
-                dataKey="date"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                padding={{ left: 15, right: 15 }}
-                tick={{ fill: '#333333' }}
+                dataKey="date" 
+                stroke={chartColors.textColor}
+                tick={{ fill: chartColors.textColor }}
+                tickLine={{ stroke: chartColors.gridColor }}
               />
               <YAxis 
-                fontSize={12} 
-                tickLine={false} 
-                axisLine={false}
-                domain={[0, 'dataMax + 5']}
-                tick={{ fill: '#333333' }}
-                tickFormatter={(value) => `${value}`}
+                stroke={chartColors.textColor}
+                tick={{ fill: chartColors.textColor }}
+                tickLine={{ stroke: chartColors.gridColor }}
               />
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                  borderRadius: '8px', 
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                  border: 'none',
-                  padding: '10px'
+                  backgroundColor: chartColors.tooltipBg, 
+                  borderColor: chartColors.tooltipBorder,
+                  color: chartColors.textColor
                 }}
-                formatter={(value: number, name: string) => [`${value} etkinlik`, name]}
-                labelFormatter={(label: string) => `${groupingType === 'daily' ? 'Tarih' : groupingType === 'weekly' ? 'Hafta' : groupingType === 'monthly' ? 'Ay' : 'Yıl'}: ${label}`}
-                itemStyle={{ color: '#333333' }}
-                labelStyle={{ fontWeight: 'bold', color: '#000000' }}
+                labelStyle={{ color: chartColors.textColor }}
               />
-              <Legend />
-              
-              {/* Tüm spor dalları için çizgiler */}
+              <Legend 
+                wrapperStyle={{ 
+                  paddingTop: 10,
+                  color: chartColors.textColor
+                }}
+              />
               {sportTypes.map((sport) => (
-                <Line 
-                  key={sport}
-                  type="monotone"
-                  dataKey={sport}
-                  name={sport}
-                  stroke={sportColors[sport as keyof typeof sportColors] || '#888'}
-                  strokeWidth={2}
-                  dot={{ r: 4, fill: "#FFFFFF", strokeWidth: 2, stroke: sportColors[sport as keyof typeof sportColors] || '#888' }}
-                  activeDot={{ r: 6, strokeWidth: 2, stroke: sportColors[sport as keyof typeof sportColors] || '#888', fill: "#FFFFFF" }}
-                  hide={!visibleSports[sport]}
-                />
+                visibleSports[sport] && (
+                  <Line
+                    key={sport}
+                    type="monotone"
+                    dataKey={sport}
+                    name={sport}
+                    stroke={sportColors[sport as keyof typeof sportColors] || "#999999"}
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                )
               ))}
             </LineChart>
           </ResponsiveContainer>

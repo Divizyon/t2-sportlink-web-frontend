@@ -234,3 +234,105 @@
   padding: 0;
   text-align: center;
 }
+
+/* Tema değişikliği için özel grafikler ve tablolar */
+/* Recharts için tema desteği */
+.recharts-wrapper .recharts-cartesian-grid-horizontal line,
+.recharts-wrapper .recharts-cartesian-grid-vertical line {
+  @apply stroke-border;
+}
+
+.recharts-wrapper .recharts-xAxis line,
+.recharts-wrapper .recharts-yAxis line {
+  @apply stroke-border;
+}
+
+.recharts-wrapper .recharts-xAxis text,
+.recharts-wrapper .recharts-yAxis text {
+  @apply fill-muted-foreground text-xs;
+}
+
+.recharts-tooltip-wrapper {
+  @apply bg-background border-border shadow-md rounded-md;
+}
+
+.recharts-default-tooltip {
+  @apply bg-background border-border text-foreground; 
+}
+
+.recharts-tooltip-label {
+  @apply text-foreground font-medium;
+}
+
+.recharts-tooltip-item-name,
+.recharts-tooltip-item-value {
+  @apply text-foreground;
+}
+
+.recharts-legend-item-text {
+  @apply text-foreground;
+}
+
+/* Çakışmaları önlemek için özellikle tooltip için özel CSS */
+.recharts-default-tooltip {
+  background-color: hsl(var(--background)) !important;
+  border-color: hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.recharts-tooltip-label,
+.recharts-tooltip-item-name,
+.recharts-tooltip-item-value {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Tablolar için tema desteği */
+table {
+  @apply bg-card text-card-foreground;
+}
+
+thead {
+  @apply bg-muted;
+}
+
+tbody tr:nth-child(even) {
+  @apply bg-muted/30;
+}
+
+tbody tr:hover {
+  @apply bg-accent/20;
+}
+
+.dark tbody tr:nth-child(even) {
+  @apply bg-muted/20;
+}
+
+.dark tbody tr:hover {
+  @apply bg-accent/10;
+}
+
+.dark thead {
+  @apply bg-muted/50;
+}
+
+/* Listeler için tema desteği */
+.list-item {
+  @apply border-border;
+}
+
+.dark .list-item {
+  @apply border-border/60;
+}
+
+/* Kartlar için tema desteği */
+.card-hover {
+  @apply transition-all duration-200;
+}
+
+.card-hover:hover {
+  @apply shadow-md;
+}
+
+.dark .card-hover:hover {
+  @apply shadow-lg shadow-primary/5 border-primary/20;
+}

@@ -3,7 +3,11 @@
 import { ThemeProvider } from "next-themes"
 import type { ReactNode } from "react"
 
-export function Providers({ children }: { children: ReactNode }) {
+interface ProvidersProps {
+  children: ReactNode
+}
+
+export function Providers({ children }: ProvidersProps) {
   return (
     <ThemeProvider
       attribute="class"

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog"
 import ProfileForm from "@/components/profile/ProfileForm"
 import type { ProfileFormData } from "@/components/profile/ProfileForm"
+import { ThemeSwitcher } from "@/components/theme-switcher"
 
 interface TopBarProps {
   onProfilePanelChange?: (open: boolean) => void;
@@ -117,20 +118,27 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
 
   return (
     <div className="h-16 border-b bg-background">
-      <div className="flex h-full items-center px-8 justify-between">
-        {title ? (
-          <h1 className="text-2xl font-bold">{title}</h1>
-        ) : (
-          <div className="h-12 flex justify-center items-center">
-            <img 
-              src="/sportLink.svg" 
-              alt="SportLink Logo" 
-              className="h-12 w-auto"
-            />
-          </div>
-        )}
+      <div className="grid grid-cols-3 h-full items-center px-8">
+        <div className="flex-1">
+          {/* Sol taraf boş bırakılıyor */}
+        </div>
+        
+        <div className="flex justify-center items-center">
+          {title ? (
+            <h1 className="text-2xl font-bold uppercase text-center">{title}</h1>
+          ) : (
+            <div className="h-12 flex justify-center items-center">
+              <img 
+                src="/sportLink.svg" 
+                alt="SportLink Logo" 
+                className="h-12 w-auto"
+              />
+            </div>
+          )}
+        </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 justify-end">
+          <ThemeSwitcher />
           <Sheet open={profileOpen} onOpenChange={setProfileOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
