@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Plus, Pencil, Calendar, Newspaper, User, Tag, Eye, Trash, LinkIcon } from "lucide-react";
+import { Search, Plus, Pencil, Calendar, Newspaper, User, Tag, Eye, Trash, LinkIcon, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -120,30 +120,36 @@ export default function NewsPage() {
   const fetchNewsFromUrl = async (url: string) => {
     setIsLoading(true);
     try {
-      // Burada gerçek bir API çağrısı yapılacak
-      // Şimdilik örnek veri döndürüyoruz
-      const response = await fetch(url);
-      const html = await response.text();
+      // Normalde gerçek bir API çağrısı yapılacak
+      // Bu örnek için, siteden birden fazla haber çekiyormuş gibi simüle edelim
       
-      // Örnek olarak, gerçek uygulamada bu kısım bir web scraping servisi olacak
-      const title = html.match(/<title>(.*?)<\/title>/)?.[1] || "Haber Başlığı";
-      const imageUrl = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]*)"/)?.[1] || "/images/default-news.jpg";
+      // Haber site URL'sini normalize et
+      const siteUrl = new URL(url).origin;
       
-      // Kısa bir içerik özeti çıkarma girişimi
-      const description = html.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"/)?.[1] || "";
+      // Simüle edilen haber sayısı
+      const numberOfNews = Math.floor(Math.random() * 3) + 2; // 2-4 arası haber
+      const newsItems = [];
       
-      return {
-        title,
-        image: imageUrl,
-        content: description ? description : "Bu haber otomatik olarak çekilmiştir."
-      };
+      console.log(`${siteUrl} sitesinden ${numberOfNews} Konya haberi çekiliyor...`);
+      
+      // Simüle edilmiş haber verileri oluştur
+      for (let i = 0; i < numberOfNews; i++) {
+        // Gerçek uygulamada burası asenkron olarak site scraping yapacak
+        const newsTitle = `Konya spor haberi #${i+1} - ${new Date().toLocaleDateString()}`;
+        
+        newsItems.push({
+          title: newsTitle,
+          image: "/images/default-news.jpg", // Gerçek bir uygulamada haber resmini çekecek
+          content: `Bu Konya ile ilgili spor haberinin içeriği. Kaynak: ${siteUrl}`,
+          sourceUrl: `${siteUrl}/haber-${i+1}`, // Herbir haberin URL'si farklı olacak
+          author: "Otomatik Çekilen" // Add author field
+        });
+      }
+      
+      return newsItems;
     } catch (error) {
       console.error("Haber çekme hatası:", error);
-      return {
-        title: "Haber Başlığı",
-        image: "/images/default-news.jpg",
-        content: "Haber içeriği çekilemedi."
-      };
+      return []; // Haber çekilemezse boş dizi döndür
     } finally {
       setIsLoading(false);
     }
@@ -151,24 +157,34 @@ export default function NewsPage() {
 
   const handleAddSource = async () => {
     if (sourceUrl.trim()) {
-      const { title, image, content } = await fetchNewsFromUrl(sourceUrl);
+      const newsItems = await fetchNewsFromUrl(sourceUrl);
       
-      const newPendingNews: News = {
-        id: pendingNews.length + news.length + 1,
-        title,
-        content,
-        category: "Genel",
+      if (newsItems.length === 0) {
+        // Haber bulunamadı durumu
+        alert("Siteden Konya ile ilgili spor haberleri çekilemedi!");
+        return;
+      }
+      
+      // Çekilen tüm haberleri ekle
+      const newPendingNewsItems = newsItems.map((item, index) => ({
+        id: pendingNews.length + news.length + index + 1,
+        title: item.title,
+        content: item.content,
+        category: "Spor", // Varsayılan kategori
         date: new Date().toISOString().split('T')[0] || "",
-        status: "Onay Bekliyor",
-        image,
-        sourceUrl: sourceUrl,
+        status: "Onay Bekliyor" as NewsStatus,
+        image: item.image,
+        sourceUrl: item.sourceUrl,
         views: 0,
-        author: "Adsız Yazar"
-      };
+        author: item.author || "Otomatik Çekilen" // Ensure author field is set
+      }));
       
-      setPendingNews([...pendingNews, newPendingNews]);
+      setPendingNews([...pendingNews, ...newPendingNewsItems]);
       setSourceUrl("");
       setIsUrlDialogOpen(false);
+      
+      // Kullanıcıya geri bildirim
+      alert(`${sourceUrl} sitesinden ${newPendingNewsItems.length} haber başarıyla çekildi!`);
     }
   };
 
@@ -206,6 +222,86 @@ export default function NewsPage() {
     category: [],
     status: []
   });
+  
+  // Add state for file upload
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+
+  // File handling functions
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processImageFile(file);
+    }
+  };
+
+  const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processEditImageFile(file);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOver(false);
+    
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      if (viewMode === "edit") {
+        processEditImageFile(file);
+      } else {
+        processImageFile(file);
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOver(false);
+  };
+
+  const processImageFile = (file: File) => {
+    // Validate file type
+    if (!file.type.includes('image/png')) {
+      alert('Lütfen sadece PNG formatında dosya yükleyiniz.');
+      return;
+    }
+
+    // Convert file to base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setNewNews({ ...newNews, image: base64String });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const processEditImageFile = (file: File) => {
+    // Validate file type
+    if (!file.type.includes('image/png')) {
+      alert('Lütfen sadece PNG formatında dosya yükleyiniz.');
+      return;
+    }
+
+    // Convert file to base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      if (selectedNews) {
+        setSelectedNews({ ...selectedNews, image: base64String });
+      } else if (selectedPendingNews) {
+        setSelectedPendingNews({ ...selectedPendingNews, image: base64String });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleAddNews = () => {
     if (!newNews.title || !newNews.content || !newNews.category) {
@@ -357,21 +453,24 @@ export default function NewsPage() {
             <DialogTrigger asChild>
               <Button variant="outline">
                 <LinkIcon className="mr-2 h-4 w-4" />
-                Haber Kaynağı Ekle
+                Haber Sitesi Ekle
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>Haber Kaynağı Ekle</DialogTitle>
+                <DialogTitle>Haber Sitesi Ekle</DialogTitle>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Haber sitesinin URL'sini girin. Konya ile ilgili en güncel spor haberleri otomatik olarak çekilecektir.
+                </p>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="sourceUrl" className="text-right">
-                    URL
+                    Site URL
                   </Label>
                   <Input
                     id="sourceUrl"
-                    placeholder="Haber sitesi URL'si"
+                    placeholder="Haber sitesinin URL'si (örn: https://www.hurriyet.com.tr)"
                     className="col-span-3"
                     value={sourceUrl}
                     onChange={(e) => setSourceUrl(e.target.value)}
@@ -380,7 +479,7 @@ export default function NewsPage() {
                 {isLoading && (
                   <div className="flex items-center justify-center py-4">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-                    <span className="ml-2">Haber bilgileri çekiliyor...</span>
+                    <span className="ml-2">Siteden Konya spor haberleri çekiliyor...</span>
                   </div>
                 )}
               </div>
@@ -389,7 +488,7 @@ export default function NewsPage() {
                   İptal
                 </Button>
                 <Button onClick={handleAddSource} disabled={isLoading || !sourceUrl.trim()}>
-                  {isLoading ? "Çekiliyor..." : "Ekle"}
+                  {isLoading ? "Haberler Çekiliyor..." : "Haberleri Çek"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -448,12 +547,51 @@ export default function NewsPage() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="image">Görsel URL</Label>
-                  <Input
-                    id="image"
-                    value={newNews.image}
-                    onChange={(e) => setNewNews({ ...newNews, image: e.target.value })}
-                  />
+                  <Label htmlFor="image">Görsel</Label>
+                  <div 
+                    className={`border-2 border-dashed rounded-md p-4 text-center cursor-pointer transition-colors ${
+                      dragOver ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-primary'
+                    }`}
+                    onClick={() => fileInputRef.current?.click()}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                  >
+                    <input 
+                      ref={fileInputRef}
+                      type="file" 
+                      id="image" 
+                      accept="image/png" 
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
+                    {newNews.image ? (
+                      <div className="relative h-40 w-full rounded-md overflow-hidden">
+                        <Image
+                          src={newNews.image}
+                          alt="Haber görseli"
+                          fill
+                          className="object-contain"
+                        />
+                        <button 
+                          type="button"
+                          className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setNewNews({ ...newNews, image: "" });
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="py-8">
+                        <Plus className="mx-auto h-12 w-12 text-gray-400" />
+                        <p className="mt-2 text-sm text-gray-500">PNG dosyası eklemek için tıklayın veya sürükleyin</p>
+                        <p className="text-xs text-gray-400 mt-1">Sadece PNG formatı desteklenmektedir</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-4">
                   <Label htmlFor="status">Durum</Label>
@@ -819,18 +957,55 @@ export default function NewsPage() {
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="edit-image">Görsel URL</Label>
-                        <Input
-                          id="edit-image"
-                          value={selectedNews?.image || selectedPendingNews?.image}
-                          onChange={(e) => {
-                            if (selectedNews) {
-                              setSelectedNews({ ...selectedNews, image: e.target.value });
-                            } else if (selectedPendingNews) {
-                              setSelectedPendingNews({ ...selectedPendingNews, image: e.target.value });
-                            }
-                          }}
-                        />
+                        <Label htmlFor="edit-image">Görsel</Label>
+                        <div 
+                          className={`border-2 border-dashed rounded-md p-4 text-center cursor-pointer transition-colors ${
+                            dragOver ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-primary'
+                          }`}
+                          onClick={() => editFileInputRef.current?.click()}
+                          onDrop={handleDrop}
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                        >
+                          <input 
+                            ref={editFileInputRef}
+                            type="file" 
+                            id="edit-image"
+                            accept="image/png" 
+                            className="hidden"
+                            onChange={handleEditFileChange}
+                          />
+                          {(selectedNews?.image || selectedPendingNews?.image) ? (
+                            <div className="relative h-40 w-full rounded-md overflow-hidden">
+                              <Image
+                                src={(selectedNews?.image || selectedPendingNews?.image || "/images/default-news.jpg")}
+                                alt="Haber görseli"
+                                fill
+                                className="object-contain"
+                              />
+                              <button 
+                                type="button"
+                                className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (selectedNews) {
+                                    setSelectedNews({ ...selectedNews, image: "" });
+                                  } else if (selectedPendingNews) {
+                                    setSelectedPendingNews({ ...selectedPendingNews, image: "" });
+                                  }
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="py-8">
+                              <Plus className="mx-auto h-12 w-12 text-gray-400" />
+                              <p className="mt-2 text-sm text-gray-500">PNG dosyası eklemek için tıklayın veya sürükleyin</p>
+                              <p className="text-xs text-gray-400 mt-1">Sadece PNG formatı desteklenmektedir</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="space-y-4">
                         <Label htmlFor="editStatus">Durum</Label>

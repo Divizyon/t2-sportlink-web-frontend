@@ -38,7 +38,10 @@ export function DateRangePicker({
   // Başlangıç tarihini değiştir
   const handleStartDateChange = (date: Date | undefined) => {
     setDateRange({ from: date, to: dateRange?.to });
-    setActiveCalendar(null);
+    // İç popover'ı kapat - timing sorunlarını önlemek için setTimeout kullanıyoruz
+    setTimeout(() => {
+      setActiveCalendar(null);
+    }, 100);
   };
 
   // Bitiş tarihini değiştir
@@ -49,7 +52,10 @@ export function DateRangePicker({
     } else {
       setDateRange({ from: dateRange?.from, to: date });
     }
-    setActiveCalendar(null);
+    // İç popover'ı kapat - timing sorunlarını önlemek için setTimeout kullanıyoruz
+    setTimeout(() => {
+      setActiveCalendar(null);
+    }, 100);
   };
 
   // Ana popover'ı açıp kapatan fonksiyon
@@ -63,6 +69,24 @@ export function DateRangePicker({
     e.stopPropagation();
     setDateRange(undefined);
   };
+  
+  // Takvim butonlarına tıklayınca bir sonraki render için
+  // event loop'u bırak, böylece olası timing sorunları çözülür
+  const handleCalendarButtonClick = (calendarType: 'start' | 'end', e: React.MouseEvent) => {
+    // Olay yayılmasını durdur, böylece ana popover'ın toggle işlemi tetiklenmez
+    e.stopPropagation();
+    
+    // Mevcut aktif takvim tıklanan ile aynıysa, aktif takvimi temizle
+    if (activeCalendar === calendarType) {
+      setActiveCalendar(null);
+      return;
+    }
+    
+    // Aktif takvimi ayarla
+    setTimeout(() => {
+      setActiveCalendar(calendarType);
+    }, 0);
+  };
 
   return (
     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
@@ -70,14 +94,15 @@ export function DateRangePicker({
         <Button
           variant={"outline"}
           className={cn(
-            "flex justify-between items-center w-[280px] text-left font-normal",
+            "flex justify-between items-center w-[250px] text-left font-normal rounded-md h-10 border",
             !dateRange?.from && !dateRange?.to && "text-muted-foreground",
+            (dateRange?.from || dateRange?.to) && "border-primary/40",
             className
           )}
           onClick={togglePopover}
         >
           <div className="flex items-center">
-            <CalendarIcon className="mr-2 h-4 w-4" />
+            <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
             <span>
               {dateRange?.from || dateRange?.to ? 
                 `${formattedStartDate} - ${formattedEndDate}` : 
@@ -88,7 +113,7 @@ export function DateRangePicker({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-1.5 ml-2 hover:bg-destructive/10"
+              className="h-6 px-1.5 ml-2 hover:bg-destructive/10 rounded-full"
               onClick={handleClear}
             >
               <X className="h-3 w-3 text-destructive" />
@@ -97,30 +122,33 @@ export function DateRangePicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className={cn("w-auto p-4", calendarContentClassName)} align="start">
-        <div className="flex space-x-4">
+      <PopoverContent className={cn("w-auto p-3 min-w-[350px] rounded-md shadow", calendarContentClassName)} align="center">
+        <div className="flex space-x-3">
           {/* Başlangıç Tarihi */}
           <div className="flex-1">
-            <p className="text-sm font-medium mb-2">Başlangıç</p>
-            <Popover open={activeCalendar === 'start'} onOpenChange={() => setActiveCalendar(activeCalendar === 'start' ? null : 'start')}>
+            <p className="text-xs font-medium mb-2 text-primary">Başlangıç</p>
+            <Popover open={activeCalendar === 'start'} onOpenChange={(open) => !open && setActiveCalendar(null)}>
               <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !dateRange?.from && "text-muted-foreground"
+                    "w-full justify-start text-left font-normal h-9 p-2 rounded-md",
+                    !dateRange?.from && "text-muted-foreground",
+                    dateRange?.from && "border-primary/40"
                   )}
+                  onClick={(e) => handleCalendarButtonClick('start', e)}
                 >
                   {formattedStartDate}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-auto p-0 min-w-[280px] rounded-md" align="center">
                 <Calendar
                   mode="single"
                   selected={dateRange?.from}
                   onSelect={handleStartDateChange}
                   initialFocus
                   weekStartsOn={1}
+                  className="rounded-md border shadow p-2"
                 />
               </PopoverContent>
             </Popover>
@@ -128,20 +156,22 @@ export function DateRangePicker({
 
           {/* Bitiş Tarihi */}
           <div className="flex-1">
-            <p className="text-sm font-medium mb-2">Bitiş</p>
-            <Popover open={activeCalendar === 'end'} onOpenChange={() => setActiveCalendar(activeCalendar === 'end' ? null : 'end')}>
+            <p className="text-xs font-medium mb-2 text-primary">Bitiş</p>
+            <Popover open={activeCalendar === 'end'} onOpenChange={(open) => !open && setActiveCalendar(null)}>
               <PopoverTrigger asChild>
                 <Button 
                   variant="outline" 
                   className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !dateRange?.to && "text-muted-foreground"
+                    "w-full justify-start text-left font-normal h-9 p-2 rounded-md",
+                    !dateRange?.to && "text-muted-foreground",
+                    dateRange?.to && "border-primary/40"
                   )}
+                  onClick={(e) => handleCalendarButtonClick('end', e)}
                 >
                   {formattedEndDate}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-auto p-0 min-w-[280px] rounded-md" align="center">
                 <Calendar
                   mode="single"
                   selected={dateRange?.to}
@@ -151,6 +181,7 @@ export function DateRangePicker({
                   }
                   initialFocus
                   weekStartsOn={1}
+                  className="rounded-md border shadow p-2"
                 />
               </PopoverContent>
             </Popover>

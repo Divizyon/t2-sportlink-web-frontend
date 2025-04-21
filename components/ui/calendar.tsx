@@ -258,6 +258,151 @@ function Calendar({
               </div>
             )}
             
+            <style jsx global>{`
+              /* Temel takvim hücreleri */
+              .rdp-cell {
+                padding: 1px !important;
+                margin: 0 !important;
+                width: 36px !important; 
+                height: 36px !important;
+                position: relative !important;
+              }
+              
+              /* Günleri bir kutu içinde göster - tıklanabilir alan */
+              .rdp-button {
+                width: 36px !important;
+                height: 36px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                cursor: pointer !important;
+                border-radius: 4px !important;
+                background-color: #f3f4f6 !important;
+                border: 2px solid #e5e7eb !important;
+                font-size: 14px !important;
+                padding: 0 !important;
+                transition: all 0.15s ease !important;
+                position: relative !important;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+              }
+              
+              /* Tıklanabilir alan göstergesi */
+              .rdp-button::after {
+                content: "";
+                position: absolute;
+                top: -3px;
+                left: -3px;
+                right: -3px;
+                bottom: -3px;
+                border-radius: 6px;
+                border: 2px dashed #d1d5db;
+                z-index: 0;
+                pointer-events: none;
+              }
+              
+              /* Günleri vurgula */
+              .rdp-day {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 100% !important;
+                height: 100% !important;
+                position: relative !important;
+                z-index: 1 !important;
+                font-weight: 500 !important;
+              }
+              
+              /* Seçili gün stili */
+              .rdp-day[aria-selected="true"],
+              .rdp-button[aria-selected="true"] {
+                background-color: hsl(var(--primary)) !important;
+                color: hsl(var(--primary-foreground)) !important;
+                font-weight: bold !important;
+                border-color: hsl(var(--primary)) !important;
+              }
+              
+              /* Seçili gün için tıklanabilir alan göstergesini gizle */
+              .rdp-button[aria-selected="true"]::after {
+                display: none !important;
+              }
+              
+              /* Hover efekti */
+              .rdp-button:hover:not([aria-selected="true"]) {
+                background-color: hsl(var(--accent)) !important;
+                color: hsl(var(--accent-foreground)) !important;
+                border-color: hsl(var(--accent)) !important;
+                transform: scale(1.05) !important;
+                z-index: 2 !important;
+              }
+              
+              /* Hover durumunda tıklanabilir alan göstergesini belirginleştir */
+              .rdp-button:hover::after {
+                border-color: hsl(var(--accent)) !important;
+                border-width: 3px !important;
+              }
+              
+              /* Aktif tıklama durumu */
+              .rdp-button:active {
+                transform: scale(0.96) !important;
+              }
+              
+              /* Devre dışı günler */
+              .rdp-day[aria-disabled="true"],
+              .rdp-button[aria-disabled="true"] {
+                opacity: 0.4 !important;
+                background-color: transparent !important;
+                border-color: transparent !important;
+                cursor: not-allowed !important;
+              }
+              
+              /* Devre dışı günler için tıklanabilir alan göstergesini gizle */
+              .rdp-button[aria-disabled="true"]::after {
+                display: none !important;
+              }
+              
+              /* Bugünün tarihi */
+              .rdp-day_today {
+                position: relative !important;
+                font-weight: 600 !important;
+              }
+              
+              .rdp-button.rdp-day_today {
+                border: 2px solid hsl(var(--primary)) !important;
+                background-color: hsl(var(--primary) / 0.1) !important;
+              }
+              
+              /* Bugünün tarihi için tıklanabilir alan göstergesini özelleştir */
+              .rdp-button.rdp-day_today::after {
+                border-color: hsl(var(--primary)) !important;
+              }
+              
+              /* Satırlar */
+              .rdp-row {
+                display: flex !important;
+                margin-bottom: 6px !important;
+              }
+              
+              /* Tablo */
+              .rdp-table {
+                border-collapse: separate !important;
+                border-spacing: 4px !important;
+              }
+              
+              /* Takvim container */
+              .rdp {
+                margin: 0 !important;
+                padding: 6px !important;
+              }
+              
+              /* Mobil için daha büyük tıklama alanı */
+              @media (max-width: 768px) {
+                .rdp-cell, .rdp-button {
+                  width: 40px !important;
+                  height: 40px !important;
+                }
+              }
+            `}</style>
+            
             <DayPicker
               defaultMonth={currentMonth}
               month={currentMonth}
@@ -280,19 +425,23 @@ function Calendar({
                 cell: "text-center text-sm relative h-9 w-9 p-0 focus-within:relative focus-within:z-20",
                 day: cn(
                   "h-9 w-9 p-0 font-normal rounded-md inline-flex items-center justify-center transition-colors",
-                  "hover:bg-accent hover:text-accent-foreground cursor-pointer",
-                  "active:scale-95 active:bg-accent/90"
                 ),
                 day_range_end: "day-range-end",
-                day_selected:
-                  "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
                 day_today: "bg-accent text-accent-foreground",
                 day_outside: "text-muted-foreground opacity-50",
                 day_disabled: "text-muted-foreground opacity-50",
-                day_range_middle:
-                  "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
                 day_hidden: "invisible",
                 ...classNames,
+              }}
+              modifiersStyles={{
+                selected: {
+                  fontWeight: "bold",
+                },
+                today: {
+                  fontWeight: "bold",
+                },
               }}
               showOutsideDays={showOutsideDays}
               formatters={{

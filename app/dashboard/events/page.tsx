@@ -55,17 +55,10 @@ export default function EventsPage() {
     start_time: "",
     end_time: "",
     location_name: "",
-    location_latitude: 41.0082,
-    location_longitude: 28.9784,
     max_participants: 10,
     status: "pending",
-    approval_status: "pending",
     sport_id: "",
-    creator_id: "",
-    category: "",
-    price: 0,
-    organizer: "",
-    image: ""
+    creator_id: user?.id || ""
   });
 
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
@@ -232,7 +225,27 @@ export default function EventsPage() {
 
   const handleAddEvent = async () => {
     try {
-      const response = await eventService.createEvent(newEvent);
+      // Check if required fields are filled
+      if (!newEvent.title || !newEvent.description || !newEvent.event_date || 
+          !newEvent.start_time || !newEvent.end_time || !newEvent.location_name || 
+          !newEvent.sport_id) {
+        toast({
+          title: "Eksik Bilgi",
+          description: "Lütfen tüm zorunlu alanları doldurun",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Format dates for proper API submission
+      const formattedEvent = {
+        ...newEvent,
+        event_date: new Date(newEvent.event_date).toISOString(),
+        start_time: new Date(`${newEvent.event_date}T${newEvent.start_time}`).toISOString(),
+        end_time: new Date(`${newEvent.event_date}T${newEvent.end_time}`).toISOString(),
+      };
+      
+      const response = await eventService.createEvent(formattedEvent);
       
       if (response.success && response.data) {
         toast({
@@ -438,17 +451,10 @@ export default function EventsPage() {
       start_time: "",
       end_time: "",
       location_name: "",
-      location_latitude: 41.0082,
-      location_longitude: 28.9784,
       max_participants: 10,
       status: "pending",
-      approval_status: "pending",
       sport_id: "",
-      creator_id: "",
-      category: "",
-      price: 0,
-      organizer: "",
-      image: ""
+      creator_id: user?.id || ""
     });
   };
 
@@ -754,9 +760,10 @@ export default function EventsPage() {
                     Yeni Etkinlik Ekle
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[400px] max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Yeni Etkinlik Ekle</DialogTitle>
+                    <DialogDescription>Gerekli alanları doldurarak yeni bir etkinlik oluşturun.</DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
@@ -765,6 +772,7 @@ export default function EventsPage() {
                         id="title"
                         value={newEvent.title}
                         onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                        placeholder="Etkinlik başlığı"
                       />
                     </div>
                     <div className="grid gap-2">
@@ -773,139 +781,94 @@ export default function EventsPage() {
                         id="description"
                         value={newEvent.description}
                         onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                        placeholder="Etkinlik açıklaması"
+                        className="min-h-[100px]"
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="image">Resim</Label>
-                      <div className="flex flex-col gap-2">
-                        <Input
-                          id="image"
-                          type="file"
-                          accept=".png,.jpg,.jpeg"
-                          onChange={(e) => handleImageUpload(e, true)}
-                        />
-                        {newEvent.image && (
-                          <div className="relative w-full h-32 mt-2 rounded-md overflow-hidden">
-                            <Image
-                              src={newEvent.image}
-                              alt="Etkinlik Önizleme"
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                        )}
-                        <span className="text-xs text-gray-500 mt-1">Sadece PNG, JPG ve JPEG formatları desteklenmektedir.</span>
-                      </div>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="date">Tarih</Label>
+                      <Label htmlFor="event_date">Etkinlik Tarihi</Label>
                       <Input
-                        id="date"
+                        id="event_date"
                         type="date"
                         value={newEvent.event_date}
                         onChange={(e) => setNewEvent({ ...newEvent, event_date: e.target.value })}
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="time">Saat</Label>
+                      <Label htmlFor="sport_id">Spor</Label>
+                      <Select
+                        value={newEvent.sport_id ? newEvent.sport_id.toString() : ""}
+                        onValueChange={(value) => setNewEvent({ ...newEvent, sport_id: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Spor seçin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">Futbol</SelectItem>
+                          <SelectItem value="2">Basketbol</SelectItem>
+                          <SelectItem value="3">Voleybol</SelectItem>
+                          <SelectItem value="4">Tenis</SelectItem>
+                          <SelectItem value="5">Yüzme</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="start_time">Başlangıç Saati</Label>
                       <Input
-                        id="time"
+                        id="start_time"
                         type="time"
                         value={newEvent.start_time}
                         onChange={(e) => setNewEvent({ ...newEvent, start_time: e.target.value })}
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="location">Konum</Label>
+                      <Label htmlFor="end_time">Bitiş Saati</Label>
                       <Input
-                        id="location"
-                        value={newEvent.location_name}
-                        onChange={(e) => setNewEvent({ ...newEvent, location_name: e.target.value })}
+                        id="end_time"
+                        type="time"
+                        value={newEvent.end_time}
+                        onChange={(e) => setNewEvent({ ...newEvent, end_time: e.target.value })}
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="category">Kategori</Label>
-                      <Select
-                        value={newEvent.category ?? ""}
-                        onValueChange={(value) => setNewEvent({ ...newEvent, category: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Kategori seçin" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Futbol">Futbol</SelectItem>
-                          <SelectItem value="Basketbol">Basketbol</SelectItem>
-                          <SelectItem value="Voleybol">Voleybol</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="location_name">Konum</Label>
+                      <Input
+                        id="location_name"
+                        value={newEvent.location_name}
+                        onChange={(e) => setNewEvent({ ...newEvent, location_name: e.target.value })}
+                        placeholder="Etkinlik konumu"
+                      />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="capacity">Kapasite</Label>
+                      <Label htmlFor="max_participants">Maksimum Katılımcı Sayısı</Label>
                       <Input
-                        id="capacity"
+                        id="max_participants"
                         type="number"
+                        min="1"
                         value={newEvent.max_participants}
                         onChange={(e) => setNewEvent({ ...newEvent, max_participants: parseInt(e.target.value) })}
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="price">Ücret (TL)</Label>
-                      <Input
-                        id="price"
-                        type="number"
-                        value={newEvent.price}
-                        onChange={(e) => setNewEvent({ ...newEvent, price: parseInt(e.target.value) })}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="organizer">Organizatör</Label>
-                      <Input
-                        id="organizer"
-                        value={newEvent.organizer}
-                        onChange={(e) => setNewEvent({ ...newEvent, organizer: e.target.value })}
-                      />
-                    </div>
-                    <div className="grid gap-4">
-                      <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
                       <Label htmlFor="status">Durum</Label>
                       <Select
-                            value={newEvent.status ?? "pending"}
+                        value={newEvent.status ?? "pending"}
                         onValueChange={(value) => setNewEvent({ ...newEvent, status: value })}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Durum seçin" />
                         </SelectTrigger>
                         <SelectContent>
-                              <SelectItem value="pending">Onay Bekliyor</SelectItem>
-                              <SelectItem value="approved">Onaylanmış</SelectItem>
-                              <SelectItem value="rejected">Reddedildi</SelectItem>
-                              <SelectItem value="cancelled">İptal Edildi</SelectItem>
+                          <SelectItem value="pending">Beklemede</SelectItem>
+                          <SelectItem value="active">Aktif</SelectItem>
+                          <SelectItem value="completed">Tamamlandı</SelectItem>
+                          <SelectItem value="cancelled">İptal Edildi</SelectItem>
                         </SelectContent>
                       </Select>
-                        </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="approval_status">Onay Durumu</Label>
-                          <Select
-                            value={newEvent.approval_status ?? "pending"}
-                            onValueChange={(value) => setNewEvent({ ...newEvent, approval_status: value as "pending" | "approved" | "rejected" | "cancelled" })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Onay Durumu seçin" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pending">Onay Bekliyor</SelectItem>
-                              <SelectItem value="approved">Onaylanmış</SelectItem>
-                              <SelectItem value="rejected">Reddedildi</SelectItem>
-                              <SelectItem value="cancelled">İptal Edildi</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
                     </div>
                   </div>
-                  <div className="flex justify-end">
-                    <Button onClick={handleAddEvent}>Etkinlik Ekle</Button>
+                  <div className="flex justify-end mt-4">
+                    <Button onClick={handleAddEvent} className="w-full">Etkinlik Ekle</Button>
                   </div>
                 </DialogContent>
               </Dialog>

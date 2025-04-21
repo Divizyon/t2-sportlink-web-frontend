@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import type { ChangeEvent } from "react"
 import { 
   MegaphoneIcon,
-
   PlusIcon,
   TrashIcon,
   CalendarIcon,
@@ -12,7 +11,8 @@ import {
   InfoIcon,
   EyeIcon,
   UsersIcon,
-  SearchIcon
+  SearchIcon,
+  PencilIcon
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -107,6 +107,9 @@ export default function AnnouncementsPage() {
     status: []
   });
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Yeni viewMode state'i ekleyelim, haber sayfasındaki gibi
+  const [viewMode, setViewMode] = useState<"preview" | "edit">("preview");
   
   // Pagination için yeni state'ler
   const [currentPage, setCurrentPage] = useState(1);
@@ -551,235 +554,12 @@ export default function AnnouncementsPage() {
       <div>
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Duyurular</h1>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusIcon className="mr-2 h-4 w-4" />
-                Yeni duyuru ekle
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[625px]">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingAnnouncement ? "Duyuru Düzenle" : "Yeni Duyuru Ekle"}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="title" className="text-right">
-                    Başlık
-                  </Label>
-                  <Input
-                    id="title"
-                    placeholder="Duyuru başlığı"
-                    className="col-span-3"
-                    value={editingAnnouncement?.title || newAnnouncement.title}
-                    onChange={(e) => {
-                      if (editingAnnouncement) {
-                        setEditingAnnouncement({
-                          ...editingAnnouncement,
-                          title: e.target.value,
-                        })
-                      } else {
-                        setNewAnnouncement({
-                          ...newAnnouncement,
-                          title: e.target.value,
-                        })
-                      }
-                    }}
-                  />
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="category" className="text-right">
-                    Kategori
-                  </Label>
-                  <Select
-                    value={editingAnnouncement?.category || newAnnouncement.category || ""}
-                    onValueChange={(value: string) => {
-                      if (editingAnnouncement) {
-                        setEditingAnnouncement({
-                          ...editingAnnouncement,
-                          category: value,
-                        })
-                      } else {
-                        setNewAnnouncement({
-                          ...newAnnouncement,
-                          category: value,
-                        })
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Kategori seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Etkinlik">Etkinlik</SelectItem>
-                      <SelectItem value="Bilgilendirme">Bilgilendirme</SelectItem>
-                      <SelectItem value="Bakım">Bakım</SelectItem>
-                      <SelectItem value="Diğer">Diğer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="status" className="text-right">
-                    Durum
-                  </Label>
-                  <Select
-                    value={editingAnnouncement?.status || newAnnouncement.status || "Aktif"}
-                    onValueChange={(value: "Aktif" | "Pasif" | "Taslak") => {
-                      if (editingAnnouncement) {
-                        setEditingAnnouncement({
-                          ...editingAnnouncement,
-                          status: value,
-                        })
-                      } else {
-                        setNewAnnouncement({
-                          ...newAnnouncement,
-                          status: value,
-                        })
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Durum seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Aktif">Aktif</SelectItem>
-                      <SelectItem value="Pasif">Pasif</SelectItem>
-                      <SelectItem value="Taslak">Taslak</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="visibility" className="text-right">
-                    Görünürlük
-                  </Label>
-                  <Select
-                    value={editingAnnouncement?.visibility || newAnnouncement.visibility || "Herkese Açık"}
-                    onValueChange={(value: "Herkese Açık" | "Sadece Üyeler" | "Yöneticiler") => {
-                      if (editingAnnouncement) {
-                        setEditingAnnouncement({
-                          ...editingAnnouncement,
-                          visibility: value,
-                        })
-                      } else {
-                        setNewAnnouncement({
-                          ...newAnnouncement,
-                          visibility: value,
-                        })
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Görünürlük seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Herkese Açık">Herkese Açık</SelectItem>
-                      <SelectItem value="Sadece Üyeler">Sadece Üyeler</SelectItem>
-                      <SelectItem value="Yöneticiler">Yöneticiler</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="expiryDate" className="text-right">
-                    Son Tarih
-                  </Label>
-                  <Input
-                    id="expiryDate"
-                    type="date"
-                    className="col-span-3"
-                    value={editingAnnouncement?.expiryDate || newAnnouncement.expiryDate}
-                    onChange={(e) => {
-                      if (editingAnnouncement) {
-                        setEditingAnnouncement({
-                          ...editingAnnouncement,
-                          expiryDate: e.target.value,
-                        })
-                      } else {
-                        setNewAnnouncement({
-                          ...newAnnouncement,
-                          expiryDate: e.target.value,
-                        })
-                      }
-                    }}
-                  />
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="image" className="text-right">
-                    Görsel
-                  </Label>
-                  <div className="col-span-3 space-y-2">
-                    <Input
-                      id="image"
-                      type="file"
-                      accept=".png,.jpg,.jpeg"
-                      onChange={handleImageUpload}
-                    />
-                    {(editingAnnouncement?.image || newAnnouncement.image) && (
-                      <div className="relative w-full h-32 mt-2 rounded-md overflow-hidden">
-                        <Image
-                          src={editingAnnouncement?.image || newAnnouncement.image || ""}
-                          alt="Duyuru Görseli"
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                    )}
-                    <span className="text-xs text-gray-500">Sadece PNG, JPG ve JPEG formatları desteklenmektedir.</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-4 items-start gap-4">
-                  <Label htmlFor="content" className="text-right pt-2">
-                    İçerik
-                  </Label>
-                  <Textarea
-                    id="content"
-                    placeholder="Duyuru içeriği"
-                    className="col-span-3 min-h-[120px]"
-                    value={editingAnnouncement?.content || newAnnouncement.content}
-                    onChange={(e) => {
-                      if (editingAnnouncement) {
-                        setEditingAnnouncement({
-                          ...editingAnnouncement,
-                          content: e.target.value,
-                        })
-                      } else {
-                        setNewAnnouncement({
-                          ...newAnnouncement,
-                          content: e.target.value,
-                        })
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  İptal
-                </Button>
-                <Button
-                  onClick={
-                    editingAnnouncement
-                      ? handleEditAnnouncement
-                      : handleAddAnnouncement
-                  }
-                >
-                  {editingAnnouncement ? "Güncelle" : "Ekle"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          
         </div>
 
         <div className="grid grid-cols-2 gap-4 h-[calc(100vh-180px)]">
           <div className="overflow-auto border rounded-lg">
-            <div className="flex items-center gap-4 p-4">
+            <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-2">
                 <Input
                   placeholder="Duyuru ara..."
@@ -790,55 +570,281 @@ export default function AnnouncementsPage() {
                 <Button variant="outline" size="icon">
                   <SearchIcon className="h-4 w-4" />
                 </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      Filtrele {getTotalSelectedFilters() > 0 ? `(${getTotalSelectedFilters()})` : ''}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Filtreleme Seçenekleri</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Kategori</h4>
+                        <div className="space-y-2">
+                          {['Etkinlik', 'Bilgilendirme'].map((category) => (
+                            <div key={category} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`category-${category}`}
+                                checked={selectedFilters.category.includes(category)}
+                                onChange={() => handleFilterChange('category', category)}
+                                className="h-4 w-4"
+                              />
+                              <label htmlFor={`category-${category}`}>{category}</label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Durum</h4>
+                        <div className="space-y-2">
+                          {['Aktif', 'Pasif', 'Taslak'].map((status) => (
+                            <div key={status} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`status-${status}`}
+                                checked={selectedFilters.status.includes(status)}
+                                onChange={() => handleFilterChange('status', status)}
+                                className="h-4 w-4"
+                              />
+                              <label htmlFor={`status-${status}`}>{status}</label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline">
-                    Filtrele {getTotalSelectedFilters() > 0 ? `(${getTotalSelectedFilters()})` : ''}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
-                  <DialogHeader>
-                    <DialogTitle>Filtreleme Seçenekleri</DialogTitle>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Kategori</h4>
-                      <div className="space-y-2">
-                        {['Etkinlik', 'Bilgilendirme'].map((category) => (
-                          <div key={category} className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              id={`category-${category}`}
-                              checked={selectedFilters.category.includes(category)}
-                              onChange={() => handleFilterChange('category', category)}
-                              className="h-4 w-4"
-                            />
-                            <label htmlFor={`category-${category}`}>{category}</label>
-                          </div>
-                        ))}
+              <div className="flex items-center gap-2">
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <PlusIcon className="mr-2 h-4 w-4" />
+                      Yeni duyuru ekle
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[625px]">
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingAnnouncement ? "Duyuru Düzenle" : "Yeni Duyuru Ekle"}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="title" className="text-right">
+                          Başlık
+                        </Label>
+                        <Input
+                          id="title"
+                          placeholder="Duyuru başlığı"
+                          className="col-span-3"
+                          value={editingAnnouncement?.title || newAnnouncement.title}
+                          onChange={(e) => {
+                            if (editingAnnouncement) {
+                              setEditingAnnouncement({
+                                ...editingAnnouncement,
+                                title: e.target.value,
+                              })
+                            } else {
+                              setNewAnnouncement({
+                                ...newAnnouncement,
+                                title: e.target.value,
+                              })
+                            }
+                          }}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="category" className="text-right">
+                          Kategori
+                        </Label>
+                        <Select
+                          value={editingAnnouncement?.category || newAnnouncement.category || ""}
+                          onValueChange={(value: string) => {
+                            if (editingAnnouncement) {
+                              setEditingAnnouncement({
+                                ...editingAnnouncement,
+                                category: value,
+                              })
+                            } else {
+                              setNewAnnouncement({
+                                ...newAnnouncement,
+                                category: value,
+                              })
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Kategori seçin" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Etkinlik">Etkinlik</SelectItem>
+                            <SelectItem value="Bilgilendirme">Bilgilendirme</SelectItem>
+                            <SelectItem value="Bakım">Bakım</SelectItem>
+                            <SelectItem value="Diğer">Diğer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="status" className="text-right">
+                          Durum
+                        </Label>
+                        <Select
+                          value={editingAnnouncement?.status || newAnnouncement.status || "Aktif"}
+                          onValueChange={(value: "Aktif" | "Pasif" | "Taslak") => {
+                            if (editingAnnouncement) {
+                              setEditingAnnouncement({
+                                ...editingAnnouncement,
+                                status: value,
+                              })
+                            } else {
+                              setNewAnnouncement({
+                                ...newAnnouncement,
+                                status: value,
+                              })
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Durum seçin" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Aktif">Aktif</SelectItem>
+                            <SelectItem value="Pasif">Pasif</SelectItem>
+                            <SelectItem value="Taslak">Taslak</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="visibility" className="text-right">
+                          Görünürlük
+                        </Label>
+                        <Select
+                          value={editingAnnouncement?.visibility || newAnnouncement.visibility || "Herkese Açık"}
+                          onValueChange={(value: "Herkese Açık" | "Sadece Üyeler" | "Yöneticiler") => {
+                            if (editingAnnouncement) {
+                              setEditingAnnouncement({
+                                ...editingAnnouncement,
+                                visibility: value,
+                              })
+                            } else {
+                              setNewAnnouncement({
+                                ...newAnnouncement,
+                                visibility: value,
+                              })
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Görünürlük seçin" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Herkese Açık">Herkese Açık</SelectItem>
+                            <SelectItem value="Sadece Üyeler">Sadece Üyeler</SelectItem>
+                            <SelectItem value="Yöneticiler">Yöneticiler</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="expiryDate" className="text-right">
+                          Son Tarih
+                        </Label>
+                        <Input
+                          id="expiryDate"
+                          type="date"
+                          className="col-span-3"
+                          value={editingAnnouncement?.expiryDate || newAnnouncement.expiryDate}
+                          onChange={(e) => {
+                            if (editingAnnouncement) {
+                              setEditingAnnouncement({
+                                ...editingAnnouncement,
+                                expiryDate: e.target.value,
+                              })
+                            } else {
+                              setNewAnnouncement({
+                                ...newAnnouncement,
+                                expiryDate: e.target.value,
+                              })
+                            }
+                          }}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="image" className="text-right">
+                          Görsel
+                        </Label>
+                        <div className="col-span-3 space-y-2">
+                          <Input
+                            id="image"
+                            type="file"
+                            accept=".png,.jpg,.jpeg"
+                            onChange={handleImageUpload}
+                          />
+                          {(editingAnnouncement?.image || newAnnouncement.image) && (
+                            <div className="relative w-full h-32 mt-2 rounded-md overflow-hidden">
+                              <Image
+                                src={editingAnnouncement?.image || newAnnouncement.image || ""}
+                                alt="Duyuru Görseli"
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                          )}
+                          <span className="text-xs text-gray-500">Sadece PNG, JPG ve JPEG formatları desteklenmektedir.</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-4 items-start gap-4">
+                        <Label htmlFor="content" className="text-right pt-2">
+                          İçerik
+                        </Label>
+                        <Textarea
+                          id="content"
+                          placeholder="Duyuru içeriği"
+                          className="col-span-3 min-h-[120px]"
+                          value={editingAnnouncement?.content || newAnnouncement.content}
+                          onChange={(e) => {
+                            if (editingAnnouncement) {
+                              setEditingAnnouncement({
+                                ...editingAnnouncement,
+                                content: e.target.value,
+                              })
+                            } else {
+                              setNewAnnouncement({
+                                ...newAnnouncement,
+                                content: e.target.value,
+                              })
+                            }
+                          }}
+                        />
                       </div>
                     </div>
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Durum</h4>
-                      <div className="space-y-2">
-                        {['Aktif', 'Pasif', 'Taslak'].map((status) => (
-                          <div key={status} className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              id={`status-${status}`}
-                              checked={selectedFilters.status.includes(status)}
-                              onChange={() => handleFilterChange('status', status)}
-                              className="h-4 w-4"
-                            />
-                            <label htmlFor={`status-${status}`}>{status}</label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                        İptal
+                      </Button>
+                      <Button
+                        onClick={
+                          editingAnnouncement
+                            ? handleEditAnnouncement
+                            : handleAddAnnouncement
+                        }
+                      >
+                        {editingAnnouncement ? "Güncelle" : "Ekle"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
             <Table>
               <TableHeader>
@@ -945,286 +951,217 @@ export default function AnnouncementsPage() {
             {selectedAnnouncement ? (
               <Card className="h-full flex flex-col">
                 <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <CardTitle className="text-xl font-bold">{selectedAnnouncement.title}</CardTitle>
-                    <div className="flex flex-col gap-2 items-end">
-                      <Badge className={getStatusColor(selectedAnnouncement.status)}>
-                        {selectedAnnouncement.status}
-                      </Badge>
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-lg font-semibold">Duyuru Önizleme</CardTitle>
+                    <div className="flex space-x-2">
+                      <Button 
+                        variant={viewMode === "preview" ? "default" : "outline"} 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => setViewMode("preview")}
+                      >
+                        <EyeIcon className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant={viewMode === "edit" ? "default" : "outline"} 
+                        size="icon" 
+                        className="h-8 w-8" 
+                        disabled={!selectedAnnouncement}
+                        onClick={() => setViewMode("edit")}
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </div>
-                  <div className="flex flex-col space-y-1 text-sm text-muted-foreground mt-2">
-                    <div className="flex items-center">
-                      <CalendarIcon className="mr-1 h-4 w-4" />
-                      <span>Oluşturulma: {selectedAnnouncement.date || 'Belirtilmemiş'}</span>
-                    </div>
-                    {selectedAnnouncement.startDate && (
-                      <div className="flex items-center">
-                        <CalendarIcon className="mr-1 h-4 w-4" />
-                        <span>Başlangıç: {new Date(selectedAnnouncement.startDate).toLocaleDateString('tr-TR')}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center">
-                      <CalendarIcon className="mr-1 h-4 w-4" />
-                      <span>Son Tarih: {selectedAnnouncement.expiryDate || 'Belirtilmemiş'}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <TagIcon className="mr-1 h-4 w-4" />
-                      <span>Kategori: {selectedAnnouncement.category}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <EyeIcon className="mr-1 h-4 w-4" />
-                      <span>Görüntülenme: {selectedAnnouncement.views}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <InfoIcon className="mr-1 h-4 w-4" />
-                      <span>Görünürlük: {selectedAnnouncement.visibility}</span>
-                    </div>
-                    {selectedAnnouncement.creatorId && (
-                      <div className="flex items-center">
-                        <UsersIcon className="mr-1 h-4 w-4" />
-                        <span>Yazar ID: {selectedAnnouncement.creatorId}</span>
-                      </div>
-                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="flex-grow overflow-auto pt-2">
-                  <Tabs defaultValue="preview">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="preview">Önizleme</TabsTrigger>
-                      <TabsTrigger value="edit">Düzenle</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="preview" className="mt-4 min-h-[250px]">
-                      <div className="border rounded-lg p-4 bg-card text-card-foreground">
-                        <div className="flex flex-col gap-4">
-                          {selectedAnnouncement.image && (
-                            <div className="rounded-md overflow-hidden">
-                              <div className="relative h-56 w-full rounded-md bg-muted">
-                                <Image
-                                  src={selectedAnnouncement.image}
-                                  alt={selectedAnnouncement.title}
-                                  fill
-                                  className="object-cover"
-                                />
-                              </div>
-                            </div>
-                          )}
+                  {selectedAnnouncement ? (
+                    viewMode === "preview" ? (
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-start">
                           <div>
-                            <h3 className="text-xl font-bold">{selectedAnnouncement.title}</h3>
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              <Badge variant="outline" className="bg-primary/10">
-                                {selectedAnnouncement.category}
-                              </Badge>
-                              <Badge className={getStatusColor(selectedAnnouncement.status)}>
-                                {selectedAnnouncement.status}
-                              </Badge>
-                              {selectedAnnouncement.startDate && selectedAnnouncement.endDate && (
-                                <Badge variant="outline" className="bg-blue-100 text-blue-800">
-                                  {new Date(selectedAnnouncement.startDate).toLocaleDateString('tr-TR')} - {new Date(selectedAnnouncement.endDate).toLocaleDateString('tr-TR')}
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground mt-2">
-                              Oluşturulma: {selectedAnnouncement.date}
+                            <h2 className="text-2xl font-bold">{selectedAnnouncement.title}</h2>
+                            <p className="text-sm text-muted-foreground">
+                              {selectedAnnouncement.category} | {selectedAnnouncement.date}
                             </p>
                           </div>
-                          <div className="whitespace-pre-wrap">
-                            {selectedAnnouncement.content}
+                          <Badge variant="outline" className={getStatusColor(selectedAnnouncement.status)}>
+                            {selectedAnnouncement.status}
+                          </Badge>
+                        </div>
+                        {selectedAnnouncement.image && (
+                          <div className="relative h-48 w-full rounded-md overflow-hidden">
+                            <Image
+                              src={selectedAnnouncement.image}
+                              alt={selectedAnnouncement.title}
+                              fill
+                              className="object-cover"
+                            />
                           </div>
+                        )}
+                        <div className="prose max-w-none whitespace-pre-wrap">
+                          {selectedAnnouncement.content}
                         </div>
+                        {selectedAnnouncement.expiryDate && (
+                          <div className="text-sm text-muted-foreground mt-2">
+                            <span className="font-medium">Son Geçerlilik Tarihi:</span> {selectedAnnouncement.expiryDate}
+                          </div>
+                        )}
+                        {selectedAnnouncement.visibility !== "Herkese Açık" && (
+                          <div className="text-sm text-amber-600 mt-2">
+                            <InfoIcon className="inline-block h-4 w-4 mr-1" />
+                            <span>Bu duyuru sadece "{selectedAnnouncement.visibility}" için görünür.</span>
+                          </div>
+                        )}
                       </div>
-                    </TabsContent>
-                    <TabsContent value="edit" className="mt-4 min-h-[250px]">
-                      <div className="grid gap-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="edit-title" className="text-right">
-                            Başlık
-                          </Label>
-                          <Input
-                            id="edit-title"
-                            placeholder="Duyuru başlığı"
-                            className="col-span-3"
-                            value={selectedAnnouncement.title}
-                            onChange={(e) => {
-                              setSelectedAnnouncement({
-                                ...selectedAnnouncement,
-                                title: e.target.value,
-                              });
-                            }}
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="edit-category" className="text-right">
-                            Kategori
-                          </Label>
-                          <Select
-                            value={selectedAnnouncement.category}
-                            onValueChange={(value: string) => {
-                              setSelectedAnnouncement({
-                                ...selectedAnnouncement,
-                                category: value,
-                              });
-                            }}
-                          >
-                            <SelectTrigger className="col-span-3">
-                              <SelectValue placeholder="Kategori seçin" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Etkinlik">Etkinlik</SelectItem>
-                              <SelectItem value="Bilgilendirme">Bilgilendirme</SelectItem>
-                              <SelectItem value="Bakım">Bakım</SelectItem>
-                              <SelectItem value="Diğer">Diğer</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="edit-status" className="text-right">
-                            Durum
-                          </Label>
-                          <Select
-                            value={selectedAnnouncement.status}
-                            onValueChange={(value: "Aktif" | "Pasif" | "Taslak") => {
-                              setSelectedAnnouncement({
-                                ...selectedAnnouncement,
-                                status: value,
-                              });
-                            }}
-                          >
-                            <SelectTrigger className="col-span-3">
-                              <SelectValue placeholder="Durum seçin" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Aktif">Aktif</SelectItem>
-                              <SelectItem value="Pasif">Pasif</SelectItem>
-                              <SelectItem value="Taslak">Taslak</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="edit-visibility" className="text-right">
-                            Görünürlük
-                          </Label>
-                          <Select
-                            value={selectedAnnouncement.visibility}
-                            onValueChange={(value: "Herkese Açık" | "Sadece Üyeler" | "Yöneticiler") => {
-                              setSelectedAnnouncement({
-                                ...selectedAnnouncement,
-                                visibility: value,
-                              });
-                            }}
-                          >
-                            <SelectTrigger className="col-span-3">
-                              <SelectValue placeholder="Görünürlük seçin" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Herkese Açık">Herkese Açık</SelectItem>
-                              <SelectItem value="Sadece Üyeler">Sadece Üyeler</SelectItem>
-                              <SelectItem value="Yöneticiler">Yöneticiler</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="edit-expiryDate" className="text-right">
-                            Son Tarih
-                          </Label>
-                          <Input
-                            id="edit-expiryDate"
-                            type="date"
-                            className="col-span-3"
-                            value={selectedAnnouncement.expiryDate}
-                            onChange={(e) => {
-                              setSelectedAnnouncement({
-                                ...selectedAnnouncement,
-                                expiryDate: e.target.value,
-                              });
-                            }}
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="edit-image" className="text-right">
-                            Görsel
-                          </Label>
-                          <div className="col-span-3 space-y-2">
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="grid gap-4">
+                          <div className="grid gap-2">
+                            <Label htmlFor="edit-title">Başlık</Label>
                             <Input
-                              id="edit-image"
-                              type="file"
-                              accept=".png,.jpg,.jpeg"
+                              id="edit-title"
+                              value={selectedAnnouncement.title}
                               onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (!file) return;
-                                
-                                // Yalnızca PNG, JPG ve JPEG formatlarını kabul et
-                                if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
-                                  alert('Lütfen sadece PNG, JPG veya JPEG formatında dosya yükleyiniz.');
-                                  return;
-                                }
-                                
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  const base64String = reader.result as string;
-                                  setSelectedAnnouncement({
-                                    ...selectedAnnouncement,
-                                    image: base64String
-                                  });
-                                };
-                                reader.readAsDataURL(file);
+                                setSelectedAnnouncement({
+                                  ...selectedAnnouncement,
+                                  title: e.target.value,
+                                });
                               }}
                             />
-                            {selectedAnnouncement.image && (
-                              <div className="relative w-full h-32 mt-2 rounded-md overflow-hidden">
-                                <Image
-                                  src={selectedAnnouncement.image}
-                                  alt="Duyuru Görseli"
-                                  fill
-                                  className="object-cover"
-                                />
-                              </div>
-                            )}
-                            <span className="text-xs text-gray-500">Sadece PNG, JPG ve JPEG formatları desteklenmektedir.</span>
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="edit-content">İçerik</Label>
+                            <Textarea
+                              id="edit-content"
+                              value={selectedAnnouncement.content}
+                              onChange={(e) => {
+                                setSelectedAnnouncement({
+                                  ...selectedAnnouncement,
+                                  content: e.target.value,
+                                });
+                              }}
+                              className="min-h-[150px]"
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="edit-category">Kategori</Label>
+                            <Select
+                              value={selectedAnnouncement.category}
+                              onValueChange={(value) => {
+                                setSelectedAnnouncement({
+                                  ...selectedAnnouncement,
+                                  category: value,
+                                });
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Kategori seçin" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Etkinlik">Etkinlik</SelectItem>
+                                <SelectItem value="Bilgilendirme">Bilgilendirme</SelectItem>
+                                <SelectItem value="Bakım">Bakım</SelectItem>
+                                <SelectItem value="Diğer">Diğer</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="edit-expiryDate">Son Tarih</Label>
+                            <Input
+                              id="edit-expiryDate"
+                              type="date"
+                              value={selectedAnnouncement.expiryDate}
+                              onChange={(e) => {
+                                setSelectedAnnouncement({
+                                  ...selectedAnnouncement,
+                                  expiryDate: e.target.value,
+                                });
+                              }}
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="edit-image">Görsel URL</Label>
+                            <Input
+                              id="edit-image"
+                              value={selectedAnnouncement.image}
+                              onChange={(e) => {
+                                setSelectedAnnouncement({
+                                  ...selectedAnnouncement,
+                                  image: e.target.value,
+                                });
+                              }}
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="edit-status">Durum</Label>
+                            <Select
+                              value={selectedAnnouncement.status}
+                              onValueChange={(value: "Aktif" | "Pasif" | "Taslak") => {
+                                setSelectedAnnouncement({
+                                  ...selectedAnnouncement,
+                                  status: value,
+                                });
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Durum seçin" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Aktif">Aktif</SelectItem>
+                                <SelectItem value="Pasif">Pasif</SelectItem>
+                                <SelectItem value="Taslak">Taslak</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="edit-visibility">Görünürlük</Label>
+                            <Select
+                              value={selectedAnnouncement.visibility}
+                              onValueChange={(value: "Herkese Açık" | "Sadece Üyeler" | "Yöneticiler") => {
+                                setSelectedAnnouncement({
+                                  ...selectedAnnouncement,
+                                  visibility: value,
+                                });
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Görünürlük seçin" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Herkese Açık">Herkese Açık</SelectItem>
+                                <SelectItem value="Sadece Üyeler">Sadece Üyeler</SelectItem>
+                                <SelectItem value="Yöneticiler">Yöneticiler</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="flex justify-end pt-4">
+                            <Button 
+                              onClick={() => {
+                                handleUpdateSelectedAnnouncement();
+                                setViewMode("preview");
+                              }}
+                              disabled={isUpdating}
+                            >
+                              {isUpdating ? (
+                                <div className="flex items-center">
+                                  <span className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
+                                  Güncelleniyor...
+                                </div>
+                              ) : (
+                                "Değişiklikleri Kaydet"
+                              )}
+                            </Button>
                           </div>
                         </div>
-
-                        <div className="grid grid-cols-4 items-start gap-4">
-                          <Label htmlFor="edit-content" className="text-right pt-2">
-                            İçerik
-                          </Label>
-                          <Textarea
-                            id="edit-content"
-                            placeholder="Duyuru içeriği"
-                            className="col-span-3 min-h-[120px]"
-                            value={selectedAnnouncement.content}
-                            onChange={(e) => {
-                              setSelectedAnnouncement({
-                                ...selectedAnnouncement,
-                                content: e.target.value,
-                              });
-                            }}
-                          />
-                        </div>
-                        
-                        <div className="flex justify-end mt-4">
-                          <Button 
-                            onClick={handleUpdateSelectedAnnouncement}
-                            disabled={isUpdating}
-                          >
-                            {isUpdating ? (
-                              <div className="flex items-center">
-                                <span className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
-                                Güncelleniyor...
-                              </div>
-                            ) : (
-                              "Güncelle"
-                            )}
-                          </Button>
-                        </div>
                       </div>
-                    </TabsContent>
-                  </Tabs>
+                    )
+                  ) : (
+                    <div className="text-center text-gray-500 py-8">
+                      Önizlemek için bir duyuru seçin
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ) : (

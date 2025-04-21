@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { format, addMonths, subMonths, isSameMonth, isWithinInterval, parseISO } from "date-fns"
+import { format, addMonths, subMonths, isSameMonth, isWithinInterval, parseISO, subDays, addDays } from "date-fns"
 import { tr } from "date-fns/locale"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -59,7 +59,45 @@ const statsData = {
       { name: "Cuma", minutes: 75 },
       { name: "Cumartesi", minutes: 90 },
       { name: "Pazar", minutes: 40 }
-    ]
+    ],
+    // Tarih bazlı spor verileri
+    sportsByDate: [
+      {
+        date: format(subDays(new Date(), 4), "dd.MM.yyyy"),
+        Futbol: 12,
+        Basketbol: 8,
+        Voleybol: 5,
+        Yüzme: 3,
+      },
+      {
+        date: format(subDays(new Date(), 3), "dd.MM.yyyy"),
+        Futbol: 15,
+        Basketbol: 10,
+        Voleybol: 7,
+        Yüzme: 4,
+      },
+      {
+        date: format(subDays(new Date(), 2), "dd.MM.yyyy"),
+        Futbol: 10,
+        Basketbol: 12,
+        Voleybol: 8,
+        Yüzme: 6,
+      },
+      {
+        date: format(subDays(new Date(), 1), "dd.MM.yyyy"),
+        Futbol: 18,
+        Basketbol: 14,
+        Voleybol: 9,
+        Yüzme: 5,
+      },
+      {
+        date: format(new Date(), "dd.MM.yyyy"),
+        Futbol: 20,
+        Basketbol: 15,
+        Voleybol: 10,
+        Yüzme: 7,
+      },
+    ],
   },
   previousMonth: {
     events: 36,
@@ -107,7 +145,45 @@ const statsData = {
       { name: "Cuma", minutes: 65 },
       { name: "Cumartesi", minutes: 80 },
       { name: "Pazar", minutes: 35 }
-    ]
+    ],
+    // Tarih bazlı spor verileri
+    sportsByDate: [
+      {
+        date: format(subDays(subMonths(new Date(), 1), 4), "dd.MM.yyyy"),
+        Futbol: 8,
+        Basketbol: 6,
+        Voleybol: 4,
+        Yüzme: 2,
+      },
+      {
+        date: format(subDays(subMonths(new Date(), 1), 3), "dd.MM.yyyy"),
+        Futbol: 11,
+        Basketbol: 9,
+        Voleybol: 5,
+        Yüzme: 3,
+      },
+      {
+        date: format(subDays(subMonths(new Date(), 1), 2), "dd.MM.yyyy"),
+        Futbol: 9,
+        Basketbol: 10,
+        Voleybol: 6,
+        Yüzme: 4,
+      },
+      {
+        date: format(subDays(subMonths(new Date(), 1), 1), "dd.MM.yyyy"),
+        Futbol: 14,
+        Basketbol: 12,
+        Voleybol: 7,
+        Yüzme: 3,
+      },
+      {
+        date: format(subMonths(new Date(), 1), "dd.MM.yyyy"),
+        Futbol: 17,
+        Basketbol: 13,
+        Voleybol: 8,
+        Yüzme: 5,
+      },
+    ],
   },
   twoMonthsAgo: {
     events: 30,
@@ -155,7 +231,45 @@ const statsData = {
       { name: "Cuma", minutes: 55 },
       { name: "Cumartesi", minutes: 70 },
       { name: "Pazar", minutes: 30 }
-    ]
+    ],
+    // Tarih bazlı spor verileri
+    sportsByDate: [
+      {
+        date: format(subDays(subMonths(new Date(), 2), 4), "dd.MM.yyyy"),
+        Futbol: 7,
+        Basketbol: 5,
+        Voleybol: 3,
+        Yüzme: 1,
+      },
+      {
+        date: format(subDays(subMonths(new Date(), 2), 3), "dd.MM.yyyy"),
+        Futbol: 9,
+        Basketbol: 7,
+        Voleybol: 4,
+        Yüzme: 2,
+      },
+      {
+        date: format(subDays(subMonths(new Date(), 2), 2), "dd.MM.yyyy"),
+        Futbol: 8,
+        Basketbol: 9,
+        Voleybol: 5,
+        Yüzme: 3,
+      },
+      {
+        date: format(subDays(subMonths(new Date(), 2), 1), "dd.MM.yyyy"),
+        Futbol: 12,
+        Basketbol: 10,
+        Voleybol: 6,
+        Yüzme: 2,
+      },
+      {
+        date: format(subMonths(new Date(), 2), "dd.MM.yyyy"),
+        Futbol: 14,
+        Basketbol: 11,
+        Voleybol: 7,
+        Yüzme: 4,
+      },
+    ],
   }
 }
 
@@ -199,6 +313,18 @@ export default function DashboardPage() {
 
   // Rastgele veri oluşturan fonksiyon
   const generateRandomStats = (date: Date) => {
+    // Son 5 gün için spor verileri oluştur
+    const sportsByDate = [];
+    for (let i = 4; i >= 0; i--) {
+      sportsByDate.push({
+        date: format(subDays(date, i), "dd.MM.yyyy"),
+        Futbol: Math.floor(Math.random() * 15) + 5,
+        Basketbol: Math.floor(Math.random() * 12) + 5,
+        Voleybol: Math.floor(Math.random() * 10) + 3,
+        Yüzme: Math.floor(Math.random() * 8) + 1,
+      });
+    }
+    
     setStats({
       events: Math.floor(Math.random() * 50) + 20,
       news: Math.floor(Math.random() * 30) + 15,
@@ -254,7 +380,8 @@ export default function DashboardPage() {
         { name: "Cuma", minutes: Math.floor(Math.random() * 60) + 15 },
         { name: "Cumartesi", minutes: Math.floor(Math.random() * 60) + 15 },
         { name: "Pazar", minutes: Math.floor(Math.random() * 60) + 15 }
-      ]
+      ],
+      sportsByDate,
     })
   }
 
@@ -264,6 +391,22 @@ export default function DashboardPage() {
     
     // Gün farkına göre veri ölçeklendirme
     const diffFactor = Math.ceil((range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24));
+    const maxDays = Math.min(diffFactor, 10); // En fazla 10 gün göster
+    
+    // Tarih aralığı için spor verileri oluştur
+    const sportsByDate = [];
+    for (let i = 0; i < maxDays; i++) {
+      const currentDate = addDays(range.from, i);
+      if (currentDate > range.to) break;
+      
+      sportsByDate.push({
+        date: format(currentDate, "dd.MM.yyyy"),
+        Futbol: Math.floor(Math.random() * 15) + 5,
+        Basketbol: Math.floor(Math.random() * 12) + 5,
+        Voleybol: Math.floor(Math.random() * 10) + 3,
+        Yüzme: Math.floor(Math.random() * 8) + 1,
+      });
+    }
     
     setStats({
       events: Math.floor(Math.random() * 50 * diffFactor/10) + 20,
@@ -320,7 +463,8 @@ export default function DashboardPage() {
         { name: "Cuma", minutes: Math.floor(Math.random() * 60 * diffFactor/7) + 15 },
         { name: "Cumartesi", minutes: Math.floor(Math.random() * 60 * diffFactor/7) + 15 },
         { name: "Pazar", minutes: Math.floor(Math.random() * 60 * diffFactor/7) + 15 }
-      ]
+      ],
+      sportsByDate,
     })
   }
 
@@ -425,14 +569,10 @@ export default function DashboardPage() {
         </Card>
         <SportEventsChart 
           className="col-span-1"
-          title="Spor Dallarına Göre Etkinlikler"
-          description="Seçili tarihteki spor dallarına göre etkinlik dağılımı"
-          data={[
-            { name: "Basketbol", events: stats.sportsPercentages.basketball },
-            { name: "Voleybol", events: stats.sportsPercentages.volleyball },
-            { name: "Futbol", events: stats.sportsPercentages.football },
-            { name: "Yüzme", events: stats.sportsPercentages.swimming }
-          ]}
+          title="Tarihe Göre Spor Etkinlikleri"
+          description="Seçili tarih aralığında spor dallarına göre etkinlik sayıları"
+          data={stats.sportsByDate}
+          dateRange={dateRange}
         />
       </div>
 
