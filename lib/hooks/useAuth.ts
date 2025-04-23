@@ -1,61 +1,42 @@
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import authService from '../services/authService';
-import type { UserData } from '../services/authService';
+import { useStore } from '@/lib/store';
+import type { LoginCredentials, RegisterData } from '@/lib/services/authService';
 
-export const useAuth = (requiredRole?: string) => {
-  const [user, setUser] = useState<UserData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [hasRequiredRole, setHasRequiredRole] = useState(false);
-  const router = useRouter();
-
-  useEffect(() => {
-    const checkAuth = () => {
-      try {
-        // localStorage'dan kullanıcı bilgilerini al
-        const authenticated = authService.isAuthenticated();
-        setIsAuthenticated(authenticated);
-        
-        if (authenticated) {
-          const userData = authService.getLocalUser();
-          setUser(userData);
-          
-          // Eğer belirli bir rol gerekiyorsa kontrol et
-          if (requiredRole && userData) {
-            const hasRole = userData.role === requiredRole || 
-                           // superadmin her şeyi yapabilir
-                           userData.role === 'superadmin' ||
-                           // 'admin' rolüne sahip kullanıcılar, 'user' gerektiren işlemleri yapabilir
-                           (userData.role === 'admin' && requiredRole === 'user');
-            
-            setHasRequiredRole(hasRole);
-            
-            // Kullanıcının yetkisi yoksa ana sayfaya yönlendir
-            if (!hasRole) {
-              console.warn(`Kullanıcının '${requiredRole}' rolü yok. Mevcut rol: ${userData.role}`);
-              router.push('/dashboard');
-            }
-          } else {
-            // Rol kontrolü yoksa veya kullanıcı yoksa
-            setHasRequiredRole(true);
-          }
-        } else {
-          // Kimlik doğrulama yapılmamışsa login'e yönlendir
-          router.push('/auth/login');
-        }
-      } catch (error) {
-        console.error("Kimlik doğrulama hatası:", error);
-        router.push('/auth/login');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, [router, requiredRole]);
-
-  return { user, isLoading, isAuthenticated, hasRequiredRole };
+// Auth hook - Zustand store'dan kimlik doğrulama işlemlerini alır
+const useAuth = (requiredRole?: string) => {
+  const store = useStore();
+  
+  // Kullanıcının belirli bir role sahip olup olmadığını kontrol eder
+  const hasRequiredRole = (): boolean => {
+    if (!requiredRole) return true; // Eğer required role belirtilmemişse her zaman true döner
+    if (!store.isAuthenticated || !store.user) return false; // Kullanıcı giriş yapmamışsa false döner
+    
+    // Eğer "admin" rolü gerekiyorsa, kullanıcı "admin" rolüne sahip mi diye kontrol eder
+    if (requiredRole === 'admin') {
+      return store.user.role === 'admin';
+    }
+    
+    // Diğer roller için de benzer kontrol yapılabilir
+    // Örneğin: moderator, user, premium-user vb.
+    return store.user.role === requiredRole;
+  };
+  
+  return {
+    // State
+    user: store.user,
+    isAuthenticated: store.isAuthenticated,
+    isLoading: store.isLoading,
+    error: store.error,
+    hasRequiredRole: hasRequiredRole(),
+    
+    // Actions
+    login: store.login,
+    register: store.register,
+    logout: store.logout,
+    forgotPassword: store.forgotPassword,
+    resendEmailConfirmation: store.resendEmailConfirmation,
+    verifyEmail: store.verifyEmail,
+    clearError: store.clearError
+  };
 };
 
 export default useAuth; 

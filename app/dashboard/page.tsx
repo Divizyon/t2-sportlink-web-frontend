@@ -22,6 +22,9 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import type { DateRange } from "react-day-picker"
+import { useToast } from "@/components/ui/use-toast"
+import useAuth from "@/lib/hooks/useAuth"
+import { Separator } from "@/components/ui/separator"
 
 // Farklı tarihlerdeki verileri simüle eden objeler
 const statsData = {
@@ -289,6 +292,10 @@ export default function DashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dialogType = searchParams.get('dialog');
+  const { user, isAuthenticated, logout } = useAuth();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [redirecting, setRedirecting] = useState(false);
   
   // Dialog açık/kapalı durumları
   const [openDialogs, setOpenDialogs] = useState<{
@@ -416,7 +423,6 @@ export default function DashboardPage() {
   
   // Son 24 saatteki içerikler
   // Content from the last 24 hours
-  const { last24HoursEvents, last24HoursNews, last24HoursAnnouncements } = getLast24HoursItems();
 
   // Tarih aralığı değiştiğinde istatistikleri güncelle
   useEffect(() => {
@@ -606,348 +612,108 @@ export default function DashboardPage() {
     })
   }
 
+  // Kimlik doğrulama kontrolü
+  useEffect(() => {
+    // 500ms gecikme ile görsel geçiş ekleyelim
+    const timer = setTimeout(() => {
+      if (!isAuthenticated) {
+        console.log("Dashboard: Kullanıcı giriş yapmamış!");
+        setRedirecting(true);
+        
+        toast({
+          title: "Erişim Engellendi",
+          description: "Bu sayfayı görüntülemek için giriş yapmalısınız.",
+          variant: "destructive",
+        });
+        
+        // Önce yönlendirme durumunu set et
+        setTimeout(() => {
+          // Tarayıcı konumunu doğrudan değiştir
+          window.location.href = "/auth/login";
+        }, 100);
+      } else {
+        setIsLoading(false);
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, toast]);
+
+  const handleLogout = () => {
+    logout();
+    toast({
+      title: "Çıkış Yapıldı",
+      description: "Başarıyla çıkış yaptınız.",
+    });
+  };
+
+  if (isLoading || redirecting) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
+        <div className="w-10 h-10 border-t-2 border-primary rounded-full animate-spin"></div>
+        
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 min-h-[calc(100vh-4rem)] overflow-y-auto pb-8">
-      {/* Header with Report Buttons */}
-      <div className="flex items-center justify-between sticky top-0 bg-background py-4 z-10">
-        <h2 className="text-3xl font-bold tracking-tight">Gösterge Paneli</h2>
-        <div className="flex items-center space-x-4">
-          <DateRangePicker 
-            dateRange={selectedDateRange} 
-            setDateRange={setSelectedDateRange}
-            placeholder="Tarih Aralığı Seçin"
-          />
-          <Button>
-            <Download className="mr-2 h-4 w-4" />
-            Rapor İndir
-          </Button>
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">Hoş Geldiniz, {user?.first_name}</h1>
+          <p className="text-muted-foreground mt-1">Spor etkinlikleri dünyasına katılmaya hazır mısınız?</p>
         </div>
+        
+        <Button variant="outline" onClick={handleLogout}>
+          Çıkış Yap
+        </Button>
       </div>
 
-      {/* Analytics Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="transition-colors duration-200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Toplam Etkinlik</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.events}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.eventPercentage > 0 ? "+" : ""}{stats.eventPercentage}% geçen aya göre
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="transition-colors duration-200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Toplam Haber</CardTitle>
-            <Newspaper className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.news}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.newsPercentage > 0 ? "+" : ""}{stats.newsPercentage}% geçen aya göre
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="transition-colors duration-200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Toplam Duyuru</CardTitle>
-            <Megaphone className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.announcements}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.announcementPercentage > 0 ? "+" : ""}{stats.announcementPercentage}% geçen aya göre
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="transition-colors duration-200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Toplam Kullanıcı</CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.users}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.userPercentage > 0 ? "+" : ""}{stats.userPercentage}% geçen aya göre
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Sports Charts */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
-        <SportEventsChart 
-          className="md:col-span-1 lg:col-span-1"
-          title="Tarihe Göre Spor Etkinlikleri"
-          description="Seçili tarih aralığında spor dallarına göre etkinlik sayıları"
-          data={stats.sportsByDate}
-          dateRange={selectedDateRange}
+      <Separator className="my-6" />
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <DashboardCard 
+          title="Etkinlikler" 
+          description="Tüm etkinlikleri görüntüle ve katıl"
+          link="/events"
+          linkText="Etkinlikleri Keşfet"
         />
         
-        <SportPopularityChart
-          className="md:col-span-1 lg:col-span-1"
-          title="Popüler Spor Dalları"
-          description="En çok ilgi gören spor dalları"
-          data={stats.sportsPercentages}
+        <DashboardCard 
+          title="Profil" 
+          description="Profil bilgilerinizi güncelleyin"
+          link="/profile"
+          linkText="Profil'e Git"
+        />
+        
+        <DashboardCard 
+          title="Spor Dalları" 
+          description="Tüm spor dallarını keşfedin"
+          link="/sports"
+          linkText="Spor Dallarını Görüntüle"
         />
       </div>
-
-      {/* Etkinlik Analizi */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Etkinlik Analizi</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Etkinlik</TableHead>
-                <TableHead>Tarih</TableHead>
-                <TableHead>Katılımcı</TableHead>
-                <TableHead>Memnuniyet %</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {stats.eventAnalysis.map((event, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-medium">{event.name}</TableCell>
-                  <TableCell>{event.date}</TableCell>
-                  <TableCell>{event.participants}</TableCell>
-                  <TableCell>{event.satisfaction}%</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Additional Cards */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {/* Son Etkinlikler */}
-        <Card className="cursor-pointer hover:shadow-md transition-shadow etkinlikler-karti card-hover">
-          <Dialog open={openDialogs.events} onOpenChange={(isOpen) => handleDialogChange('events', isOpen)}>
-            <DialogTrigger className="w-full text-left">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Son Etkinlikler (24 Saat)</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {last24HoursEvents.length > 0 ? (
-                    allEvents.slice(0, 5).map((event, index) => (
-                      <div key={index} className="flex items-center">
-                        <div className="w-2 h-2 rounded-full bg-green-500 mr-2" />
-                        <div className="flex-1 space-y-1">
-                          <p className="text-sm font-medium">{event.name}</p>
-                          <p className="text-xs text-muted-foreground">{event.date}</p>
                         </div>
-                      </div>
-                    ))
-                  ) : (
-                    <>
-                      <span className="text-sm text-muted-foreground">Son 24 saatte etkinlik bulunmadı.</span>
-                      <span className="text-sm text-muted-foreground">No events found in the last 24 hours.</span>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-              {allEvents.length > 5 && (
-                <CardFooter className="flex justify-between pt-0">
-                  <div />
-                  <div className="flex items-center text-sm text-blue-600">
-                    Tümünü Gör 
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </div>
-                </CardFooter>
-              )}
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Tüm Etkinlikler</DialogTitle>
-                <DialogDescription>Son dönemdeki tüm etkinliklerin listesi</DialogDescription>
-              </DialogHeader>
-              <div className="max-h-[60vh] overflow-y-auto mt-4">
-                <div className="space-y-4">
-                  {allEvents.map((event, index) => (
-                    <div key={index}>
-                      <Link 
-                        href={`/dashboard/events?id=${event.id}&returnDialog=events`} 
-                        passHref 
-                        className="block"
-                        onClick={() => {
-                          // Link tıklandığında dialog açık kalacak şekilde URL'yi kaydet
-                          localStorage.setItem('lastOpenDialog', 'events');
-                        }}
-                      >
-                        <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
-                          <div className="flex items-center">
-                            <div className="w-2 h-2 rounded-full bg-green-500 mr-2" />
-                            <div className="flex-1 space-y-1">
-                              <p className="text-sm font-medium">{event.name}</p>
-                              <p className="text-xs text-muted-foreground">{event.date}</p>
-                            </div>
-                          </div>
-                          <ExternalLink className="h-4 w-4 text-gray-400" />
-                        </div>
+  );
+}
+
+interface DashboardCardProps {
+  title: string;
+  description: string;
+  link: string;
+  linkText: string;
+}
+
+function DashboardCard({ title, description, link, linkText }: DashboardCardProps) {
+  return (
+    <div className="border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow bg-card">
+      <h2 className="text-xl font-semibold mb-2">{title}</h2>
+      <p className="text-muted-foreground mb-4">{description}</p>
+      <Link href={link}>
+        <Button variant="outline" className="w-full">
+          {linkText}
+        </Button>
                       </Link>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </Card>
-
-        {/* Son Haberler */}
-        <Card className="cursor-pointer hover:shadow-md transition-shadow haberler-karti card-hover">
-          <Dialog open={openDialogs.news} onOpenChange={(isOpen) => handleDialogChange('news', isOpen)}>
-            <DialogTrigger className="w-full text-left">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Son Haberler (24 Saat)</CardTitle>
-                <Newspaper className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {last24HoursNews.length > 0 ? (
-                    allNews.slice(0, 5).map((news, index) => (
-                      <div key={index} className="flex items-center">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
-                        <div className="flex-1 space-y-1">
-                          <p className="text-sm font-medium">{news.title}</p>
-                          <p className="text-xs text-muted-foreground">{news.date}</p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <>
-                      <span className="text-sm text-muted-foreground">Son 24 saatte haber bulunmadı.</span>
-                      <span className="text-sm text-muted-foreground">No news found in the last 24 hours.</span>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-              {allNews.length > 5 && (
-                <CardFooter className="flex justify-between pt-0">
-                  <div />
-                  <div className="flex items-center text-sm text-blue-600">
-                    Tümünü Gör 
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </div>
-                </CardFooter>
-              )}
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Tüm Haberler</DialogTitle>
-                <DialogDescription>Son dönemdeki tüm haberlerin listesi</DialogDescription>
-              </DialogHeader>
-              <div className="max-h-[60vh] overflow-y-auto mt-4">
-                <div className="space-y-4">
-                  {allNews.map((news, index) => (
-                    <div key={index}>
-                      <Link 
-                        href={`/dashboard/news?id=${news.id}&returnDialog=news`} 
-                        passHref 
-                        className="block"
-                        onClick={() => {
-                          localStorage.setItem('lastOpenDialog', 'news');
-                        }}
-                      >
-                        <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
-                          <div className="flex items-center">
-                            <div className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
-                            <div className="flex-1 space-y-1">
-                              <p className="text-sm font-medium">{news.title}</p>
-                              <p className="text-xs text-muted-foreground">{news.date}</p>
-                            </div>
-                          </div>
-                          <ExternalLink className="h-4 w-4 text-gray-400" />
-                        </div>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </Card>
-
-        {/* Son Duyurular */}
-        <Card className="cursor-pointer hover:shadow-md transition-shadow duyurular-karti card-hover">
-          <Dialog open={openDialogs.announcements} onOpenChange={(isOpen) => handleDialogChange('announcements', isOpen)}>
-            <DialogTrigger className="w-full text-left">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Son Duyurular (24 Saat)</CardTitle>
-                <Megaphone className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {last24HoursAnnouncements.length > 0 ? (
-                    allAnnouncements.slice(0, 5).map((announcement, index) => (
-                      <div key={index} className="flex items-center">
-                        <div className="w-2 h-2 rounded-full bg-yellow-500 mr-2" />
-                        <div className="flex-1 space-y-1">
-                          <p className="text-sm font-medium">{announcement.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">{announcement.content}</p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <>
-                      <span className="text-sm text-muted-foreground">Son 24 saatte duyuru bulunmadı.</span>
-                      <span className="text-sm text-muted-foreground">No announcements found in the last 24 hours.</span>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-              {allAnnouncements.length > 5 && (
-                <CardFooter className="flex justify-between pt-0">
-                  <div />
-                  <div className="flex items-center text-sm text-blue-600">
-                    Tümünü Gör 
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </div>
-                </CardFooter>
-              )}
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Tüm Duyurular</DialogTitle>
-                <DialogDescription>Son dönemdeki tüm duyuruların listesi</DialogDescription>
-              </DialogHeader>
-              <div className="max-h-[60vh] overflow-y-auto mt-4">
-                <div className="space-y-4">
-                  {allAnnouncements.map((announcement, index) => (
-                    <div key={index}>
-                      <Link 
-                        href={`/dashboard/announcements?id=${announcement.id}&returnDialog=announcements`} 
-                        passHref 
-                        className="block"
-                        onClick={() => {
-                          localStorage.setItem('lastOpenDialog', 'announcements');
-                        }}
-                      >
-                        <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
-                          <div className="flex items-center">
-                            <div className="w-2 h-2 rounded-full bg-yellow-500 mr-2" />
-                            <div className="flex-1 space-y-1">
-                              <p className="text-sm font-medium">{announcement.title}</p>
-                              <p className="text-xs text-muted-foreground">{announcement.content}</p>
-                            </div>
-                          </div>
-                          <ExternalLink className="h-4 w-4 text-gray-400" />
-                        </div>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </Card>
-      </div>
     </div>
-  )
+  );
 } 

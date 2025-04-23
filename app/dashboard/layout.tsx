@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { TopBar } from "@/components/dashboard/top-bar"
-import { AuthGuard } from "@/components/dashboard/auth-guard"
+import { AuthGuard } from "@/components/auth/auth-guard"
 
 export default function DashboardLayout({
   children,
@@ -13,14 +13,14 @@ export default function DashboardLayout({
   const [isClient, setIsClient] = useState(false);
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
 
-  // Sadece client tarafında render et
+  // Sadece client tarafında render et - sadece ilk yüklemede çalışacak
   useEffect(() => {
     setIsClient(true);
-  }, []);
+  }, []); // Boş dependency array ile sadece bir kez çalışır
 
   // Server tarafında boş içerik göster
   if (!isClient) {
-    return null;
+    return <div className="loading">Yükleniyor...</div>; // Boş sayfa yerine yükleniyor göster
   }
 
   return (

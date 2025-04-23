@@ -4,6 +4,7 @@ import type { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 // API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 const TOKEN_KEY = 'token';
+const ACCESS_TOKEN_KEY = 'access_token';
 
 // Create Axios instance with default config
 export const api: AxiosInstance = axios.create({
@@ -21,8 +22,29 @@ const debug = process.env.NODE_ENV === 'development';
 api.interceptors.request.use(
   (config) => {
     try {
-      // Get token from localStorage or wherever you store it
-      const token = localStorage.getItem(TOKEN_KEY);
+      // Önce 'token' anahtarına bak
+      let token = localStorage.getItem(TOKEN_KEY);
+      
+      // Eğer token yoksa access_token'ı kontrol et
+      if (!token) {
+        token = localStorage.getItem(ACCESS_TOKEN_KEY);
+        
+        // Eğer access_token varsa, token anahtarına da kopyala
+        if (token) {
+          localStorage.setItem(TOKEN_KEY, token);
+          if (debug) {
+            console.log("Token senkronize edildi: access_token -> token");
+          }
+        }
+      } else {
+        // Eğer token varsa, access_token anahtarına da kopyala
+        if (!localStorage.getItem(ACCESS_TOKEN_KEY)) {
+          localStorage.setItem(ACCESS_TOKEN_KEY, token);
+          if (debug) {
+            console.log("Token senkronize edildi: token -> access_token");
+          }
+        }
+      }
       
       if (token) {
         // Token varsa, header'a ekle
@@ -51,6 +73,7 @@ api.interceptors.request.use(
       return config;
     } catch (error) {
       console.error('Token alınırken hata oluştu:', error);
+      // Hata olsa bile isteği devam ettir, backend 401 ile yanıt verecektir
       return config;
     }
   },
@@ -77,11 +100,16 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Yetkisiz erişim - token geçersiz veya süresi dolmuş
       try {
+        // Her iki token'ı da temizle
         localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(ACCESS_TOKEN_KEY);
+        
         // Kullanıcıyı login sayfasına yönlendir
         window.location.href = '/auth/login';
       } catch (e) {
         console.error('Token silinemedi:', e);
+        // Yönlendirmeyi yine de yap
+        window.location.href = '/auth/login';
       }
     } else if (error.response?.status === 403) {
       // Yetkisiz işlem - token doğru ama bu işlem için yetki yok

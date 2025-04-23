@@ -14,8 +14,10 @@ export function AuthGuard({ children, requiredRoles }: AuthGuardProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [authorized, setAuthorized] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
+    // Sadece client tarafında çalışacak
     // Yetkilendirme kontrolü yap
     authCheck();
 
@@ -28,55 +30,93 @@ export function AuthGuard({ children, requiredRoles }: AuthGuardProps) {
     return () => {
       // Cleanup işlemleri (gelecekte gerekirse)
     };
-  }, [router]);
+  }, [requiredRoles]); // Sadece requiredRoles değiştiğinde etkileşime gir
 
   function authCheck() {
-    // Oturum durumunu kontrol et
-    const { isLoggedIn, userRole, requiresSecondAuth } = checkSessionState();
+    setIsChecking(true);
+    
+    try {
+      // Oturum durumunu kontrol et
+      const { isLoggedIn, userRole, requiresSecondAuth } = checkSessionState();
 
-    // Giriş yapılmamışsa login sayfasına yönlendir
-    if (!isLoggedIn) {
-      setAuthorized(false);
-      router.push("/auth/login");
-      return;
-    }
-
-    // Superadmin ikinci doğrulama gerekiyorsa login'e yönlendir
-    if (requiresSecondAuth) {
-      setAuthorized(false);
-      router.push("/auth/login");
-      
-      toast({
-        title: "İkinci doğrulama gerekiyor",
-        description: "Güvenlik nedeniyle lütfen bilgilerinizi tekrar doğrulayın.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Belirli roller gerekliyse kontrol et
-    if (requiredRoles && requiredRoles.length > 0) {
-      if (!userRole || !requiredRoles.includes(userRole)) {
+      // Giriş yapılmamışsa login sayfasına yönlendir
+      if (!isLoggedIn) {
         setAuthorized(false);
-        router.push("/dashboard");
-        
-        toast({
-          title: "Yetkisiz erişim",
-          description: "Bu sayfayı görüntülemek için gerekli izinlere sahip değilsiniz.",
-          variant: "destructive",
-        });
+        // Doğrudan yönlendirme yap
+        setTimeout(() => {
+          window.location.href = "/auth/login";
+        }, 100);
+        setIsChecking(false);
         return;
       }
-    }
 
-    // Tüm kontroller başarılı, erişim sağla
-    setAuthorized(true);
+      // Superadmin ikinci doğrulama gerekiyorsa login'e yönlendir
+      if (requiresSecondAuth) {
+        setAuthorized(false);
+        toast({
+          title: "İkinci doğrulama gerekiyor",
+          description: "Güvenlik nedeniyle lütfen bilgilerinizi tekrar doğrulayın.",
+          variant: "destructive",
+        });
+        
+        // Doğrudan yönlendirme yap
+        setTimeout(() => {
+          window.location.href = "/auth/login";
+        }, 100);
+        
+        setIsChecking(false);
+        return;
+      }
+
+      // Belirli roller gerekliyse kontrol et
+      if (requiredRoles && requiredRoles.length > 0) {
+        if (!userRole || !requiredRoles.includes(userRole)) {
+          setAuthorized(false);
+          
+          toast({
+            title: "Yetkisiz erişim",
+            description: "Bu sayfayı görüntülemek için gerekli izinlere sahip değilsiniz.",
+            variant: "destructive",
+          });
+          
+          // Doğrudan yönlendirme yap
+          setTimeout(() => {
+            window.location.href = "/dashboard";
+          }, 100);
+          
+          setIsChecking(false);
+          return;
+        }
+      }
+
+      // Tüm kontroller başarılı, erişim sağla
+      setAuthorized(true);
+      setIsChecking(false);
+    } catch (error) {
+      console.error("Yetkilendirme kontrolü sırasında hata:", error);
+      setAuthorized(false);
+      
+      toast({
+        title: "Oturum hatası",
+        description: "Oturum bilgilerinize erişilemiyor. Lütfen tekrar giriş yapın.",
+        variant: "destructive",
+      });
+      
+      // Doğrudan yönlendirme yap
+      setTimeout(() => {
+        window.location.href = "/auth/login";
+      }, 100);
+      
+      setIsChecking(false);
+    }
   }
 
-  // İçeriği göster veya gizle
+  // İçeriği göster veya yükleniyor durumunu göster
   if (authorized) {
     return <>{children}</>;
+  } else if (isChecking) {
+    return <div className="flex justify-center items-center h-screen"></div>;
   } else {
-    return null; // Yönlendirme yapılırken içeriği gizle
+    return <div className="flex justify-center items-center h-screen">Yönlendiriliyor...</div>;
   }
 } 

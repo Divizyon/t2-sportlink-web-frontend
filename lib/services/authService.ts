@@ -12,9 +12,23 @@ export interface UserData {
   email: string;
   first_name: string;
   last_name: string;
-  phone: string;
+  phone?: string;
   profile_picture?: string;
+  role?: string;
+}
+
+export interface SessionData {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  expires_at: number;
+  refresh_token: string;
+  user: {
+    id: string;
+    email: string;
   role: string;
+    [key: string]: any; // Diğer olası alanlar için
+  };
 }
 
 export interface LoginCredentials {
@@ -30,21 +44,24 @@ export interface RegisterData {
   last_name: string;
   phone: string;
   profile_picture?: string;
-  default_location_latitude: number;
-  default_location_longitude: number;
+  default_location_latitude?: number;
+  default_location_longitude?: number;
 }
 
 export interface AuthResponse {
-  token: string;
-  user: UserData;
+  success: boolean;
   message: string;
+  user: UserData;
+  session: SessionData;
 }
 
 // Auth service class
 class AuthService {
   private readonly BASE_PATH = '/auth';
-  private readonly TOKEN_KEY = 'token';
+  private readonly ACCESS_TOKEN_KEY = 'access_token';
+  private readonly REFRESH_TOKEN_KEY = 'refresh_token';
   private readonly USER_KEY = 'user';
+  private readonly SESSION_EXPIRY_KEY = 'session_expires_at';
 
   // Login user
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
@@ -58,19 +75,18 @@ class AuthService {
         credentials
       );
       
-      // Başarılı giriş durumunda token'ı localStorage'a kaydet
-      if (response.data.token) {
+      // Başarılı giriş kontrolü
+      if (response.data && response.data.success && response.data.session) {
         if (debug) {
-          console.log("AuthService: Token alındı:", response.data.token.substring(0, 15) + "...");
-          console.log("Kullanıcı rolü:", response.data.user.role);
+          console.log("AuthService: Login başarılı, token alındı");
         }
         
-        this.setToken(response.data.token);
-        // Kullanıcı bilgilerini de kaydedelim
+        // Session ve kullanıcı bilgilerini kaydet
+        this.saveSession(response.data.session);
         this.setUser(response.data.user);
         
         // Token doğru kaydedildi mi kontrol et
-        const savedToken = localStorage.getItem(this.TOKEN_KEY);
+        const savedToken = localStorage.getItem(this.ACCESS_TOKEN_KEY);
         if (debug) {
           console.log("Token kaydedildi mi:", !!savedToken);
           if (savedToken) {
@@ -78,13 +94,13 @@ class AuthService {
           }
         }
       } else if (debug) {
-        console.warn("AuthService: Sunucudan token alınamadı!");
+        console.warn("AuthService: Sunucudan geçerli bir yanıt alınamadı!", response.data);
       }
       
       return response.data;
     } catch (error) {
       if (debug) {
-        console.error("Login hatası:", error);
+        console.error("AuthService Login hatası:", error);
       }
       
       const apiError = handleApiError(error as AxiosError<ApiError>);
@@ -92,9 +108,10 @@ class AuthService {
       // Email doğrulama hatasını kontrol et
       if (apiError.message?.includes('Email adresinizi doğrulamanız gerekmektedir')) {
         return {
-          token: '',
-          user: {} as UserData,
+          success: false,
           message: apiError.message,
+          user: {} as UserData,
+          session: {} as SessionData,
           needsEmailVerification: true,
           email: credentials.email
         } as AuthResponse & { needsEmailVerification: boolean, email: string };
@@ -111,6 +128,13 @@ class AuthService {
         `${this.BASE_PATH}/register`,
         data
       );
+      
+      // Bazı API'ler kayıt sonrası otomatik giriş yapabilir
+      if (response.data && response.data.success && response.data.session) {
+        this.saveSession(response.data.session);
+        this.setUser(response.data.user);
+      }
+      
       return response.data;
     } catch (error) {
       throw handleApiError(error as AxiosError<ApiError>);
@@ -155,37 +179,86 @@ class AuthService {
 
   // Logout user
   logout(): void {
-    console.log("AuthService: Çıkış yapılıyor, token siliniyor...");
-    this.removeToken();
+    console.log("AuthService: Çıkış yapılıyor, oturum bilgileri siliniyor...");
+    this.clearSession();
     this.removeUser();
     // Sayfayı yönlendir
     window.location.href = '/auth/login';
   }
   
-  // Basit token yönetimi
-  setToken(token: string): void {
+  // Session yönetimi
+  saveSession(session: SessionData): void {
     try {
-      localStorage.setItem(this.TOKEN_KEY, token);
+      // Access token kaydet
+      localStorage.setItem(this.ACCESS_TOKEN_KEY, session.access_token);
+      
+      // Token'ı auth.ts için de kaydet
+      localStorage.setItem('token', session.access_token);
+      
+      // Refresh token kaydet
+      localStorage.setItem(this.REFRESH_TOKEN_KEY, session.refresh_token);
+      
+      // Oturum süresini kaydet
+      localStorage.setItem(this.SESSION_EXPIRY_KEY, session.expires_at.toString());
+      
       if (debug) {
-        console.log("Token localStorage'a kaydedildi");
+        console.log("Oturum bilgileri kaydedildi, sona erme tarihi:", new Date(session.expires_at * 1000).toLocaleString());
+        console.log("Token durum kontrolü:", 
+          "access_token:", !!localStorage.getItem(this.ACCESS_TOKEN_KEY),
+          "token:", !!localStorage.getItem('token'));
       }
     } catch (error) {
-      console.error("Token kaydedilirken hata:", error);
+      console.error("Oturum bilgileri kaydedilirken hata:", error);
     }
   }
   
-  removeToken(): void {
+  clearSession(): void {
     try {
-      localStorage.removeItem(this.TOKEN_KEY);
+      localStorage.removeItem(this.ACCESS_TOKEN_KEY);
+      localStorage.removeItem('token'); // auth.ts için token anahtarını da temizle
+      localStorage.removeItem(this.REFRESH_TOKEN_KEY);
+      localStorage.removeItem(this.SESSION_EXPIRY_KEY);
+      
       if (debug) {
-        console.log("Token localStorage'dan silindi");
+        console.log("Oturum bilgileri temizlendi");
       }
     } catch (error) {
-      console.error("Token silinirken hata:", error);
+      console.error("Oturum bilgileri temizlenirken hata:", error);
     }
   }
   
-  // Basit kullanıcı bilgileri yönetimi
+  getAccessToken(): string | null {
+    try {
+      // Önce access_token'ı dene
+      let token = localStorage.getItem(this.ACCESS_TOKEN_KEY);
+      
+      // Eğer yoksa, token anahtarını dene
+      if (!token) {
+        token = localStorage.getItem('token');
+        
+        // Eğer token varsa, access_token'a da kopyala
+        if (token) {
+          localStorage.setItem(this.ACCESS_TOKEN_KEY, token);
+        }
+      } else {
+        // Eğer access_token varsa, token'a da kopyala
+        if (!localStorage.getItem('token')) {
+          localStorage.setItem('token', token);
+        }
+      }
+      
+      return token;
+    } catch (error) {
+      console.error("Token alınırken hata:", error);
+      return null;
+    }
+  }
+  
+  getRefreshToken(): string | null {
+    return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+  }
+  
+  // Kullanıcı bilgileri yönetimi
   setUser(user: UserData): void {
     try {
       localStorage.setItem(this.USER_KEY, JSON.stringify(user));
@@ -201,24 +274,46 @@ class AuthService {
     localStorage.removeItem(this.USER_KEY);
   }
   
-  // Check if user is authenticated
+  // Oturum geçerlilik kontrolü
   isAuthenticated(): boolean {
     try {
-      const token = localStorage.getItem(this.TOKEN_KEY);
-      const authenticated = !!token;
+      const token = this.getAccessToken();
+      const expiresAt = localStorage.getItem(this.SESSION_EXPIRY_KEY);
       
-      if (debug) {
-        console.log("Kullanıcı kimlik doğrulaması:", authenticated);
-        if (authenticated) {
-          console.log("Token mevcut:", token?.substring(0, 15) + "...");
-        }
+      if (!token || !expiresAt) {
+        return false;
       }
       
-      return authenticated;
+      // Oturum süresini kontrol et
+      const expirationTime = parseInt(expiresAt) * 1000; // saniyeden milisaniyeye
+      const currentTime = Date.now();
+      const isValid = !!token && currentTime < expirationTime;
+      
+      if (debug) {
+        console.log("Oturum durumu kontrolü:");
+        console.log("- Token mevcut:", !!token);
+        console.log("- Şu anki zaman:", new Date(currentTime).toLocaleString());
+        console.log("- Sona erme zamanı:", new Date(expirationTime).toLocaleString());
+        console.log("- Oturum geçerli mi:", isValid);
+      }
+      
+      return isValid;
     } catch (error) {
-      console.error("Kimlik doğrulama hatası:", error);
+      console.error("Oturum kontrolünde hata:", error);
       return false;
     }
+  }
+  
+  // Oturum süresini dakika cinsinden döndürür
+  getSessionRemainingTime(): number {
+    const expiresAt = localStorage.getItem(this.SESSION_EXPIRY_KEY);
+    if (!expiresAt) return 0;
+    
+    const expirationTime = parseInt(expiresAt) * 1000;
+    const currentTime = Date.now();
+    const remainingMs = Math.max(0, expirationTime - currentTime);
+    
+    return Math.floor(remainingMs / (60 * 1000)); // Dakika cinsinden
   }
   
   // Get current user from localStorage
@@ -231,6 +326,32 @@ class AuthService {
     } catch (error) {
       console.error('Kullanıcı bilgileri alınamadı:', error);
       return null;
+    }
+  }
+  
+  // Refresh token ile yeni access token al
+  async refreshSession(): Promise<boolean> {
+    const refreshToken = this.getRefreshToken();
+    
+    if (!refreshToken) {
+      console.error("Refresh token bulunamadı.");
+      return false;
+    }
+    
+    try {
+      const response = await api.post<{ session: SessionData }>(`${this.BASE_PATH}/refresh`, {
+        refresh_token: refreshToken
+      });
+      
+      if (response.data && response.data.session) {
+        this.saveSession(response.data.session);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("Token yenileme hatası:", error);
+      return false;
     }
   }
 }

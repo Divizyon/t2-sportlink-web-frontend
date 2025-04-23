@@ -47,16 +47,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import Image from "next/image"
-import type {
+import { announcementService } from "@/lib/services"
+import type { 
   CreateAnnouncementDTO,
-  UpdateAnnouncementDTO
-} from "@/lib/api/announcements"
-import {
-  getAnnouncements,
-  createAnnouncement,
-  updateAnnouncement,
-  deleteAnnouncement
-} from "@/lib/api/announcements"
+  UpdateAnnouncementDTO,
+  Announcement
+} from "@/interfaces/announcement"
 
 // Tüm isteğe bağlı özellikleri açıkça işaretledim
 interface AnnouncementDisplay {
@@ -169,7 +165,7 @@ export default function AnnouncementsPage() {
         endDate: newAnnouncement.expiryDate || null
       };
       
-      const response = await createAnnouncement(announcementData);
+      const response = await announcementService.createAnnouncement(announcementData);
       
       if (response.success && response.data) {
         // Backend yanıtını frontend formatına dönüştür
@@ -207,6 +203,7 @@ export default function AnnouncementsPage() {
           expiryDate: ""
         });
         
+        // Dialog'u kapat
         setIsDialogOpen(false);
         
         toast({
@@ -241,7 +238,7 @@ export default function AnnouncementsPage() {
           endDate: editingAnnouncement.expiryDate || null
         };
         
-        const response = await updateAnnouncement(editingAnnouncement.id, updateData);
+        const response = await announcementService.updateAnnouncement(editingAnnouncement.id, updateData);
         
         if (response.success && response.data) {
           // Backend yanıtını frontend formatına dönüştür
@@ -298,36 +295,39 @@ export default function AnnouncementsPage() {
   };
 
   const handleDeleteAnnouncement = async (id: string) => {
-    try {
-      const response = await deleteAnnouncement(id);
-      
-      if (response.success) {
-        // State'i güncelle
-        const updatedAnnouncements = announcements.filter((item) => item.id !== id);
-        setAnnouncements(updatedAnnouncements);
+    if (confirm("Bu duyuruyu silmek istediğinizden emin misiniz?")) {
+      try {
+        const response = await announcementService.deleteAnnouncement(id);
         
-        if (selectedAnnouncement?.id === id) {
-          setSelectedAnnouncement(updatedAnnouncements.length > 0 ? updatedAnnouncements[0] : undefined);
+        if (response.success) {
+          // State'i güncelle
+          const updatedAnnouncements = announcements.filter((item) => item.id !== id);
+          setAnnouncements(updatedAnnouncements);
+          
+          // Seçili duyuru silindiyse, ilk duyuruyu seç
+          if (selectedAnnouncement && selectedAnnouncement.id === id) {
+            setSelectedAnnouncement(updatedAnnouncements.length > 0 ? updatedAnnouncements[0] : undefined);
+          }
+          
+          toast({
+            title: "Başarılı",
+            description: "Duyuru başarıyla silindi",
+          });
+        } else {
+          toast({
+            title: "Hata",
+            description: "Duyuru silinirken bir hata oluştu",
+            variant: "destructive",
+          });
         }
-        
-        toast({
-          title: "Başarılı",
-          description: "Duyuru başarıyla silindi",
-        });
-      } else {
+      } catch (error) {
+        console.error("Duyuru silme hatası:", error);
         toast({
           title: "Hata",
           description: "Duyuru silinirken bir hata oluştu",
           variant: "destructive",
         });
       }
-    } catch (error) {
-      console.error("Duyuru silme hatası:", error);
-      toast({
-        title: "Hata",
-        description: "Duyuru silinirken bir hata oluştu",
-        variant: "destructive",
-      });
     }
   };
 
@@ -375,7 +375,7 @@ export default function AnnouncementsPage() {
   const fetchAnnouncements = async (page = 1, itemsPerPage = 10) => {
     try {
       setLoading(true);
-      const response = await getAnnouncements(page, itemsPerPage, false);
+      const response = await announcementService.getAnnouncements(page, itemsPerPage, false);
       
       if (response.success && response.data) {
         // Pagination bilgilerini set et
@@ -387,7 +387,7 @@ export default function AnnouncementsPage() {
         }
         
         // Backend API'den gelen verileri frontend için uygun formata dönüştürüyoruz
-        const formattedAnnouncements = response.data.map(item => {
+        const formattedAnnouncements = response.data.map((item: Announcement) => {
           // Duyuruya göre uygun kategori atama
           let category = "Bilgilendirme";
           if (item.title.toLowerCase().includes("etkinlik") || item.content.toLowerCase().includes("etkinlik")) {
@@ -484,7 +484,7 @@ export default function AnnouncementsPage() {
           endDate: selectedAnnouncement.expiryDate || null
         };
         
-        const response = await updateAnnouncement(selectedAnnouncement.id, updateData);
+        const response = await announcementService.updateAnnouncement(selectedAnnouncement.id, updateData);
         
         if (response.success && response.data) {
           // Backend yanıtını frontend formatına dönüştür

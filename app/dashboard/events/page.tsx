@@ -28,12 +28,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Image from "next/image";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/use-toast";
 import useAuth from "@/lib/hooks/useAuth";
 import eventService from "@/lib/services/eventService";
-import type { Event, Participant, Sport, User } from "@/interfaces/event";
+import type { Event, Participant } from "@/interfaces/event";
 
 export default function EventsPage() {
   const { toast } = useToast();
@@ -127,7 +126,6 @@ export default function EventsPage() {
     
     try {
       setLoading(true);
-      console.log("Dashboard/events: Etkinlikler yükleniyor...");
       
       const params: {
         page: number;

@@ -10,14 +10,14 @@ import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
-import authService from "@/lib/services/authService";
+import useAuth from "@/lib/hooks/useAuth";
 
 export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { register, isLoading, error: authError, isAuthenticated, clearError } = useAuth();
   
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [localError, setLocalError] = useState("");
   const [success, setSuccess] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   
@@ -33,7 +33,7 @@ export default function RegisterPage() {
 
   // Eğer kullanıcı zaten giriş yapmışsa, dashboard'a yönlendir
   useEffect(() => {
-    if (authService.isAuthenticated()) {
+    if (isAuthenticated) {
       setRedirecting(true);
       // Önce yönlendirme durumunu ayarla
       setTimeout(() => {
@@ -41,12 +41,12 @@ export default function RegisterPage() {
         window.location.href = "/dashboard";
       }, 100);
     }
-  }, [router]);
+  }, [isAuthenticated]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setIsLoading(true);
+    setLocalError("");
+    clearError();
 
     try {
       // Konum bilgilerini alma (örnek olarak istanbulun konumu kullanılıyor)
@@ -54,7 +54,7 @@ export default function RegisterPage() {
       const defaultLatitude = 41.0082;
       const defaultLongitude = 28.9784;
       
-      const result = await authService.register({
+      const result = await register({
         email,
         password,
         username,
@@ -66,7 +66,6 @@ export default function RegisterPage() {
       });
 
       setSuccess(true);
-      setError("");
       
       toast({
         title: "Kayıt başarılı!",
@@ -83,9 +82,7 @@ export default function RegisterPage() {
       
     } catch (error: any) {
       console.error("Kayıt hatası:", error);
-      setError(error.message || "Kayıt yapılırken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
-    } finally {
-      setIsLoading(false);
+      setLocalError(error.message || "Kayıt yapılırken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
     }
   };
 
@@ -99,6 +96,9 @@ export default function RegisterPage() {
     );
   }
 
+  // Gösterilecek hata mesajı
+  const errorMessage = localError || authError;
+
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center">
@@ -110,16 +110,16 @@ export default function RegisterPage() {
       
       <Separator />
       
-      {error && (
+      {errorMessage && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{errorMessage}</AlertDescription>
         </Alert>
       )}
       
       {success ? (
         <div className="space-y-4">
-          <Alert>
+          <Alert variant="default" className="border-green-500 bg-green-50 text-green-800">
             <AlertDescription>
               Kayıt işleminiz başarıyla tamamlandı! Email adresinize doğrulama bağlantısı gönderildi. 
               Lütfen email adresinizi kontrol edin ve hesabınızı doğrulayın.

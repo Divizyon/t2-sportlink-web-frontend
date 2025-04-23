@@ -273,7 +273,6 @@ export default function UsersPage() {
     
     try {
       setLoading(true);
-      console.log("Dashboard/users: Kullanıcılar yükleniyor...");
       
       // Token kontrolü - debug için
       const token = localStorage.getItem('token');

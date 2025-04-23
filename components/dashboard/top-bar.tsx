@@ -20,6 +20,7 @@ import {
 import ProfileForm from "@/components/profile/ProfileForm"
 import type { ProfileFormData } from "@/components/profile/ProfileForm"
 import { ThemeSwitcher } from "@/components/theme-switcher"
+import { useUserProfile } from "@/lib/hooks"
 
 interface TopBarProps {
   onProfilePanelChange?: (open: boolean) => void;
@@ -31,7 +32,14 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
   const [profileOpen, setProfileOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [showEventsDetails, setShowEventsDetails] = useState(false)
-  const [showReportsDetails, setShowReportsDetails] = useState(false)
+  
+  // useUserProfile hook'unu kullanarak profil bilgilerini al
+  const { profile, loading, error, loadProfile, updateProfile, updateProfilePicture } = useUserProfile();
+  
+  // İlk render'da profil bilgilerini yükle
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   // Profil paneli durumu değiştiğinde ana bileşene bildir
   useEffect(() => {
@@ -40,43 +48,17 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
     }
   }, [profileOpen, onProfilePanelChange]);
 
-  // Örnek kullanıcı verileri - gerçek uygulamada kullanıcı verilerinizi buraya alabilirsiniz
-  const userData = {
-    firstName: 'Ahmet',
-    lastName: 'Yılmaz',
-    name: "Ahmet Yılmaz",
-    email: "ahmet.yilmaz@example.com",
-    phone: '555-123-4567',
-    bio: '',
-    role: "admin",
-    avatar: "/images/avatar.jpg", // Örnek bir avatar yolu
-    profileImage: "/images/avatar.jpg",
-    username: "ahmetyilmaz",
-    joinDate: "10.06.2023",
-    registrationDate: "2023-06-10",
-    location: 'İstanbul, Türkiye',
-    interests: ['Futbol', 'Basketbol', 'Yüzme'],
-    events: 12,
-    friends: 0,
-    reportedUsers: 5,
-    createdEvents: [
-      { id: 1, title: "Haftalık Futbol Maçı", date: "15.07.2023" },
-      { id: 2, title: "Basketbol Turnuvası", date: "22.07.2023" },
-      { id: 3, title: "Yüzme Yarışması", date: "05.08.2023" }
-    ],
-    reportedItems: [
-      { id: 1, username: "mehmetdemir", reason: "Uygunsuz içerik", date: "20.06.2023" },
-      { id: 2, username: "ayşeyılmaz", reason: "Spam", date: "15.07.2023" },
-      { id: 3, username: "canaydin", reason: "Taciz", date: "02.08.2023" },
-      { id: 4, username: "selinyıldız", reason: "Yanıltıcı bilgi", date: "10.08.2023" },
-      { id: 5, username: "ibrahimkaya", reason: "Kurallara aykırı paylaşım", date: "22.08.2023" }
-    ]
-  }
-
   const handleSubmit = async (data: ProfileFormData) => {
     // API çağrısı burada yapılacak
-    console.log('Form data:', data);
-    setIsEditing(false); // After submit, close the dialog
+    const result = await updateProfile({
+      first_name: data.firstName,
+      last_name: data.lastName,
+      phone: data.phone || "",
+    });
+    
+    if (result.success) {
+      setIsEditing(false); // After submit, close the dialog
+    }
   };
 
   const handleLogout = () => {
@@ -116,6 +98,50 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
 
   const title = getTitle()
 
+  // Profil henüz yüklenmediyse loading durumunu göster
+  if (loading || !profile) {
+    return (
+      <div className="h-16 border-b bg-background">
+        <div className="grid grid-cols-3 h-full items-center px-8">
+          <div className="flex-1">
+            {/* Sol taraf boş bırakılıyor */}
+          </div>
+          
+          <div className="flex justify-center items-center">
+            {title ? (
+              <h1 className="text-2xl font-bold uppercase text-center">{title}</h1>
+            ) : (
+              <div className="h-12 flex justify-center items-center">
+                <img 
+                  src="/sportLink.svg" 
+                  alt="SportLink Logo" 
+                  className="h-12 w-auto"
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-4 justify-end">
+            <ThemeSwitcher />
+            <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Tam adı birleştir
+  const fullName = profile.name || `${profile.first_name} ${profile.last_name}`;
+  const initials = `${profile.first_name?.charAt(0) || ''}${profile.last_name?.charAt(0) || ''}`;
+  const profilePicture = profile.profileImage || profile.profile_picture;
+  // Kullanıcı istatistikleri
+  const eventCount = profile.events || 0;
+  const friendCount = profile.friends || 0;
+  // Konum bilgisi
+  const locationInfo = profile.location || "Konum Bilgisi Belirtilmemiş";
+  // Kayıt tarihi
+  const registerDate = profile.registrationDate || (profile.created_at ? new Date(profile.created_at).toLocaleDateString('tr-TR') : '');
+
   return (
     <div className="h-16 border-b bg-background">
       <div className="grid grid-cols-3 h-full items-center px-8">
@@ -143,9 +169,9 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={userData.avatar} alt={userData.name} />
+                  <AvatarImage src={profilePicture || undefined} alt={fullName} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
-                    {userData.name.split(' ').map(n => n[0]).join('')}
+                    {initials}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -159,20 +185,21 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
                 {/* Profil Başlık */}
                 <div className="flex flex-col items-center space-y-3 bg-gradient-to-r from-green-50 to-blue-50 py-4 px-3 rounded-lg">
                   <Avatar className="h-24 w-24 border-2 border-white shadow-md">
-                    <AvatarImage src={userData.avatar} alt={userData.name} />
+                    <AvatarImage src={profilePicture || undefined} alt={fullName} />
                     <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
-                      {userData.name.split(' ').map(n => n[0]).join('')}
+                      {initials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="text-center">
-                    <h3 className="font-bold text-xl text-gray-800">{userData.name}</h3>
+                    <h3 className="font-bold text-xl text-gray-800">{fullName}</h3>
                     <div className="flex items-center justify-center gap-2 mt-1">
-                      <span className="text-sm text-gray-600">@{userData.username}</span>
+                      <span className="text-sm text-gray-600">@{profile.username}</span>
                       <Badge className="bg-green-500 hover:bg-green-600">
-                        {userData.role === 'admin' ? 'Admin' : userData.role === 'manager' ? 'Yönetici' : 'Kullanıcı'}
+                        {profile.role === 'superadmin' ? 'Süper Admin' : 
+                          profile.role === 'admin' ? 'Admin' : 
+                          profile.role === 'manager' ? 'Yönetici' : 'Kullanıcı'}
                       </Badge>
                     </div>
-                    <p className="text-sm text-gray-600 mt-2">{userData.bio}</p>
                   </div>
                 </div>
                 
@@ -185,7 +212,7 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
                         <Mail className="h-4 w-4 text-blue-500" />
                         <span className="text-sm font-medium text-gray-700">E-posta</span>
                       </div>
-                      <span className="text-sm bg-white px-2 py-1 rounded border">{userData.email}</span>
+                      <span className="text-sm bg-white px-2 py-1 rounded border">{profile.email}</span>
                     </div>
                     
                     <div className="flex items-center justify-between px-1">
@@ -193,7 +220,7 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
                         <Phone className="h-4 w-4 text-green-500" />
                         <span className="text-sm font-medium text-gray-700">Telefon</span>
                       </div>
-                      <span className="text-sm bg-white px-2 py-1 rounded border">{userData.phone}</span>
+                      <span className="text-sm bg-white px-2 py-1 rounded border">{profile.phone || 'Belirtilmemiş'}</span>
                     </div>
                     
                     <div className="flex items-center justify-between px-1">
@@ -202,7 +229,7 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
                         <span className="text-sm font-medium text-gray-700">Kayıt</span>
                       </div>
                       <span className="text-sm bg-white px-2 py-1 rounded border">
-                        {userData.joinDate}
+                        {registerDate}
                       </span>
                     </div>
                     
@@ -212,7 +239,7 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
                         <span className="text-sm font-medium text-gray-700">Konum</span>
                       </div>
                       <span className="text-sm bg-white px-2 py-1 rounded border truncate">
-                        {userData.location}
+                        {locationInfo}
                       </span>
                     </div>
                   </div>
@@ -227,16 +254,13 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
                       onClick={() => setShowEventsDetails(true)}
                     >
                       <Trophy className="h-5 w-5 text-amber-500 mb-1" />
-                      <span className="text-sm font-medium">{userData.events}</span>
+                      <span className="text-sm font-medium">{eventCount}</span>
                       <span className="text-xs text-gray-500">Etkinlik</span>
                     </div>
-                    <div 
-                      className="flex flex-col items-center justify-center p-3 bg-white rounded-md border cursor-pointer hover:bg-gray-50 transition-colors"
-                      onClick={() => setShowReportsDetails(true)}
-                    >
-                      <Shield className="h-5 w-5 text-red-500 mb-1" />
-                      <span className="text-sm font-medium">{userData.reportedUsers}</span>
-                      <span className="text-xs text-gray-500">Raporlama</span>
+                    <div className="flex flex-col items-center justify-center p-3 bg-white rounded-md border">
+                      <User className="h-5 w-5 text-blue-500 mb-1" />
+                      <span className="text-sm font-medium">{friendCount}</span>
+                      <span className="text-xs text-gray-500">Arkadaş</span>
                     </div>
                   </div>
                 </div>
@@ -273,60 +297,16 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            {userData.createdEvents.length > 0 ? (
-              <div className="space-y-3">
-                {userData.createdEvents.map((event) => (
-                  <div key={event.id} className="flex justify-between items-center p-3 border rounded-md hover:bg-gray-50">
-                    <div>
-                      <h4 className="font-medium text-sm">{event.title}</h4>
-                      <p className="text-xs text-gray-500">{event.date}</p>
-                    </div>
-                    <Button variant="ghost" size="sm">
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+            {profile.createdEvents && profile.createdEvents.length > 0 ? (
+              <div className="space-y-2">
+                {profile.createdEvents.map((event: any, index: number) => (
+                  <div key={index} className="p-2 border rounded">
+                    {event.title || "İsimsiz Etkinlik"}
                   </div>
                 ))}
               </div>
             ) : (
               <p className="text-center text-gray-500 py-6">Henüz etkinlik oluşturmadınız</p>
-            )}
-          </div>
-          <div className="flex justify-end">
-            <DialogClose asChild>
-              <Button variant="outline">Kapat</Button>
-            </DialogClose>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Reports Details Dialog */}
-      <Dialog open={showReportsDetails} onOpenChange={setShowReportsDetails}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>İncelediğiniz Raporlar</DialogTitle>
-            <DialogDescription>
-              İncelediğiniz kullanıcı raporlarının listesi
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            {userData.reportedItems.length > 0 ? (
-              <div className="space-y-3">
-                {userData.reportedItems.map((report) => (
-                  <div key={report.id} className="p-3 border rounded-md hover:bg-gray-50">
-                    <div className="flex justify-between items-center mb-1">
-                      <h4 className="font-medium text-sm">@{report.username}</h4>
-                      <span className="text-xs text-gray-500">{report.date}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Badge variant="outline" className="mr-2 text-red-600 border-red-200 bg-red-50">
-                        {report.reason}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-gray-500 py-6">Henüz incelediğiniz rapor bulunmuyor</p>
             )}
           </div>
           <div className="flex justify-end">
@@ -356,7 +336,17 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
             </div>
           </DialogHeader>
           <div className="p-6">
-            <ProfileForm initialData={userData} onSubmit={handleSubmit} />
+            <ProfileForm 
+              initialData={{
+                firstName: profile.first_name || '',
+                lastName: profile.last_name || '',
+                username: profile.username || '',
+                email: profile.email || '',
+                phone: profile.phone || '',
+                role: profile.role || '',
+              }} 
+              onSubmit={handleSubmit} 
+            />
           </div>
         </DialogContent>
       </Dialog>

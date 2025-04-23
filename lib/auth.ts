@@ -68,17 +68,47 @@ export const completeSecondAuth = async (credentials: { username: string; passwo
 
 // Oturum durumunu kontrol eder
 export const checkSessionState = () => {
-  const token = localStorage.getItem('token');
-  const userRole = localStorage.getItem('userRole');
-  const sessionState = localStorage.getItem('sessionState') || 'initial';
+  try {
+    // Önce 'token' anahtarına bak (auth.ts tarafından kullanılan)
+    let token = localStorage.getItem('token');
+    
+    // Eğer 'token' yoksa 'access_token' anahtarına bak (authService tarafından kullanılan)
+    if (!token) {
+      token = localStorage.getItem('access_token');
+      
+      // Eğer access_token varsa, token anahtarına da kopyala
+      if (token) {
+        localStorage.setItem('token', token);
+        console.log("Token senkronize edildi: access_token -> token");
+      }
+    } else {
+      // Eğer token varsa, access_token anahtarına da kopyala
+      if (!localStorage.getItem('access_token')) {
+        localStorage.setItem('access_token', token);
+        console.log("Token senkronize edildi: token -> access_token");
+      }
+    }
+    
+    const userRole = localStorage.getItem('userRole');
+    const sessionState = localStorage.getItem('sessionState') || 'initial';
 
-  return {
-    isLoggedIn: !!token,
-    userRole: userRole,
-    sessionState: sessionState,
-    isSuperAdmin: userRole === 'superadmin',
-    requiresSecondAuth: userRole === 'superadmin' && sessionState === 'initial'
-  };
+    return {
+      isLoggedIn: !!token,
+      userRole: userRole,
+      sessionState: sessionState,
+      isSuperAdmin: userRole === 'superadmin',
+      requiresSecondAuth: userRole === 'superadmin' && sessionState === 'initial'
+    };
+  } catch (error) {
+    console.error('Oturum durumu kontrol edilirken hata oluştu:', error);
+    return {
+      isLoggedIn: false,
+      userRole: null,
+      sessionState: 'error',
+      isSuperAdmin: false,
+      requiresSecondAuth: false
+    };
+  }
 };
 
 // Dashboard izinlerini getirir

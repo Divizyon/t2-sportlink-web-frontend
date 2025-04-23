@@ -1,20 +1,29 @@
 export interface User {
   id: string;
   username: string;
-  password: string;
   email: string;
   first_name: string;
   last_name: string;
-  phone: string;
-  profile_picture: string;
+  phone?: string;
+  profile_picture?: string | null;
+  default_location_latitude?: number | null;
+  default_location_longitude?: number | null;
   role: string;
   created_at: string;
-  updated_at: string;
-  birthDate: string;
-  // İlişkili veriler
-  createdEvents?: number;
-  userSports?: string[];
-  eventParticipations?: number;
-  reportsReceived?: number;
+  
+  // API yanıtından gelen ek alanlar
+  user_sports?: any[];
+  name?: string;
+  profileImage?: string | null;
+  location?: string;
+  events?: number;
+  friends?: number;
   interests?: string[];
+  joinDate?: string;
+  registrationDate?: string;
+  createdEvents?: any[];
+  
+  // Opsiyonel alanlar (backend'den henüz gelmiyor olabilir)
+  updated_at?: string;
+  birthDate?: string;
 } 
