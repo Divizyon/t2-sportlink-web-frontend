@@ -194,6 +194,110 @@ export default function UsersPage() {
     default_location_longitude: 28.9784
   });
 
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Arama geçmişini localStorage'da sakla
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('userSearchHistory');
+    if (savedHistory) {
+      setSearchHistory(JSON.parse(savedHistory));
+    }
+  }, []);
+
+  // Arama geçmişini güncelle
+  const updateSearchHistory = (query: string) => {
+    if (!query.trim()) return;
+    
+    const newHistory = [
+      query.trim(),
+      ...searchHistory.filter(item => item !== query.trim())
+    ].slice(0, 5);
+    
+    setSearchHistory(newHistory);
+    localStorage.setItem('userSearchHistory', JSON.stringify(newHistory));
+  };
+
+  // Önerileri güncelle
+  const updateSuggestions = (query: string) => {
+    if (!query.trim()) {
+      setSuggestions([]);
+      return;
+    }
+
+    const normalizedQuery = normalizeText(query.trim());
+
+    // Geçmiş aramalardan öneriler
+    const historySuggestions = searchHistory.filter(item =>
+      normalizeText(item).includes(normalizedQuery)
+    );
+
+    // Kullanıcı verilerinden öneriler
+    const userSuggestions = users?.reduce((acc: string[], user) => {
+      ['first_name', 'last_name', 'email', 'username'].forEach(field => {
+        const value = user[field as keyof UserType];
+        if (typeof value === 'string' && 
+            normalizeText(value).includes(normalizedQuery) && 
+            !acc.includes(value)) {
+          acc.push(value);
+        }
+      });
+      return acc;
+    }, []) || [];
+
+    // Önerileri birleştir ve benzersiz yap
+    const allSuggestions = [...new Set([...historySuggestions, ...userSuggestions])]
+      .slice(0, 5);
+
+    setSuggestions(allSuggestions);
+  };
+
+  // Arama sorgusu değiştiğinde önerileri güncelle
+  useEffect(() => {
+    updateSuggestions(searchQuery);
+  }, [searchQuery, users]);
+
+  // Öneri seçildiğinde
+  const handleSuggestionSelect = (suggestion: string) => {
+    setSearchQuery(suggestion);
+    updateSearchHistory(suggestion);
+    setShowSuggestions(false);
+  };
+
+  // Arama alanı için input komponenti
+  const SearchInput = () => (
+    <div className="relative">
+      <div className="flex items-center">
+        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Kullanıcı ara..."
+          className="pl-8"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onFocus={() => setShowSuggestions(true)}
+          onBlur={() => {
+            // Tıklama işleminin gerçekleşmesi için küçük bir gecikme
+            setTimeout(() => setShowSuggestions(false), 200);
+          }}
+        />
+      </div>
+      {showSuggestions && suggestions.length > 0 && (
+        <div className="absolute w-full mt-1 bg-white border rounded-md shadow-lg z-10">
+          {suggestions.map((suggestion, index) => (
+            <div
+              key={index}
+              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+              onClick={() => handleSuggestionSelect(suggestion)}
+            >
+              {suggestion}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   // Kullanıcı doğrulamasını kontrol et
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -524,7 +628,92 @@ export default function UsersPage() {
     if (selectedColumns.last_name) fields.push('last_name');
     if (selectedColumns.email) fields.push('email');
     if (selectedColumns.phone) fields.push('phone');
-    return fields.length > 0 ? fields : ['first_name']; // En az bir alan seçili olmalı
+
+    // Arama geçmişini güncelle
+    if (searchQuery.trim() && !searchHistory.includes(searchQuery.trim())) {
+      const newHistory = [searchQuery.trim(), ...searchHistory].slice(0, 5);
+      setSearchHistory(newHistory);
+    }
+
+    // Önerileri güncelle
+    const updateSuggestions = () => {
+      const query = searchQuery.trim().toLowerCase();
+      if (!query) {
+        setSuggestions([]);
+        return;
+      }
+
+      // Geçmiş aramalardan öneriler
+      const historySuggestions = searchHistory.filter(item =>
+        item.toLowerCase().includes(query)
+      );
+
+      // Kullanıcı verilerinden öneriler
+      const userSuggestions = users?.reduce((acc: string[], user) => {
+        fields.forEach(field => {
+          const value = user[field as keyof UserType];
+          if (typeof value === 'string' && 
+              value.toLowerCase().includes(query) && 
+              !acc.includes(value)) {
+            acc.push(value);
+          }
+        });
+        return acc;
+      }, []) || [];
+
+      // Önerileri birleştir ve benzersiz yap
+      const allSuggestions = [...new Set([...historySuggestions, ...userSuggestions])]
+        .slice(0, 5);
+
+      setSuggestions(allSuggestions);
+    };
+
+    // Önerileri güncelle
+    useEffect(() => {
+      updateSuggestions();
+    }, [searchQuery, searchHistory, users]);
+
+    return fields.length > 0 ? fields : ['first_name'];
+  };
+
+  const levenshteinDistance = (str1: string, str2: string): number => {
+    // Initialize the matrix with correct dimensions
+    const matrix = Array(str1.length + 1).fill(null).map(() => 
+      Array(str2.length + 1).fill(0)
+    );
+
+    // Fill first row and column
+    for (let i = 0; i <= str1.length; i++) {
+      matrix[i][0] = i;
+    }
+    for (let j = 0; j <= str2.length; j++) {
+      matrix[0][j] = j;
+    }
+
+    // Fill the rest of the matrix
+    for (let i = 1; i <= str1.length; i++) {
+      for (let j = 1; j <= str2.length; j++) {
+        const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+        matrix[i][j] = Math.min(
+          (matrix[i - 1][j] || 0) + 1,      // deletion
+          (matrix[i][j - 1] || 0) + 1,      // insertion
+          (matrix[i - 1][j - 1] || 0) + cost // substitution
+        );
+      }
+    }
+
+    // Return the bottom-right cell value
+    return matrix[str1.length][str2.length] || 0;
+  };
+
+  const normalizeText = (text: string): string => {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')  // Remove diacritics
+      .replace(/[^a-z0-9\s]/g, ' ')     // Replace special chars with space
+      .replace(/\s+/g, ' ')             // Replace multiple spaces with single space
+      .trim();
   };
 
   const calculateMatchScore = (user: UserType, query: string, field: string): number => {
@@ -533,13 +722,42 @@ export default function UsersPage() {
     const value = user[field as keyof UserType];
     if (typeof value !== 'string') return 0;
     
-    const normalizedValue = value.toLowerCase();
-    const normalizedQuery = query.toLowerCase();
+    const normalizedValue = normalizeText(value);
+    const queryWords = normalizeText(query).split(' ').filter(Boolean);
     
-    if (normalizedValue === normalizedQuery) return 100;
-    if (normalizedValue.includes(normalizedQuery)) return 75;
-    if (normalizedValue.startsWith(normalizedQuery)) return 50;
-    return 0;
+    if (queryWords.length === 0) return 0;
+    
+    // Calculate score for each word
+    const wordScores = queryWords.map(word => {
+      // Exact match
+      if (normalizedValue === word) return 100;
+      
+      // Contains word
+      if (normalizedValue.includes(word)) return 75;
+      
+      // Starts with word
+      if (normalizedValue.startsWith(word)) return 50;
+      
+      // Fuzzy match using Levenshtein distance
+      const distance = levenshteinDistance(normalizedValue, word);
+      const maxDistance = 3; // Maximum allowed distance for fuzzy matching
+      
+      if (distance <= maxDistance) {
+        // Score decreases as distance increases
+        return Math.max(0, 40 - (distance * 10));
+      }
+      
+      return 0;
+    });
+    
+    // Calculate final score
+    const totalScore = wordScores.reduce((sum, score) => sum + score, 0);
+    return Math.round(totalScore / queryWords.length);
+  };
+
+  const getTotalSelectedFilters = () => {
+    // Seçili sütunların sayısını hesapla
+    return Object.values(selectedColumns).filter(value => value).length;
   };
 
   const filterUsers = () => {
@@ -550,25 +768,73 @@ export default function UsersPage() {
     // Arama sorgusu varsa filtreleme yapalım
     if (searchQuery.trim()) {
       const fields = getSearchFields();
+      const minScore = 30; // Minimum eşleşme skoru
+
+      type UserWithMatch = UserType & {
+        matchScore: number;
+        matchField: string;
+      };
+
       filteredUsers = filteredUsers.map(user => {
+        if (!user) return null;
+
         // Her kullanıcı için her arama alanındaki en yüksek eşleşme skorunu kullan
-        const maxScore = Math.max(
-          ...fields.map(field => calculateMatchScore(user, searchQuery, field))
-        );
-        return { ...user, matchScore: maxScore };
-      }).filter(user => user.matchScore > 0) // Eşleşen sonuçları filtrele
-        .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0)); // Eşleşme skoruna göre sırala
+        const scores = fields.map(field => ({
+          field,
+          score: calculateMatchScore(user, searchQuery, field)
+        }));
+
+        // En yüksek skoru ve hangi alanda olduğunu bul
+        const bestMatch = scores.reduce((best, current) => 
+          current.score > best.score ? current : best
+        , { field: '', score: 0 });
+
+        return {
+          ...user,
+          matchScore: bestMatch.score,
+          matchField: bestMatch.field
+        } as UserWithMatch;
+      })
+      .filter((user): user is UserWithMatch => {
+        if (!user || typeof user.matchScore !== 'number') return false;
+        return user.matchScore >= minScore;
+      })
+      .sort((a, b) => {
+        if (!a || !b) return 0;
+        
+        // Önce skora göre sırala
+        const scoreDiff = b.matchScore - a.matchScore;
+        if (scoreDiff !== 0) return scoreDiff;
+
+        // Skorlar eşitse, alan önceliğine göre sırala
+        const fieldPriority: Record<string, number> = {
+          'first_name': 3,
+          'last_name': 2,
+          'email': 1,
+          'phone': 0
+        };
+        
+        return (fieldPriority[b.matchField] ?? 0) - (fieldPriority[a.matchField] ?? 0);
+      });
     }
+
+    // Reverse the filter behavior - only show items that match the selected filters
+    filteredUsers = filteredUsers.filter(user => {
+      if (!user) return false;
+      
+      // If a column is selected (true), we want to show that column
+      // If a column is not selected (false), we want to hide that column
+      return Object.entries(selectedColumns).every(([key, value]) => {
+        // If the column is selected (value is true), show the user
+        // If the column is not selected (value is false), hide the user
+        return value;
+      });
+    });
 
     return filteredUsers;
   };
 
   const filteredUsers = filterUsers();
-
-  const getTotalSelectedFilters = () => {
-    const columns = Object.values(selectedColumns).filter(Boolean).length;
-    return columns;
-  };
 
   // Kullanıcı tıklandığında
   const handleUserClick = async (user: UserType) => {
@@ -671,7 +937,7 @@ export default function UsersPage() {
     );
   }
 
-  if (!hasRequiredRole) {
+  if (hasRequiredRole) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-center max-w-md p-6 bg-white rounded-lg shadow-md">
@@ -699,12 +965,7 @@ export default function UsersPage() {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Input
-              placeholder="Kullanıcı ara..."
-              className="max-w-sm"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+            <SearchInput />
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline">

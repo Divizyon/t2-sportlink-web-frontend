@@ -49,52 +49,43 @@ import { Toaster } from "@/components/ui/toaster"
 import Image from "next/image"
 import { announcementService } from "@/lib/services"
 import type { 
-  CreateAnnouncementDTO,
-  UpdateAnnouncementDTO,
-  Announcement
+  Announcement,
+  AnnouncementStatus
+} from "@/types/announcement"
+import type { 
+  CreateAnnouncementDTO
 } from "@/interfaces/announcement"
 
-// Tüm isteğe bağlı özellikleri açıkça işaretledim
-interface AnnouncementDisplay {
-  id: string;
-  title: string;
-  slug: string;
-  content: string;
-  published: boolean;
-  startDate: string | null;
-  endDate: string | null;
-  creatorId: string | null;
-  createdAt: string;
-  updatedAt: string;
-  category: string;
-  status: "Aktif" | "Pasif" | "Taslak";
-  visibility: "Herkese Açık" | "Sadece Üyeler" | "Yöneticiler";
-  views: number;
-  image?: string | undefined;
-  date?: string | undefined;
-  expiryDate?: string | undefined;
-}
-
 export default function AnnouncementsPage() {
-  const [announcements, setAnnouncements] = useState<AnnouncementDisplay[]>([])
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [loading, setLoading] = useState(true)
   
-  const [newAnnouncement, setNewAnnouncement] = useState<Partial<AnnouncementDisplay>>({
+  const defaultAnnouncement: Announcement = {
+    id: "",
     title: "",
+    slug: "",
     content: "",
-    category: "",
-    status: "Aktif",
-    visibility: "Herkese Açık",
-    expiryDate: ""
-  })
+    published: false,
+    startDate: null,
+    endDate: null,
+    creatorId: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    status: "Taslak",
+    date: new Date().toISOString(),
+    author: "Admin",
+    views: 0,
+    image: null,
+    sourceUrl: null,
+    category: "Bilgilendirme",
+    visibility: "Herkese Açık"
+  }
   
-  const [editingAnnouncement, setEditingAnnouncement] = useState<AnnouncementDisplay | null>(null)
-  const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementDisplay | undefined>(
-    announcements.length > 0 ? announcements[0] : undefined
-  )
+  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null)
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [searchField, setSearchField] = useState<"title" | "content" | "category">("title")
+  const [searchField, setSearchField] = useState<keyof Announcement>("title")
   const [selectedFilters, setSelectedFilters] = useState<{
     category: string[];
     status: string[];
@@ -103,15 +94,15 @@ export default function AnnouncementsPage() {
     status: []
   });
   const [isUpdating, setIsUpdating] = useState(false);
-  
-  // Yeni viewMode state'i ekleyelim, haber sayfasındaki gibi
   const [viewMode, setViewMode] = useState<"preview" | "edit">("preview");
   
-  // Pagination için yeni state'ler
+  // Pagination için state'ler
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
+
+  const [newAnnouncement, setNewAnnouncement] = useState<Announcement>(defaultAnnouncement);
 
   const handleFilterChange = (type: 'category' | 'status', value: string) => {
     setSelectedFilters(prev => {
@@ -132,10 +123,10 @@ export default function AnnouncementsPage() {
 
   const filteredAnnouncements = announcements.filter(item => {
     const matchesSearch = searchQuery === "" || 
-      item[searchField].toLowerCase().includes(searchQuery.toLowerCase());
+      (item[searchField]?.toLowerCase() || "").includes(searchQuery.toLowerCase());
 
     const matchesCategory = selectedFilters.category.length === 0 || 
-      selectedFilters.category.includes(item.category);
+      (item.category && selectedFilters.category.includes(item.category));
 
     const matchesStatus = selectedFilters.status.length === 0 || 
       selectedFilters.status.includes(item.status);
@@ -143,7 +134,6 @@ export default function AnnouncementsPage() {
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
-  // Automatically select the first announcement from filtered list
   useEffect(() => {
     if (filteredAnnouncements.length > 0 && 
         (!selectedAnnouncement || !filteredAnnouncements.some(a => a.id === selectedAnnouncement.id))) {
@@ -157,53 +147,36 @@ export default function AnnouncementsPage() {
 
   const handleAddAnnouncement = async () => {
     try {
-      // Backend API'ye gönderilecek veriyi hazırla
-      const announcementData: CreateAnnouncementDTO = {
-        title: newAnnouncement.title || "",
-        content: newAnnouncement.content || "",
+      if (!newAnnouncement.title || !newAnnouncement.content) {
+        toast({
+          title: "Hata",
+          description: "Başlık ve içerik alanları zorunludur",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const announcementData = {
+        title: newAnnouncement.title,
+        content: newAnnouncement.content,
         isPublished: newAnnouncement.status === "Aktif",
-        endDate: newAnnouncement.expiryDate || null
+        endDate: newAnnouncement.endDate
       };
       
       const response = await announcementService.createAnnouncement(announcementData);
       
       if (response.success && response.data) {
-        // Backend yanıtını frontend formatına dönüştür
-        const createdAnnouncement: AnnouncementDisplay = {
-          id: response.data.id,
-          title: response.data.title,
-          slug: response.data.slug,
-          content: response.data.content,
-          published: response.data.published,
-          startDate: response.data.startDate,
-          endDate: response.data.endDate,
-          creatorId: response.data.creatorId,
-          createdAt: response.data.createdAt,
-          updatedAt: response.data.updatedAt,
-          category: newAnnouncement.category || "Bilgilendirme",
-          status: response.data.published ? "Aktif" : "Pasif",
-          visibility: newAnnouncement.visibility || "Herkese Açık",
-          views: 0,
-          image: newAnnouncement.image,
-          date: response.data.createdAt ? new Date(response.data.createdAt).toISOString().split('T')[0] : undefined,
-          expiryDate: newAnnouncement.expiryDate
+        const createdAnnouncement: Announcement = {
+          ...defaultAnnouncement,
+          ...response.data,
+          title: response.data.title || "",
+          content: response.data.content || "",
+          status: response.data.published ? "Aktif" : "Pasif"
         };
         
-        // State'i güncelle
-        setAnnouncements([...announcements, createdAnnouncement]);
+        setAnnouncements(prev => [...prev, createdAnnouncement]);
         setSelectedAnnouncement(createdAnnouncement);
-        
-        // Form alanlarını temizle
-        setNewAnnouncement({
-          title: "",
-          content: "",
-          category: "",
-          status: "Aktif",
-          visibility: "Herkese Açık",
-          expiryDate: ""
-        });
-        
-        // Dialog'u kapat
+        setNewAnnouncement(defaultAnnouncement);
         setIsDialogOpen(false);
         
         toast({
@@ -218,7 +191,7 @@ export default function AnnouncementsPage() {
         });
       }
     } catch (error) {
-      console.error("Duyuru oluşturma hatası:", error);
+      console.error("Duyuru oluşturulurken hata:", error);
       toast({
         title: "Hata",
         description: "Duyuru oluşturulurken bir hata oluştu",
@@ -228,106 +201,139 @@ export default function AnnouncementsPage() {
   };
 
   const handleEditAnnouncement = async () => {
-    if (editingAnnouncement) {
-      try {
-        // Backend API'ye gönderilecek veriyi hazırla
-        const updateData: UpdateAnnouncementDTO = {
+    if (!editingAnnouncement) return;
+    
+    try {
+      const response = await announcementService.updateAnnouncement(
+        editingAnnouncement.id,
+        {
           title: editingAnnouncement.title,
           content: editingAnnouncement.content,
           isPublished: editingAnnouncement.status === "Aktif",
-          endDate: editingAnnouncement.expiryDate || null
-        };
-        
-        const response = await announcementService.updateAnnouncement(editingAnnouncement.id, updateData);
-        
-        if (response.success && response.data) {
-          // Backend yanıtını frontend formatına dönüştür
-          const updatedAnnouncement: AnnouncementDisplay = {
-            id: response.data.id,
-            title: response.data.title,
-            slug: response.data.slug,
-            content: response.data.content,
-            published: response.data.published,
-            startDate: response.data.startDate,
-            endDate: response.data.endDate,
-            creatorId: response.data.creatorId,
-            createdAt: response.data.createdAt,
-            updatedAt: response.data.updatedAt,
-            category: editingAnnouncement.category,
-            status: response.data.published ? "Aktif" : "Pasif",
-            visibility: editingAnnouncement.visibility,
-            views: editingAnnouncement.views,
-            image: editingAnnouncement.image,
-            date: response.data.createdAt ? new Date(response.data.createdAt).toISOString().split('T')[0] : undefined,
-            expiryDate: editingAnnouncement.expiryDate
-          };
-          
-          // State'i güncelle
-          const updatedAnnouncements = announcements.map((item) =>
-            item.id === updatedAnnouncement.id ? updatedAnnouncement : item
-          );
-          
-          setAnnouncements(updatedAnnouncements);
-          setSelectedAnnouncement(updatedAnnouncement);
-          setEditingAnnouncement(null);
-          setIsDialogOpen(false);
-          
-          toast({
-            title: "Başarılı",
-            description: "Duyuru başarıyla güncellendi",
-          });
-        } else {
-          toast({
-            title: "Hata",
-            description: "Duyuru güncellenirken bir hata oluştu",
-            variant: "destructive",
-          });
+          endDate: editingAnnouncement.endDate
         }
-      } catch (error) {
-        console.error("Duyuru güncelleme hatası:", error);
+      );
+      
+      if (response.success) {
+        const updatedAnnouncements = announcements.map(ann => 
+          ann.id === editingAnnouncement.id ? editingAnnouncement : ann
+        );
+        setAnnouncements(updatedAnnouncements);
+        setSelectedAnnouncement(editingAnnouncement);
+        setEditingAnnouncement(null);
+        
         toast({
-          title: "Hata", 
+          title: "Başarılı",
+          description: "Duyuru başarıyla güncellendi",
+        });
+      } else {
+        toast({
+          title: "Hata",
           description: "Duyuru güncellenirken bir hata oluştu",
           variant: "destructive",
         });
       }
+    } catch (error) {
+      console.error("Duyuru güncellenirken hata:", error);
+      toast({
+        title: "Hata",
+        description: "Duyuru güncellenirken bir hata oluştu",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleDeleteAnnouncement = async (id: string) => {
-    if (confirm("Bu duyuruyu silmek istediğinizden emin misiniz?")) {
-      try {
-        const response = await announcementService.deleteAnnouncement(id);
-        
-        if (response.success) {
-          // State'i güncelle
-          const updatedAnnouncements = announcements.filter((item) => item.id !== id);
-          setAnnouncements(updatedAnnouncements);
-          
-          // Seçili duyuru silindiyse, ilk duyuruyu seç
-          if (selectedAnnouncement && selectedAnnouncement.id === id) {
-            setSelectedAnnouncement(updatedAnnouncements.length > 0 ? updatedAnnouncements[0] : undefined);
-          }
-          
-          toast({
-            title: "Başarılı",
-            description: "Duyuru başarıyla silindi",
-          });
-        } else {
-          toast({
-            title: "Hata",
-            description: "Duyuru silinirken bir hata oluştu",
-            variant: "destructive",
-          });
+  const handleViewAnnouncement = (announcement: Announcement) => {
+    setSelectedAnnouncement(announcement);
+    setViewMode("preview");
+  };
+
+  const handleEditClick = (announcement: Announcement) => {
+    setEditingAnnouncement(announcement);
+    setViewMode("edit");
+  };
+
+  const handleDeleteAnnouncement = async (announcement: Announcement) => {
+    try {
+      const response = await announcementService.deleteAnnouncement(announcement.id);
+      
+      if (response.success) {
+        setAnnouncements(prev => prev.filter(a => a.id !== announcement.id));
+        if (selectedAnnouncement?.id === announcement.id) {
+          setSelectedAnnouncement(null);
         }
-      } catch (error) {
-        console.error("Duyuru silme hatası:", error);
+        if (editingAnnouncement?.id === announcement.id) {
+          setEditingAnnouncement(null);
+        }
+        
+        toast({
+          title: "Başarılı",
+          description: "Duyuru başarıyla silindi",
+        });
+      } else {
         toast({
           title: "Hata",
           description: "Duyuru silinirken bir hata oluştu",
           variant: "destructive",
         });
       }
+    } catch (error) {
+      console.error("Duyuru silinirken hata:", error);
+      toast({
+        title: "Hata",
+        description: "Duyuru silinirken bir hata oluştu",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleStatusChange = async (announcement: Announcement, newStatus: AnnouncementStatus) => {
+    try {
+      const updatedAnnouncement = {
+        ...announcement,
+        status: newStatus,
+        published: newStatus === "Aktif"
+      };
+
+      const response = await announcementService.updateAnnouncement(
+        announcement.id,
+        {
+          title: updatedAnnouncement.title,
+          content: updatedAnnouncement.content,
+          isPublished: updatedAnnouncement.published,
+          endDate: updatedAnnouncement.endDate
+        }
+      );
+      
+      if (response.success) {
+        setAnnouncements(prev => 
+          prev.map(a => a.id === announcement.id ? updatedAnnouncement : a)
+        );
+        if (selectedAnnouncement?.id === announcement.id) {
+          setSelectedAnnouncement(updatedAnnouncement);
+        }
+        if (editingAnnouncement?.id === announcement.id) {
+          setEditingAnnouncement(updatedAnnouncement);
+        }
+        
+        toast({
+          title: "Başarılı",
+          description: "Duyuru durumu güncellendi",
+        });
+      } else {
+        toast({
+          title: "Hata",
+          description: "Duyuru durumu güncellenirken bir hata oluştu",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Duyuru durumu güncellenirken hata:", error);
+      toast({
+        title: "Hata",
+        description: "Duyuru durumu güncellenirken bir hata oluştu",
+        variant: "destructive",
+      });
     }
   };
 
@@ -340,113 +346,55 @@ export default function AnnouncementsPage() {
     }
   }
 
-  // Resim yükleme için yardımcı fonksiyon
-  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    
-    if (!file) return;
-    
-    // Yalnızca PNG, JPG ve JPEG formatlarını kabul et
-    if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
-      alert('Lütfen sadece PNG, JPG veya JPEG formatında dosya yükleyiniz.');
-      return;
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (selectedAnnouncement) {
+          setSelectedAnnouncement({
+            ...selectedAnnouncement,
+            image: reader.result as string
+          });
+        }
+      };
+      reader.readAsDataURL(file);
     }
-    
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      
-      if (editingAnnouncement) {
-        setEditingAnnouncement({
-          ...editingAnnouncement,
-          image: base64String
-        });
-      } else {
-        setNewAnnouncement({
-          ...newAnnouncement,
-          image: base64String
-        });
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
-  // API'den duyuruları çekme
-  const fetchAnnouncements = async (page = 1, itemsPerPage = 10) => {
+  const fetchAnnouncements = async () => {
     try {
-      setLoading(true);
-      const response = await announcementService.getAnnouncements(page, itemsPerPage, false);
-      
+      const response = await announcementService.getAnnouncements();
       if (response.success && response.data) {
-        // Pagination bilgilerini set et
-        if (response.pagination) {
-          setCurrentPage(response.pagination.page);
-          setTotalPages(response.pagination.totalPages);
-          setPageSize(response.pagination.pageSize);
-          setTotalCount(response.pagination.totalCount);
-        }
-        
-        // Backend API'den gelen verileri frontend için uygun formata dönüştürüyoruz
-        const formattedAnnouncements = response.data.map((item: Announcement) => {
-          // Duyuruya göre uygun kategori atama
-          let category = "Bilgilendirme";
-          if (item.title.toLowerCase().includes("etkinlik") || item.content.toLowerCase().includes("etkinlik")) {
-            category = "Etkinlik";
-          } else if (item.title.toLowerCase().includes("bakım") || item.content.toLowerCase().includes("bakım")) {
-            category = "Bakım";
-          }
-          
-          // Tarih formatları için dönüştürme
-          const startDateDisplay = item.startDate ? new Date(item.startDate).toLocaleDateString('tr-TR') : undefined;
-          const endDateDisplay = item.endDate ? new Date(item.endDate).toLocaleDateString('tr-TR') : undefined;
-          
-          // Görsel seçimi için mantık oluşturma
-          let image = "/images/default-announcement.jpg";
-          if (category === "Etkinlik") {
-            image = "/images/event-announcement.jpg";
-          } else if (category === "Bakım") {
-            image = "/images/maintenance.jpg";
-          } else if (item.id && parseInt(item.id) % 2 === 0) {
-            image = "/images/summer-camp.jpg";
-          }
-          
-          const announcement: AnnouncementDisplay = {
-            id: item.id,
-            title: item.title,
-            slug: item.slug,
-            content: item.content,
-            published: item.published,
-            startDate: item.startDate,
-            endDate: item.endDate,
-            creatorId: item.creatorId,
-            createdAt: item.createdAt,
-            updatedAt: item.updatedAt,
-            category: category,
-            status: item.published ? "Aktif" : "Pasif", 
-            visibility: item.creatorId ? "Sadece Üyeler" : "Herkese Açık", // CreatorId varsa sadece üyelere görünür
-            views: Math.floor(Math.random() * 1000), // Mock veri
-            image: image,
-            date: item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : undefined,
-            expiryDate: endDateDisplay
-          };
-          return announcement;
-        });
+        const formattedAnnouncements: Announcement[] = response.data.map((item: any) => ({
+          id: item.id,
+          title: item.title || "",
+          slug: item.slug || "",
+          content: item.content || "",
+          published: item.published || false,
+          startDate: item.startDate || null,
+          endDate: item.endDate || null,
+          creatorId: item.creatorId || null,
+          createdAt: item.createdAt || new Date().toISOString(),
+          updatedAt: item.updatedAt || new Date().toISOString(),
+          status: item.published ? "Aktif" : "Pasif",
+          date: item.createdAt || new Date().toISOString(),
+          author: item.author || "Admin",
+          views: item.views || 0,
+          image: item.image || null,
+          sourceUrl: item.sourceUrl || null,
+          category: item.category || "Bilgilendirme",
+          visibility: item.visibility || "Herkese Açık"
+        }));
         
         setAnnouncements(formattedAnnouncements);
         
-        // İlk duyuruyu seç eğer herhangi bir duyuru seçili değilse
         if (formattedAnnouncements.length > 0 && !selectedAnnouncement) {
           setSelectedAnnouncement(formattedAnnouncements[0]);
         }
-      } else {
-        toast({
-          title: "Hata",
-          description: "Duyurular yüklenirken bir hata oluştu",
-          variant: "destructive",
-        });
       }
     } catch (error) {
-      console.error("Duyurular alınırken hata:", error);
+      console.error("Duyurular yüklenirken hata:", error);
       toast({
         title: "Hata",
         description: "Duyurular yüklenirken bir hata oluştu",
@@ -457,63 +405,44 @@ export default function AnnouncementsPage() {
     }
   };
 
-  // Sayfa değiştirme fonksiyonu
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
-      fetchAnnouncements(page, pageSize);
+      fetchAnnouncements();
     }
   };
 
-  // Sayfa yüklendiğinde duyuruları çek
   useEffect(() => {
-    fetchAnnouncements(currentPage, pageSize);
+    fetchAnnouncements();
   }, []);
 
-  // Seçili duyuruyu güncelleme fonksiyonu (edit tabındaki kaydet butonu için)
   const handleUpdateSelectedAnnouncement = async () => {
     if (selectedAnnouncement) {
       try {
         setIsUpdating(true);
         
-        // Backend API'ye gönderilecek veriyi hazırla
-        const updateData: UpdateAnnouncementDTO = {
+        const updateData = {
           title: selectedAnnouncement.title,
           content: selectedAnnouncement.content,
           isPublished: selectedAnnouncement.status === "Aktif",
-          endDate: selectedAnnouncement.expiryDate || null
+          endDate: selectedAnnouncement.endDate,
+          category: selectedAnnouncement.category || "Bilgilendirme",
+          visibility: selectedAnnouncement.visibility || "Herkese Açık",
+          image: selectedAnnouncement.image || null
         };
         
         const response = await announcementService.updateAnnouncement(selectedAnnouncement.id, updateData);
         
         if (response.success && response.data) {
-          // Backend yanıtını frontend formatına dönüştür
-          const updatedAnnouncement: AnnouncementDisplay = {
-            id: response.data.id,
-            title: response.data.title,
-            slug: response.data.slug,
-            content: response.data.content,
-            published: response.data.published,
-            startDate: response.data.startDate,
-            endDate: response.data.endDate,
-            creatorId: response.data.creatorId,
-            createdAt: response.data.createdAt,
-            updatedAt: response.data.updatedAt,
-            category: selectedAnnouncement.category,
-            status: response.data.published ? "Aktif" : "Pasif",
-            visibility: selectedAnnouncement.visibility,
-            views: selectedAnnouncement.views,
-            image: selectedAnnouncement.image,
-            date: response.data.createdAt ? new Date(response.data.createdAt).toISOString().split('T')[0] : undefined,
-            expiryDate: selectedAnnouncement.expiryDate
+          const updatedAnnouncement: Announcement = {
+            ...selectedAnnouncement,
+            ...response.data,
+            status: response.data.published ? "Aktif" : "Pasif"
           };
           
-          // State'i güncelle
-          const updatedAnnouncements = announcements.map((item) =>
-            item.id === updatedAnnouncement.id ? updatedAnnouncement : item
+          setAnnouncements(prev => 
+            prev.map(item => item.id === updatedAnnouncement.id ? updatedAnnouncement : item)
           );
-          
-          setAnnouncements(updatedAnnouncements);
           setSelectedAnnouncement(updatedAnnouncement);
           
           toast({
@@ -551,432 +480,429 @@ export default function AnnouncementsPage() {
           </div>
         </div>
       ) : (
-      <div>
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Duyurular</h1>
-          
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 h-[calc(100vh-180px)]">
-          <div className="overflow-auto border rounded-lg">
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="Duyuru ara..."
-                  className="max-w-sm"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <Button variant="outline" size="icon">
-                  <SearchIcon className="h-4 w-4" />
-                </Button>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline">
-                      Filtrele {getTotalSelectedFilters() > 0 ? `(${getTotalSelectedFilters()})` : ''}
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                      <DialogTitle>Filtreleme Seçenekleri</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="space-y-4">
-                        <h4 className="font-medium">Kategori</h4>
-                        <div className="space-y-2">
-                          {['Etkinlik', 'Bilgilendirme'].map((category) => (
-                            <div key={category} className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                id={`category-${category}`}
-                                checked={selectedFilters.category.includes(category)}
-                                onChange={() => handleFilterChange('category', category)}
-                                className="h-4 w-4"
-                              />
-                              <label htmlFor={`category-${category}`}>{category}</label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <h4 className="font-medium">Durum</h4>
-                        <div className="space-y-2">
-                          {['Aktif', 'Pasif', 'Taslak'].map((status) => (
-                            <div key={status} className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                id={`status-${status}`}
-                                checked={selectedFilters.status.includes(status)}
-                                onChange={() => handleFilterChange('status', status)}
-                                className="h-4 w-4"
-                              />
-                              <label htmlFor={`status-${status}`}>{status}</label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-              <div className="flex items-center gap-2">
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <PlusIcon className="mr-2 h-4 w-4" />
-                      Yeni duyuru ekle
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[625px]">
-                    <DialogHeader>
-                      <DialogTitle>
-                        {editingAnnouncement ? "Duyuru Düzenle" : "Yeni Duyuru Ekle"}
-                      </DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="title" className="text-right">
-                          Başlık
-                        </Label>
-                        <Input
-                          id="title"
-                          placeholder="Duyuru başlığı"
-                          className="col-span-3"
-                          value={editingAnnouncement?.title || newAnnouncement.title}
-                          onChange={(e) => {
-                            if (editingAnnouncement) {
-                              setEditingAnnouncement({
-                                ...editingAnnouncement,
-                                title: e.target.value,
-                              })
-                            } else {
-                              setNewAnnouncement({
-                                ...newAnnouncement,
-                                title: e.target.value,
-                              })
-                            }
-                          }}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="category" className="text-right">
-                          Kategori
-                        </Label>
-                        <Select
-                          value={editingAnnouncement?.category || newAnnouncement.category || ""}
-                          onValueChange={(value: string) => {
-                            if (editingAnnouncement) {
-                              setEditingAnnouncement({
-                                ...editingAnnouncement,
-                                category: value,
-                              })
-                            } else {
-                              setNewAnnouncement({
-                                ...newAnnouncement,
-                                category: value,
-                              })
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="col-span-3">
-                            <SelectValue placeholder="Kategori seçin" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Etkinlik">Etkinlik</SelectItem>
-                            <SelectItem value="Bilgilendirme">Bilgilendirme</SelectItem>
-                            <SelectItem value="Bakım">Bakım</SelectItem>
-                            <SelectItem value="Diğer">Diğer</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="status" className="text-right">
-                          Durum
-                        </Label>
-                        <Select
-                          value={editingAnnouncement?.status || newAnnouncement.status || "Aktif"}
-                          onValueChange={(value: "Aktif" | "Pasif" | "Taslak") => {
-                            if (editingAnnouncement) {
-                              setEditingAnnouncement({
-                                ...editingAnnouncement,
-                                status: value,
-                              })
-                            } else {
-                              setNewAnnouncement({
-                                ...newAnnouncement,
-                                status: value,
-                              })
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="col-span-3">
-                            <SelectValue placeholder="Durum seçin" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Aktif">Aktif</SelectItem>
-                            <SelectItem value="Pasif">Pasif</SelectItem>
-                            <SelectItem value="Taslak">Taslak</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="visibility" className="text-right">
-                          Görünürlük
-                        </Label>
-                        <Select
-                          value={editingAnnouncement?.visibility || newAnnouncement.visibility || "Herkese Açık"}
-                          onValueChange={(value: "Herkese Açık" | "Sadece Üyeler" | "Yöneticiler") => {
-                            if (editingAnnouncement) {
-                              setEditingAnnouncement({
-                                ...editingAnnouncement,
-                                visibility: value,
-                              })
-                            } else {
-                              setNewAnnouncement({
-                                ...newAnnouncement,
-                                visibility: value,
-                              })
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="col-span-3">
-                            <SelectValue placeholder="Görünürlük seçin" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Herkese Açık">Herkese Açık</SelectItem>
-                            <SelectItem value="Sadece Üyeler">Sadece Üyeler</SelectItem>
-                            <SelectItem value="Yöneticiler">Yöneticiler</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="expiryDate" className="text-right">
-                          Son Tarih
-                        </Label>
-                        <Input
-                          id="expiryDate"
-                          type="date"
-                          className="col-span-3"
-                          value={editingAnnouncement?.expiryDate || newAnnouncement.expiryDate}
-                          onChange={(e) => {
-                            if (editingAnnouncement) {
-                              setEditingAnnouncement({
-                                ...editingAnnouncement,
-                                expiryDate: e.target.value,
-                              })
-                            } else {
-                              setNewAnnouncement({
-                                ...newAnnouncement,
-                                expiryDate: e.target.value,
-                              })
-                            }
-                          }}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="image" className="text-right">
-                          Görsel
-                        </Label>
-                        <div className="col-span-3 space-y-2">
-                          <Input
-                            id="image"
-                            type="file"
-                            accept=".png,.jpg,.jpeg"
-                            onChange={handleImageUpload}
-                          />
-                          {(editingAnnouncement?.image || newAnnouncement.image) && (
-                            <div className="relative w-full h-32 mt-2 rounded-md overflow-hidden">
-                              <Image
-                                src={editingAnnouncement?.image || newAnnouncement.image || ""}
-                                alt="Duyuru Görseli"
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
-                          )}
-                          <span className="text-xs text-gray-500">Sadece PNG, JPG ve JPEG formatları desteklenmektedir.</span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-4 items-start gap-4">
-                        <Label htmlFor="content" className="text-right pt-2">
-                          İçerik
-                        </Label>
-                        <Textarea
-                          id="content"
-                          placeholder="Duyuru içeriği"
-                          className="col-span-3 min-h-[120px]"
-                          value={editingAnnouncement?.content || newAnnouncement.content}
-                          onChange={(e) => {
-                            if (editingAnnouncement) {
-                              setEditingAnnouncement({
-                                ...editingAnnouncement,
-                                content: e.target.value,
-                              })
-                            } else {
-                              setNewAnnouncement({
-                                ...newAnnouncement,
-                                content: e.target.value,
-                              })
-                            }
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                        İptal
-                      </Button>
-                      <Button
-                        onClick={
-                          editingAnnouncement
-                            ? handleEditAnnouncement
-                            : handleAddAnnouncement
-                        }
-                      >
-                        {editingAnnouncement ? "Güncelle" : "Ekle"}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Görsel</TableHead>
-                  <TableHead>Başlık</TableHead>
-                  <TableHead>Kategori</TableHead>
-                  <TableHead>Tarih</TableHead>
-                  <TableHead>Durum</TableHead>
-                  <TableHead className="w-[100px]">İşlemler</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredAnnouncements.map((announcement) => (
-                  <TableRow 
-                    key={announcement.id} 
-                    className={`cursor-pointer ${selectedAnnouncement?.id === announcement.id ? "bg-muted" : ""}`}
-                    onClick={() => setSelectedAnnouncement(announcement)}
-                  >
-                    <TableCell>
-                      <div className="relative h-12 w-20 rounded-md overflow-hidden bg-muted">
-                        {announcement.image ? (
-                          <Image
-                            src={announcement.image}
-                            alt={announcement.title}
-                            fill
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <MegaphoneIcon className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{announcement.title}</TableCell>
-                    <TableCell>{announcement.category}</TableCell>
-                    <TableCell>{announcement.date}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(announcement.status)}>
-                        {announcement.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDeleteAnnouncement(announcement.id)
-                          }}
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            
-            {/* Pagination kontrolleri */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center p-4 border-t">
-                <div className="flex items-center space-x-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                  >
-                    Önceki
-                  </Button>
-                  
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handlePageChange(page)}
-                    >
-                      {page}
-                    </Button>
-                  ))}
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                  >
-                    Sonraki
-                  </Button>
-                </div>
-                <div className="ml-4 text-sm text-muted-foreground">
-                  Toplam {totalCount} duyuru, {currentPage}/{totalPages} sayfa
-                </div>
-              </div>
-            )}
+        <div>
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Duyurular</h1>
           </div>
 
-          <div className="overflow-auto border rounded-lg bg-muted/5 h-full">
-            {selectedAnnouncement ? (
-              <Card className="h-full flex flex-col">
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-lg font-semibold">Duyuru Önizleme</CardTitle>
-                    <div className="flex space-x-2">
-                      <Button 
-                        variant={viewMode === "preview" ? "default" : "outline"} 
-                        size="icon" 
-                        className="h-8 w-8"
-                        onClick={() => setViewMode("preview")}
-                      >
-                        <EyeIcon className="h-4 w-4" />
+          <div className="grid grid-cols-2 gap-4 h-[calc(100vh-180px)]">
+            <div className="overflow-auto border rounded-lg">
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Duyuru ara..."
+                    className="max-w-sm"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <Button variant="outline" size="icon">
+                    <SearchIcon className="h-4 w-4" />
+                  </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">
+                        Filtrele {getTotalSelectedFilters() > 0 ? `(${getTotalSelectedFilters()})` : ''}
                       </Button>
-                      <Button 
-                        variant={viewMode === "edit" ? "default" : "outline"} 
-                        size="icon" 
-                        className="h-8 w-8" 
-                        disabled={!selectedAnnouncement}
-                        onClick={() => setViewMode("edit")}
-                      >
-                        <PencilIcon className="h-4 w-4" />
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>Filtreleme Seçenekleri</DialogTitle>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="space-y-4">
+                          <h4 className="font-medium">Kategori</h4>
+                          <div className="space-y-2">
+                            {['Etkinlik', 'Bilgilendirme'].map((category) => (
+                              <div key={category} className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  id={`category-${category}`}
+                                  checked={selectedFilters.category.includes(category)}
+                                  onChange={() => handleFilterChange('category', category)}
+                                  className="h-4 w-4"
+                                />
+                                <label htmlFor={`category-${category}`}>{category}</label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <h4 className="font-medium">Durum</h4>
+                          <div className="space-y-2">
+                            {['Aktif', 'Pasif', 'Taslak'].map((status) => (
+                              <div key={status} className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  id={`status-${status}`}
+                                  checked={selectedFilters.status.includes(status)}
+                                  onChange={() => handleFilterChange('status', status)}
+                                  className="h-4 w-4"
+                                />
+                                <label htmlFor={`status-${status}`}>{status}</label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <PlusIcon className="mr-2 h-4 w-4" />
+                        Yeni duyuru ekle
                       </Button>
-                    </div>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[625px]">
+                      <DialogHeader>
+                        <DialogTitle>
+                          {editingAnnouncement ? "Duyuru Düzenle" : "Yeni Duyuru Ekle"}
+                        </DialogTitle>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="title" className="text-right">
+                            Başlık
+                          </Label>
+                          <Input
+                            id="title"
+                            placeholder="Duyuru başlığı"
+                            className="col-span-3"
+                            value={editingAnnouncement?.title || newAnnouncement.title}
+                            onChange={(e) => {
+                              if (editingAnnouncement) {
+                                setEditingAnnouncement({
+                                  ...editingAnnouncement,
+                                  title: e.target.value,
+                                })
+                              } else {
+                                setNewAnnouncement({
+                                  ...newAnnouncement,
+                                  title: e.target.value,
+                                })
+                              }
+                            }}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="category" className="text-right">
+                            Kategori
+                          </Label>
+                          <Select
+                            value={editingAnnouncement?.category || newAnnouncement.category || ""}
+                            onValueChange={(value: string) => {
+                              if (editingAnnouncement) {
+                                setEditingAnnouncement({
+                                  ...editingAnnouncement,
+                                  category: value,
+                                })
+                              } else {
+                                setNewAnnouncement({
+                                  ...newAnnouncement,
+                                  category: value,
+                                })
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="col-span-3">
+                              <SelectValue placeholder="Kategori seçin" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Etkinlik">Etkinlik</SelectItem>
+                              <SelectItem value="Bilgilendirme">Bilgilendirme</SelectItem>
+                              <SelectItem value="Bakım">Bakım</SelectItem>
+                              <SelectItem value="Diğer">Diğer</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="status" className="text-right">
+                            Durum
+                          </Label>
+                          <Select
+                            value={editingAnnouncement?.status || newAnnouncement.status || "Aktif"}
+                            onValueChange={(value: AnnouncementStatus) => {
+                              if (editingAnnouncement) {
+                                setEditingAnnouncement({
+                                  ...editingAnnouncement,
+                                  status: value,
+                                })
+                              } else {
+                                setNewAnnouncement({
+                                  ...newAnnouncement,
+                                  status: value,
+                                })
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="col-span-3">
+                              <SelectValue placeholder="Durum seçin" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Aktif">Aktif</SelectItem>
+                              <SelectItem value="Pasif">Pasif</SelectItem>
+                              <SelectItem value="Taslak">Taslak</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="visibility" className="text-right">
+                            Görünürlük
+                          </Label>
+                          <Select
+                            value={editingAnnouncement?.visibility || newAnnouncement.visibility || "Herkese Açık"}
+                            onValueChange={(value: "Herkese Açık" | "Sadece Üyeler" | "Yöneticiler") => {
+                              if (editingAnnouncement) {
+                                setEditingAnnouncement({
+                                  ...editingAnnouncement,
+                                  visibility: value,
+                                })
+                              } else {
+                                setNewAnnouncement({
+                                  ...newAnnouncement,
+                                  visibility: value,
+                                })
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="col-span-3">
+                              <SelectValue placeholder="Görünürlük seçin" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Herkese Açık">Herkese Açık</SelectItem>
+                              <SelectItem value="Sadece Üyeler">Sadece Üyeler</SelectItem>
+                              <SelectItem value="Yöneticiler">Yöneticiler</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="expiryDate" className="text-right">
+                            Son Tarih
+                          </Label>
+                          <Input
+                            id="expiryDate"
+                            type="date"
+                            className="col-span-3"
+                            value={editingAnnouncement?.expiryDate || newAnnouncement.expiryDate}
+                            onChange={(e) => {
+                              if (editingAnnouncement) {
+                                setEditingAnnouncement({
+                                  ...editingAnnouncement,
+                                  expiryDate: e.target.value,
+                                })
+                              } else {
+                                setNewAnnouncement({
+                                  ...newAnnouncement,
+                                  expiryDate: e.target.value,
+                                })
+                              }
+                            }}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="image" className="text-right">
+                            Görsel
+                          </Label>
+                          <div className="col-span-3 space-y-2">
+                            <Input
+                              id="image"
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageChange}
+                              value={selectedAnnouncement?.image || ""}
+                            />
+                            {selectedAnnouncement?.image && (
+                              <div className="mt-2">
+                                <img 
+                                  src={selectedAnnouncement.image} 
+                                  alt="Duyuru görseli" 
+                                  className="max-w-full h-auto rounded"
+                                />
+                              </div>
+                            )}
+                            <span className="text-xs text-gray-500">Sadece PNG, JPG ve JPEG formatları desteklenmektedir.</span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-4 items-start gap-4">
+                          <Label htmlFor="content" className="text-right pt-2">
+                            İçerik
+                          </Label>
+                          <Textarea
+                            id="content"
+                            placeholder="Duyuru içeriği"
+                            className="col-span-3 min-h-[120px]"
+                            value={editingAnnouncement?.content || newAnnouncement.content}
+                            onChange={(e) => {
+                              if (editingAnnouncement) {
+                                setEditingAnnouncement({
+                                  ...editingAnnouncement,
+                                  content: e.target.value,
+                                })
+                              } else {
+                                setNewAnnouncement({
+                                  ...newAnnouncement,
+                                  content: e.target.value,
+                                })
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                          İptal
+                        </Button>
+                        <Button
+                          onClick={
+                            editingAnnouncement
+                              ? handleEditAnnouncement
+                              : handleAddAnnouncement
+                          }
+                        >
+                          {editingAnnouncement ? "Güncelle" : "Ekle"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Görsel</TableHead>
+                    <TableHead>Başlık</TableHead>
+                    <TableHead>Kategori</TableHead>
+                    <TableHead>Tarih</TableHead>
+                    <TableHead>Durum</TableHead>
+                    <TableHead className="w-[100px]">İşlemler</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredAnnouncements.map((announcement) => (
+                    <TableRow 
+                      key={announcement.id} 
+                      className={`cursor-pointer ${selectedAnnouncement?.id === announcement.id ? "bg-muted" : ""}`}
+                      onClick={() => setSelectedAnnouncement(announcement)}
+                    >
+                      <TableCell>
+                        <div className="relative h-12 w-20 rounded-md overflow-hidden bg-muted">
+                          {announcement.image ? (
+                            <Image
+                              src={announcement.image}
+                              alt={announcement.title}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <MegaphoneIcon className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">{announcement.title}</TableCell>
+                      <TableCell>{announcement.category}</TableCell>
+                      <TableCell>{announcement.date}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(announcement.status)}>
+                          {announcement.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteAnnouncement(announcement)
+                            }}
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center p-4 border-t">
+                  <div className="flex items-center space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      Önceki
+                    </Button>
+                    
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(page)}
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                    >
+                      Sonraki
+                    </Button>
                   </div>
-                </CardHeader>
-                <CardContent className="flex-grow overflow-auto pt-2">
-                  {selectedAnnouncement ? (
-                    viewMode === "preview" ? (
+                  <div className="ml-4 text-sm text-muted-foreground">
+                    Toplam {totalCount} duyuru, {currentPage}/{totalPages} sayfa
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="overflow-auto border rounded-lg bg-muted/5 h-full">
+              {selectedAnnouncement ? (
+                <Card className="h-full flex flex-col">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-lg font-semibold">Duyuru Önizleme</CardTitle>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant={viewMode === "preview" ? "default" : "outline"} 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => setViewMode("preview")}
+                        >
+                          <EyeIcon className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant={viewMode === "edit" ? "default" : "outline"} 
+                          size="icon" 
+                          className="h-8 w-8" 
+                          disabled={!selectedAnnouncement}
+                          onClick={() => setViewMode("edit")}
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-grow overflow-auto pt-2">
+                    {viewMode === "preview" ? (
                       <div className="space-y-4">
                         <div className="flex justify-between items-start">
                           <div>
@@ -1047,7 +973,7 @@ export default function AnnouncementsPage() {
                           <div className="grid gap-2">
                             <Label htmlFor="edit-category">Kategori</Label>
                             <Select
-                              value={selectedAnnouncement.category}
+                              value={selectedAnnouncement.category || "Bilgilendirme"}
                               onValueChange={(value) => {
                                 setSelectedAnnouncement({
                                   ...selectedAnnouncement,
@@ -1067,15 +993,15 @@ export default function AnnouncementsPage() {
                             </Select>
                           </div>
                           <div className="grid gap-2">
-                            <Label htmlFor="edit-expiryDate">Son Tarih</Label>
+                            <Label htmlFor="edit-endDate">Son Tarih</Label>
                             <Input
-                              id="edit-expiryDate"
+                              id="edit-endDate"
                               type="date"
-                              value={selectedAnnouncement.expiryDate}
+                              value={selectedAnnouncement.endDate || ""}
                               onChange={(e) => {
                                 setSelectedAnnouncement({
                                   ...selectedAnnouncement,
-                                  expiryDate: e.target.value,
+                                  endDate: e.target.value || null
                                 });
                               }}
                             />
@@ -1084,20 +1010,17 @@ export default function AnnouncementsPage() {
                             <Label htmlFor="edit-image">Görsel URL</Label>
                             <Input
                               id="edit-image"
-                              value={selectedAnnouncement.image}
-                              onChange={(e) => {
-                                setSelectedAnnouncement({
-                                  ...selectedAnnouncement,
-                                  image: e.target.value,
-                                });
-                              }}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageChange}
+                              value={selectedAnnouncement?.image || ""}
                             />
                           </div>
                           <div className="grid gap-2">
                             <Label htmlFor="edit-status">Durum</Label>
                             <Select
                               value={selectedAnnouncement.status}
-                              onValueChange={(value: "Aktif" | "Pasif" | "Taslak") => {
+                              onValueChange={(value: AnnouncementStatus) => {
                                 setSelectedAnnouncement({
                                   ...selectedAnnouncement,
                                   status: value,
@@ -1117,7 +1040,7 @@ export default function AnnouncementsPage() {
                           <div className="grid gap-2">
                             <Label htmlFor="edit-visibility">Görünürlük</Label>
                             <Select
-                              value={selectedAnnouncement.visibility}
+                              value={selectedAnnouncement.visibility || "Herkese Açık"}
                               onValueChange={(value: "Herkese Açık" | "Sadece Üyeler" | "Yöneticiler") => {
                                 setSelectedAnnouncement({
                                   ...selectedAnnouncement,
@@ -1156,22 +1079,17 @@ export default function AnnouncementsPage() {
                           </div>
                         </div>
                       </div>
-                    )
-                  ) : (
-                    <div className="text-center text-gray-500 py-8">
-                      Önizlemek için bir duyuru seçin
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="h-full flex items-center justify-center text-muted-foreground">
-                <p>Lütfen görüntülemek için bir duyuru seçin</p>
-              </div>
-            )}
+                    )}
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  <p>Lütfen görüntülemek için bir duyuru seçin</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
       )}
     </div>
   )

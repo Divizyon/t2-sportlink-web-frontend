@@ -33,9 +33,9 @@ import { useToast } from "@/components/ui/use-toast";
 import useAuth from "@/lib/hooks/useAuth";
 import eventService from "@/lib/services/eventService";
 import type { Event, Participant } from "@/interfaces/event";
-import EventList from "./components/EventList";
-import ApprovalCenter from "./components/ApprovalCenter";
-import EventPreview from "./components/EventPreview";
+import EventList from "@/components/events/EventList";
+import ApprovalCenter from "@/components/events/ApprovalCenter";
+import EventPreview from "@/components/events/EventPreview";
 
 export default function EventsPage() {
   const { toast } = useToast();

@@ -337,7 +337,7 @@ class EventService {
     message?: string;
   }> {
     try {
-      const response = await api.post(`/events/admin/${eventId}/approve`);
+      const response = await api.post(`/events/${eventId}/approve`);
       
       return {
         success: true,
@@ -361,7 +361,7 @@ class EventService {
     message?: string;
   }> {
     try {
-      const response = await api.post(`/events/admin/${eventId}/reject`);
+      const response = await api.post(`/events/${eventId}/reject`);
       
       return {
         success: true,
@@ -369,6 +369,43 @@ class EventService {
       };
     } catch (error) {
       console.error('Etkinlik reddedilirken hata:', error);
+      const apiError = handleApiError(error as AxiosError);
+      return {
+        success: false,
+        message: apiError.message
+      };
+    }
+  }
+  
+  /**
+   * Etkinlik resmi yükle
+   */
+  async uploadEventImage(eventId: string, imageFile: File): Promise<{
+    success: boolean;
+    data?: {
+      imageUrl: string;
+    };
+    message?: string;
+  }> {
+    try {
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      
+      const response = await api.post(`/events/${eventId}/upload-image`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      return {
+        success: true,
+        data: {
+          imageUrl: response.data.imageUrl
+        },
+        message: response.data.message || 'Resim başarıyla yüklendi'
+      };
+    } catch (error) {
+      console.error('Etkinlik resmi yüklenirken hata:', error);
       const apiError = handleApiError(error as AxiosError);
       return {
         success: false,
