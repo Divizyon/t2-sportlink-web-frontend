@@ -6,6 +6,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/a
 const TOKEN_KEY = 'token';
 const ACCESS_TOKEN_KEY = 'access_token';
 
+// Debug - API ayarlarını konsola yaz
+console.log('API_BASE_URL:', API_BASE_URL);
+
 // Create Axios instance with default config
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,

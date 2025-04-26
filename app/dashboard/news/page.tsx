@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Plus, Pencil, Calendar, Newspaper, User, Tag, Eye, Trash, LinkIcon, X } from "lucide-react";
+import { Search, Plus, Pencil, Calendar, Newspaper, User, Tag, Eye, Trash, LinkIcon, X, FilterIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -624,21 +624,37 @@ export default function NewsPage() {
         <div className="overflow-y-auto">
           <Card>
             <CardHeader>
-              <CardTitle>Haber Listesi</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-4">
-                  <Input
-                    placeholder="Haber ara..."
-                    className="max-w-sm"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
+              <div className="flex justify-between items-center">
+                <CardTitle>Haber Listesi</CardTitle>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Input
+                      placeholder="Haber ara..."
+                      className="max-w-sm pr-10"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => {
+                        // Arama işlemi burada yapılacak
+                        console.log("Arama yapılıyor:", searchQuery);
+                      }}
+                    >
+                      <Search className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="outline">
-                        Filtrele {getTotalSelectedFilters() > 0 ? `(${getTotalSelectedFilters()})` : ''}
+                      <Button variant="outline" size="icon">
+                        <FilterIcon className="h-4 w-4" />
+                        {getTotalSelectedFilters() > 0 && (
+                          <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full w-4 h-4 text-xs flex items-center justify-center">
+                            {getTotalSelectedFilters()}
+                          </span>
+                        )}
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
@@ -685,6 +701,8 @@ export default function NewsPage() {
                   </Dialog>
                 </div>
               </div>
+            </CardHeader>
+            <CardContent>
               <div className="overflow-auto">
                 <Table className="min-w-full divide-y divide-gray-200">
                   <TableHeader>

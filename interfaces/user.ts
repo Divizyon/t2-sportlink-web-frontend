@@ -26,4 +26,21 @@ export interface User {
   // Opsiyonel alanlar (backend'den henüz gelmiyor olabilir)
   updated_at?: string;
   birthDate?: string;
+}
+
+export interface UserType {
+  id: string;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  role: string;
+  profile_picture?: string;
+  default_location_latitude?: number;
+  default_location_longitude?: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
+  password?: string;
 } 
