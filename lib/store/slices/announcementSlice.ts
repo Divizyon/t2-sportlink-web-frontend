@@ -3,7 +3,7 @@ import announcementService, {
   type CreateAnnouncementDTO, 
   type UpdateAnnouncementDTO 
 } from '@/lib/services/announcementService';
-import type { Announcement, AnnouncementListParams } from '@/interfaces/announcement';
+import type { Announcement, AnnouncementListParams, AnnouncementStatus } from '@/interfaces/announcement';
 import { type ApiError } from '@/lib/services/api';
 
 export interface AnnouncementState {
@@ -60,8 +60,64 @@ const createAnnouncementSlice: StateCreator<AnnouncementState> = (set, get) => {
       set({ lastRequestId: requestId, isLoading: true, error: null });
       console.log(`getAnnouncements başlatıldı [${requestId}]: page=${page}, limit=${limit}`);
       
+      // Timeout ile maksimum yükleme süresini sınırla
+      const timeoutId = setTimeout(() => {
+        const currentState = get();
+        if (currentState.isLoading && currentState.lastRequestId === requestId) {
+          console.warn("Duyuru yükleme zaman aşımına uğradı, geliştirme modunda varsayılan veriler kullanılacak");
+          
+          // Geliştirme ortamında test verilerini kullan
+          if (process.env.NODE_ENV === 'development') {
+            const testData: Announcement[] = [
+              {
+                id: "test-timeout-1",
+                title: "Test Duyuru (Timeout)",
+                content: "API yanıt vermedi, bu test verisidir",
+                created_at: new Date().toISOString(),
+                status: "published" as AnnouncementStatus,
+                published: true
+              },
+              {
+                id: "test-timeout-2",
+                title: "Test Duyuru 2 (Timeout)",
+                content: "API yanıt vermedi, bu test verisidir",
+                created_at: new Date().toISOString(),
+                status: "draft" as AnnouncementStatus,
+                published: false
+              }
+            ];
+            
+            set({
+              announcements: testData,
+              pagination: {
+                total: testData.length,
+                page: 1,
+                limit: 10,
+                totalPages: 1
+              },
+              isLoading: false
+            });
+          } else {
+            // Üretim ortamında hata mesajı göster
+            set({
+              error: "Duyurular yüklenirken zaman aşımı oluştu. Lütfen daha sonra tekrar deneyin.",
+              isLoading: false
+            });
+          }
+        }
+      }, 10000); // 10 saniye timeout
+      
       try {
         const response = await announcementService.getAnnouncements(page, limit, includeUnpublished);
+        
+        // Timeout'u temizle
+        clearTimeout(timeoutId);
+        
+        // Eğer bu istek iptal edilmiş veya başka bir istek başlamışsa yanıtı işleme
+        if (get().lastRequestId !== requestId) {
+          console.log("Bu istek artık güncel değil, yanıt atlanıyor");
+          return;
+        }
         
         console.log("API yanıtı:", response);
         

@@ -42,6 +42,9 @@ interface FormDataType {
   tags?: string[] | undefined;
   priority?: number | undefined;
   pinned?: boolean | undefined;
+  start_date?: string | null;
+  end_date?: string | null;
+  visibility?: string;
 }
 
 const defaultAnnouncement: FormDataType = {
@@ -51,6 +54,12 @@ const defaultAnnouncement: FormDataType = {
   status: 'draft',
   imageUrl: '',
   publishNow: false,
+  tags: [],
+  priority: 0,
+  pinned: false,
+  start_date: null,
+  end_date: null,
+  visibility: 'public',
 };
 
 export function AnnouncementFormModal({
@@ -61,42 +70,42 @@ export function AnnouncementFormModal({
 }: AnnouncementFormModalProps) {
   const [formData, setFormData] = useState<FormDataType>(defaultAnnouncement);
   const [dragOver, setDragOver] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { createAnnouncement, updateAnnouncement, isLoading, error } = useStore();
-  const isEditing = !!announcement;
+  const { createAnnouncement, updateAnnouncement, isLoading, error, setCurrentAnnouncement } = useStore();
+  const isEditing = !!announcement && !!announcement.id;
 
-  // İçerik önizlemesi için state
-  const [showPreview, setShowPreview] = useState(false);
-
-  // Markdown/HTML içeriği güvenli bir şekilde render etmek için 
-  const createMarkup = (content: string) => {
-    return { __html: content };
-  };
-
-  // İçerik önizlemesini toggle et
-  const togglePreview = () => {
-    setShowPreview(!showPreview);
-  };
-
-  // Form verilerini düzenleme modunda doldur
+  // Form açıldığında mevcut duyuru bilgilerini yükle veya sıfırla
   useEffect(() => {
-    if (announcement) {
-      setFormData({
-        title: announcement.title,
-        content: announcement.content,
-        summary: announcement.summary || '',
-        status: announcement.status,
-        imageUrl: announcement.imageUrl || '',
-        publishNow: announcement.status === 'published',
-        tags: announcement.tags,
-        priority: announcement.priority,
-        pinned: announcement.pinned,
-      });
-    } else {
-      setFormData(defaultAnnouncement);
+    if (isOpen) {
+      // Eğer düzenleme modundaysa ve geçerli bir duyuru varsa
+      if (isEditing && announcement) {
+        console.log('Duyuru düzenleme modu, duyuru ID:', announcement.id);
+        setFormData({
+          title: announcement.title,
+          content: announcement.content,
+          summary: announcement.summary || '',
+          status: announcement.status || 'draft',
+          imageUrl: announcement.imageUrl || '',
+          publishNow: announcement.status === 'published',
+          tags: announcement.tags,
+          priority: announcement.priority,
+          pinned: announcement.pinned,
+          start_date: announcement.start_date || null,
+          end_date: announcement.end_date || null,
+          visibility: announcement.visibility || 'public',
+        });
+      } else {
+        // Yeni duyuru ekleme modu
+        console.log('Yeni duyuru ekleme modu - form sıfırlanıyor');
+        // Form verilerini varsayılan değerlere sıfırla
+        setFormData({...defaultAnnouncement});
+        // Store'daki mevcut duyuruyu da temizle
+        setCurrentAnnouncement(null);
+      }
     }
-  }, [announcement]);
+  }, [isOpen, announcement, isEditing, setCurrentAnnouncement]);
 
   // Hata durumunda kullanıcıya bildir
   useEffect(() => {
@@ -113,6 +122,8 @@ export function AnnouncementFormModal({
     e.preventDefault();
     
     try {
+      setIsSubmitting(true);
+      
       // Form doğrulama - boş başlık ve içerik kontrolü
       if (!formData.title.trim()) {
         toast({
@@ -132,75 +143,71 @@ export function AnnouncementFormModal({
         return;
       }
       
+      console.log("[ANNOUNCEMENT FORM] Form gönderiliyor:", formData);
+      
+      // Veri nesnesini hazırla
+      const requestData = {
+        title: formData.title,
+        content: formData.content,
+        summary: formData.summary || undefined,
+        status: formData.publishNow ? 'published' : formData.status,
+        imageUrl: formData.imageUrl || undefined,
+        tags: formData.tags || undefined,
+        priority: formData.priority || undefined,
+        pinned: formData.pinned || undefined,
+        start_date: formData.start_date || undefined,
+        end_date: formData.end_date || undefined,
+        visibility: formData.visibility || undefined
+      };
+      
+      // Düzenleme modu mu yoksa ekleme modu mu kontrol et
+      const isEditMode = isEditing && announcement && announcement.id;
       let success = false;
       
-      // Log the data being sent
-      console.log("Gönderilecek duyuru verisi:", formData);
-      
-      if (isEditing && announcement) {
-        // Veri nesnesini hazırla
-        const requestData = {
-          title: formData.title,
-          content: formData.content,
-          summary: formData.summary || undefined,
-          status: formData.publishNow ? 'published' : formData.status,
-          imageUrl: formData.imageUrl || undefined,
-          tags: formData.tags || undefined,
-          priority: formData.priority || undefined,
-          pinned: formData.pinned || undefined
-        };
-        
-        // Type-casting ile tip uyumsuzluğunu gider
-        success = await updateAnnouncement(announcement.id, requestData as UpdateAnnouncementDTO);
+      if (isEditMode) {
+        console.log("[ANNOUNCEMENT FORM] Mevcut duyuru güncelleniyor, ID:", announcement.id);
+        // Store üzerinden duyuru güncelleme fonksiyonunu çağır
+        success = await updateAnnouncement(announcement.id, requestData);
       } else {
-        // Veri nesnesini hazırla
-        const requestData = {
-          title: formData.title,
-          content: formData.content,
-          summary: formData.summary || undefined,
-          status: formData.publishNow ? 'published' : formData.status,
-          imageUrl: formData.imageUrl || undefined,
-          tags: formData.tags || undefined,
-          priority: formData.priority || undefined,
-          pinned: formData.pinned || undefined
-        };
-        
-        // Type-casting ile tip uyumsuzluğunu gider
-        success = await createAnnouncement(requestData as CreateAnnouncementDTO);
+        console.log("[ANNOUNCEMENT FORM] Yeni duyuru oluşturuluyor");
+        // Store üzerinden duyuru oluşturma fonksiyonunu çağır  
+        success = await createAnnouncement(requestData);
       }
       
       if (success) {
+        console.log("[ANNOUNCEMENT FORM] İşlem başarılı");
         toast({
-          title: "Başarılı",
-          description: isEditing ? "Duyuru güncellendi" : "Duyuru oluşturuldu",
+          title: isEditMode ? "Duyuru Güncellendi" : "Duyuru Oluşturuldu",
+          description: isEditMode 
+            ? "Duyuru başarıyla güncellendi." 
+            : "Yeni duyuru başarıyla oluşturuldu.",
         });
         
-        // Önce modalı kapat
+        // Form başarıyla tamamlandı, modal'ı kapat
         onOpenChange(false);
         
-        // Sonra, requestAnimationFrame kullanarak DOM güncellendikten sonra onSuccess'i çağır
-        // Bu, modal kapanırken state değişimlerinin çakışmasını önler
-        setTimeout(() => {
-          if (onSuccess) onSuccess();
-        }, 100);
+        // Duyuru listesini güncelle (sadece başarılı olduğunda)
+        if (onSuccess) {
+          console.log("[ANNOUNCEMENT FORM] Duyuru listesi yenileniyor");
+          onSuccess();
+        }
       } else {
-        // Başarısız işlem
-        console.error("Duyuru işlemi başarısız oldu");
+        console.error("[ANNOUNCEMENT FORM] İşlem başarısız oldu");
         toast({
           title: "Hata",
-          description: isEditing 
-            ? "Duyuru güncellenirken bir sorun oluştu" 
-            : "Duyuru eklenirken bir sorun oluştu",
+          description: "İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.",
           variant: "destructive",
         });
       }
-    } catch (err) {
-      console.error('Duyuru işlemi sırasında hata:', err);
+    } catch (error) {
+      console.error("[ANNOUNCEMENT FORM] Beklenmeyen bir hata oluştu:", error);
       toast({
-        title: "Beklenmeyen Hata",
-        description: "İşlem sırasında bir sorun oluştu. Lütfen tekrar deneyin.",
+        title: "Hata",
+        description: "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -240,7 +247,10 @@ export function AnnouncementFormModal({
   const handleModalClose = (open: boolean) => {
     if (!open) {
       // Modal kapanırken formda yapılan değişiklikleri temizle
+      console.log('Modal kapatılıyor - form sıfırlanıyor');
       setFormData(defaultAnnouncement);
+      // Store'daki mevcut duyuruyu da temizle
+      setCurrentAnnouncement(null);
     }
     onOpenChange(open);
   };
@@ -346,27 +356,115 @@ export function AnnouncementFormModal({
                   })}
                   required
                 />
-                <div className="flex justify-end">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={togglePreview}
-                  >
-                    {showPreview ? "Düzenleme Moduna Dön" : "Önizleme Göster"}
-                  </Button>
-                </div>
-                
-                {showPreview && (
-                  <div className="border rounded-md p-4 mt-2 max-h-[300px] overflow-y-auto">
-                    <h3 className="text-lg font-medium mb-2">Önizleme</h3>
-                    <div 
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={createMarkup(formData.content || '')}
-                    />
-                  </div>
-                )}
               </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="start_date" className="text-right">
+                Başlangıç Tarihi
+              </Label>
+              <Input
+                id="start_date"
+                type="date"
+                className="col-span-3"
+                value={formData.start_date || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  start_date: e.target.value,
+                })}
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="end_date" className="text-right">
+                Bitiş Tarihi
+              </Label>
+              <Input
+                id="end_date"
+                type="date"
+                className="col-span-3"
+                value={formData.end_date || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  end_date: e.target.value,
+                })}
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="tags" className="text-right">
+                Etiketler
+              </Label>
+              <Input
+                id="tags"
+                placeholder="Etiketleri virgülle ayırarak girin"
+                className="col-span-3"
+                value={formData.tags ? formData.tags.join(', ') : ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  tags: e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
+                })}
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="priority" className="text-right">
+                Öncelik
+              </Label>
+              <Input
+                id="priority"
+                type="number"
+                min="0"
+                max="10"
+                placeholder="0-10 arası değer (10 en yüksek)"
+                className="col-span-3"
+                value={formData.priority !== undefined ? formData.priority : ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  priority: parseInt(e.target.value) || 0,
+                })}
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="pinned" className="text-right">
+                Sabitlenmiş
+              </Label>
+              <div className="col-span-3 flex items-center">
+                <Switch
+                  id="pinned"
+                  checked={!!formData.pinned}
+                  onCheckedChange={(checked) => setFormData({
+                    ...formData,
+                    pinned: checked,
+                  })}
+                />
+                <span className="ml-2 text-sm text-gray-600">
+                  {formData.pinned ? "Duyuru sabitlenecek" : "Duyuru sabitlenmeyecek"}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="visibility" className="text-right">
+                Görünürlük
+              </Label>
+              <Select
+                value={formData.visibility || 'public'}
+                onValueChange={(value) => setFormData({
+                  ...formData,
+                  visibility: value,
+                })}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Görünürlük seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="public">Herkese Açık</SelectItem>
+                  <SelectItem value="members">Sadece Üyeler</SelectItem>
+                  <SelectItem value="admin">Yöneticiler</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-4 items-start gap-4">
@@ -422,18 +520,18 @@ export function AnnouncementFormModal({
               type="button" 
               variant="outline" 
               onClick={() => onOpenChange(false)}
-              disabled={isLoading}
+              disabled={isLoading || isSubmitting}
             >
               İptal
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
+            <Button type="submit" disabled={isLoading || isSubmitting}>
+              {isLoading || isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Kaydediliyor...
                 </>
               ) : (
-                isEditing ? "Güncelle" : "Ekle"
+                isEditing ? "Kaydet" : "Ekle"
               )}
             </Button>
           </DialogFooter>

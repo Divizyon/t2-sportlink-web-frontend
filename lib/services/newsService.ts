@@ -1,6 +1,45 @@
 import api, { handleApiError } from './api';
 import type { AxiosError } from 'axios';
-import type { News, NewsListParams, NewsListResponse, NewsDetailResponse } from '@/interfaces/news';
+import type { News as ApiNews, NewsListParams, NewsListResponse, NewsDetailResponse } from '@/interfaces/news';
+import type { News as UINews, NewsStatus } from '@/types/news';
+
+/**
+ * Maps API news data to UI news format
+ */
+const mapApiNewsToUiNews = (apiNews: ApiNews): UINews => {
+  return {
+    id: parseInt(apiNews.id) || apiNews.id,
+    title: apiNews.title,
+    content: apiNews.content,
+    status: mapNewsStatus(apiNews),
+    category: apiNews.sport?.name || 'Genel',
+    date: apiNews.published_at || apiNews.created_at,
+    author: apiNews.author || 'Anonim',
+    views: apiNews.views || 0,
+    image: apiNews.image_url || '',
+    sourceUrl: apiNews.source || '',
+    
+    // Yeni alanlar
+    source_url: apiNews.source || undefined,
+    image_url: apiNews.image_url || undefined,
+    sport_id: apiNews.sport_id || undefined,
+    published_date: apiNews.published_at ? new Date(apiNews.published_at) : undefined,
+    created_at: apiNews.created_at || undefined,
+    updated_at: apiNews.updated_at || undefined
+  };
+};
+
+/**
+ * Maps API news status to UI news status
+ */
+const mapNewsStatus = (apiNews: ApiNews): NewsStatus => {
+  // Bu kısım backend durumuna göre ayarlanabilir
+  // Örnek bir mantık: published_at varsa Aktif, yoksa Taslak
+  if (apiNews.published_at) {
+    return "Aktif";
+  }
+  return "Taslak";
+};
 
 /**
  * Haber servisi - haberlerle ilgili API operasyonları
@@ -11,7 +50,7 @@ class NewsService {
   /**
    * Tüm haberleri sayfalayarak listeler
    */
-  async listNews(params?: NewsListParams): Promise<NewsListResponse> {
+  async listNews(params?: NewsListParams): Promise<{ success: boolean, data: UINews[], pagination: any, message?: string }> {
     try {
       const queryParams = new URLSearchParams();
       
@@ -43,12 +82,25 @@ class NewsService {
         queryParams.append('endDate', params.endDate);
       }
       
+      console.log(`Fetching news with URL: ${this.BASE_PATH}?${queryParams.toString()}`);
       const response = await api.get(`${this.BASE_PATH}?${queryParams.toString()}`);
+      
+      console.log('News API response:', response.data);
+      
+      // API yanıtını UI formatına dönüştür
+      const uiNews = Array.isArray(response.data.data) 
+        ? response.data.data.map(mapApiNewsToUiNews)
+        : [];
       
       return {
         success: true,
-        data: response.data.data,
-        pagination: response.data.pagination
+        data: uiNews,
+        pagination: response.data.pagination || {
+          total: uiNews.length,
+          page: 1,
+          limit: 10,
+          totalPages: 1
+        }
       };
     } catch (error) {
       console.error('Haberler listelenirken hata:', error);
@@ -70,20 +122,23 @@ class NewsService {
   /**
    * Belirli bir haberin detaylarını getirir
    */
-  async getNewsById(newsId: string): Promise<NewsDetailResponse> {
+  async getNewsById(newsId: string): Promise<{ success: boolean, data: UINews, message?: string }> {
     try {
       const response = await api.get(`${this.BASE_PATH}/${newsId}`);
       
+      // API yanıtını UI formatına dönüştür
+      const uiNews = mapApiNewsToUiNews(response.data);
+      
       return {
         success: true,
-        data: response.data
+        data: uiNews
       };
     } catch (error) {
       console.error('Haber detayları alınırken hata:', error);
       const apiError = handleApiError(error as AxiosError);
       return {
         success: false,
-        data: {} as News,
+        data: {} as UINews,
         message: apiError.message
       };
     }
@@ -92,7 +147,7 @@ class NewsService {
   /**
    * Spor dalına göre haberleri listeler
    */
-  async getNewsBySport(sportId: string, params?: NewsListParams): Promise<NewsListResponse> {
+  async getNewsBySport(sportId: string, params?: NewsListParams): Promise<{ success: boolean, data: UINews[], pagination: any, message?: string }> {
     try {
       const queryParams = new URLSearchParams();
       
@@ -107,10 +162,20 @@ class NewsService {
       
       const response = await api.get(`${this.BASE_PATH}/sport/${sportId}?${queryParams.toString()}`);
       
+      // API yanıtını UI formatına dönüştür
+      const uiNews = Array.isArray(response.data.data) 
+        ? response.data.data.map(mapApiNewsToUiNews)
+        : [];
+      
       return {
         success: true,
-        data: response.data.data,
-        pagination: response.data.pagination
+        data: uiNews,
+        pagination: response.data.pagination || {
+          total: uiNews.length,
+          page: 1,
+          limit: params?.limit || 10,
+          totalPages: 1
+        }
       };
     } catch (error) {
       console.error('Spor dalına göre haberler alınırken hata:', error);
@@ -172,15 +237,20 @@ class NewsService {
   /**
    * Öne çıkan haberleri getirir
    */
-  async getFeaturedNews(limit: number = 5): Promise<NewsListResponse> {
+  async getFeaturedNews(limit: number = 5): Promise<{ success: boolean, data: UINews[], pagination: any, message?: string }> {
     try {
       const response = await api.get(`${this.BASE_PATH}/featured?limit=${limit}`);
       
+      // API yanıtını UI formatına dönüştür
+      const uiNews = Array.isArray(response.data.data) 
+        ? response.data.data.map(mapApiNewsToUiNews)
+        : [];
+      
       return {
         success: true,
-        data: response.data.data,
+        data: uiNews,
         pagination: {
-          total: response.data.data.length,
+          total: uiNews.length,
           page: 1,
           limit: limit,
           totalPages: 1
@@ -198,6 +268,85 @@ class NewsService {
           limit: limit,
           totalPages: 0
         },
+        message: apiError.message
+      };
+    }
+  }
+
+  /**
+   * Haber onaylama
+   */
+  async approveNews(newsId: number): Promise<{ success: boolean, message?: string }> {
+    try {
+      const response = await api.put(`${this.BASE_PATH}/${newsId}/approve`);
+      return {
+        success: true,
+        message: 'Haber başarıyla onaylandı'
+      };
+    } catch (error) {
+      console.error('Haber onaylanırken hata:', error);
+      const apiError = handleApiError(error as AxiosError);
+      return {
+        success: false,
+        message: apiError.message
+      };
+    }
+  }
+
+  /**
+   * Haber reddetme
+   */
+  async rejectNews(newsId: number): Promise<{ success: boolean, message?: string }> {
+    try {
+      const response = await api.put(`${this.BASE_PATH}/${newsId}/reject`);
+      return {
+        success: true,
+        message: 'Haber başarıyla reddedildi'
+      };
+    } catch (error) {
+      console.error('Haber reddedilirken hata:', error);
+      const apiError = handleApiError(error as AxiosError);
+      return {
+        success: false,
+        message: apiError.message
+      };
+    }
+  }
+
+  /**
+   * Yeni haber ekleme
+   */
+  async createNews(newsData: {
+    title: string,
+    content: string,
+    source_url: string,
+    image_url: string,
+    sport_id: string,
+    published_date?: Date
+  }): Promise<{ success: boolean, data?: UINews, message?: string }> {
+    try {
+      const response = await api.post(`${this.BASE_PATH}`, newsData);
+      
+      if (response.data && response.data.data) {
+        // API yanıtını UI formatına dönüştür
+        const uiNews = mapApiNewsToUiNews(response.data.data);
+        
+        return {
+          success: true,
+          data: uiNews,
+          message: 'Haber başarıyla eklendi'
+        };
+      }
+      
+      return {
+        success: true,
+        message: 'Haber başarıyla eklendi'
+      };
+    } catch (error) {
+      console.error('Haber eklenirken hata:', error);
+      const apiError = handleApiError(error as AxiosError);
+      return {
+        success: false,
         message: apiError.message
       };
     }

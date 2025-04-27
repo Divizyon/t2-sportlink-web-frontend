@@ -104,13 +104,24 @@ const AnnouncementPreview: React.FC<AnnouncementPreviewProps> = ({
       <CardContent>
         {viewMode === "preview" ? (
           <div className="space-y-6">
-            <div className="relative h-48 w-full rounded-lg overflow-hidden">
-              <Image
-                src={announcement.image || defaultImage}
-                alt={announcement.title}
-                fill
-                className="object-cover"
-              />
+            <div className="relative h-48 w-full rounded-lg overflow-hidden bg-gray-100">
+              {announcement.image ? (
+                <Image
+                  src={announcement.image || defaultImage}
+                  alt={announcement.title}
+                  fill
+                  className="object-cover"
+                  onError={(e) => {
+                    // Görsel yüklenemezse default görseli göster
+                    const imgElement = e.currentTarget as HTMLImageElement;
+                    imgElement.src = defaultImage;
+                  }}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full w-full">
+                  <div className="text-gray-400 text-sm">Görsel bulunamadı</div>
+                </div>
+              )}
             </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between">

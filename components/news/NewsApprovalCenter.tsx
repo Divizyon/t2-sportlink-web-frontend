@@ -12,25 +12,57 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useStore } from "@/lib/store";
 import type { News } from "@/types/news";
 
 interface NewsApprovalCenterProps {
   news: News[];
-  setSelectedNews: (news: News) => void;
-  handleApproveNews: (id: number) => Promise<void>;
-  handleRejectNews: (id: number) => Promise<void>;
   formatDate: (dateString: string) => string;
 }
 
 const NewsApprovalCenter: React.FC<NewsApprovalCenterProps> = ({
   news,
-  setSelectedNews,
-  handleApproveNews,
-  handleRejectNews,
   formatDate
 }) => {
+  const { approveNews, rejectNews, setSelectedNews, selectedNews } = useStore();
+  
   // Onay bekleyen haberleri filtrele
   const pendingNews = news.filter(n => n.status === "Onay Bekliyor");
+
+  // Haber ID değerini karşılaştırmak için helper fonksiyon
+  const isSameNews = (a: number | string | undefined, b: number | string | undefined): boolean => {
+    if (a === undefined || b === undefined) return false;
+    return String(a) === String(b);
+  };
+
+  // Konsola seçili haberi yazarak hata ayıklama
+  React.useEffect(() => {
+    console.log("Onay Merkezi - Seçili haber ID:", selectedNews?.id);
+  }, [selectedNews]);
+
+  const handleApproveNews = async (id: number) => {
+    try {
+      const result = await approveNews(id);
+      if (!result.success) {
+        console.error('Haber onaylanırken hata:', result.message);
+        // Burada bir bildirim gösterilebilir
+      }
+    } catch (error) {
+      console.error('Haber onaylanırken hata:', error);
+    }
+  };
+
+  const handleRejectNews = async (id: number) => {
+    try {
+      const result = await rejectNews(id);
+      if (!result.success) {
+        console.error('Haber reddedilirken hata:', result.message);
+        // Burada bir bildirim gösterilebilir
+      }
+    } catch (error) {
+      console.error('Haber reddedilirken hata:', error);
+    }
+  };
 
   return (
     <Card>
@@ -42,9 +74,9 @@ const NewsApprovalCenter: React.FC<NewsApprovalCenterProps> = ({
           <h3 className="text-sm font-medium mb-2">Onay Bekleyen Haberler ({pendingNews.length})</h3>
         </div>
         {pendingNews.length > 0 ? (
-          <div className="overflow-auto">
+          <div className="overflow-auto max-h-[400px] border rounded-md">
             <Table className="min-w-full divide-y divide-gray-200">
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-gray-50 z-10">
                 <TableRow>
                   <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Başlık</TableHead>
                   <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Yazar</TableHead>
@@ -54,48 +86,50 @@ const NewsApprovalCenter: React.FC<NewsApprovalCenterProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody className="bg-white divide-y divide-gray-200">
-                {pendingNews.map((item) => (
-                  <tr 
-                    key={item.id}
-                    className="hover:bg-orange-50 cursor-pointer"
-                    onClick={() => {
-                      setSelectedNews(item);
-                    }}
-                  >
-                    <td className="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.title}</td>
-                    <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{item.author}</td>
-                    <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{formatDate(item.date)}</td>
-                    <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{item.category}</td>
-                    <td className="py-4 px-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end gap-2">
+                {pendingNews.map((item, index) => {
+                  const isSelected = isSameNews(selectedNews?.id, item.id);
+                  console.log(`Onay Merkezi - Haber ${item.id} seçili mi:`, isSelected, "Index:", index);
+                  
+                  return (
+                    <tr 
+                      key={item.id}
+                      style={isSelected ? { backgroundColor: '#d1fae5 !important' } : {}}
+                      className={`cursor-pointer ${isSelected ? '!bg-green-100 hover:!bg-green-200' : 'hover:bg-orange-50'}`}
+                      onClick={() => {
+                        setSelectedNews(item);
+                      }}
+                      data-selected={isSelected ? "true" : "false"}
+                      data-index={index}
+                    >
+                      <td className="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.title}</td>
+                      <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{item.author}</td>
+                      <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{formatDate(item.date)}</td>
+                      <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{item.category}</td>
+                      <td className="py-4 px-4 whitespace-nowrap text-right text-sm font-medium">
                         <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="border-green-500 text-green-600 hover:bg-green-50"
+                          size="sm" 
+                          className="mr-2 bg-green-600 hover:bg-green-700"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleApproveNews(item.id);
+                            handleApproveNews(item.id as number);
                           }}
                         >
-                          <Check className="h-4 w-4 mr-1" />
                           Onayla
                         </Button>
                         <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="border-red-500 text-red-600 hover:bg-red-50"
+                          size="sm" 
+                          variant="destructive"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleRejectNews(item.id);
+                            handleRejectNews(item.id as number);
                           }}
                         >
-                          <Ban className="h-4 w-4 mr-1" />
                           Reddet
                         </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

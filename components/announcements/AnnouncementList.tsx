@@ -37,6 +37,7 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
   const pagination = useStore(state => state.pagination);
   const getAnnouncements = useStore(state => state.getAnnouncements);
   const deleteAnnouncement = useStore(state => state.deleteAnnouncement);
+  const setCurrentAnnouncement = useStore(state => state.setCurrentAnnouncement);
   
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("all");
@@ -53,7 +54,18 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
     
     if (!didMount.current) {
       console.log("  → AnnouncementList ilk yükleme - API çağrısı yapılıyor:", pagination.page, pagination.limit);
-      getAnnouncements(pagination.page, pagination.limit);
+      // API çağrısı yaparken hata oluşursa bile bileşen çalışmaya devam etmeli
+      try {
+        getAnnouncements(pagination.page, pagination.limit);
+      } catch (error) {
+        console.error("Duyuru verileri alınırken bir hata oluştu:", error);
+        // Hata durumunda toast göster
+        toast({
+          title: "Hata",
+          description: "Duyurular yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.",
+          variant: "destructive",
+        });
+      }
       didMount.current = true;
       console.log("  → didMount true olarak işaretlendi");
     } else {
@@ -206,6 +218,13 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
     return `temp-${content.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)}`;
   };
 
+  // Yeni duyuru ekleme işlemi için wrapper fonksiyon
+  const handleAddAnnouncement = () => {
+    // Store'daki mevcut duyuruyu temizle ve onAdd'i çağır
+    setCurrentAnnouncement(null);
+    onAdd();
+  };
+
   // Debug için her render'ı logla
   console.log("AnnouncementList RENDER edildi", new Date().toISOString());
 
@@ -321,7 +340,7 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={onAdd}>
+        <Button onClick={handleAddAnnouncement}>
           <Plus className="mr-2 h-4 w-4" />
           Yeni Duyuru Ekle
         </Button>
@@ -399,6 +418,16 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit(announcement);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
