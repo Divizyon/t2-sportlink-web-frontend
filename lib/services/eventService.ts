@@ -1,87 +1,154 @@
 import api, { handleApiError } from './api';
-import type { Event, EventFilterParams, PaginatedEventResponse, Participant } from '@/interfaces/event';
-import { AxiosError } from 'axios';
+import type { AxiosError } from 'axios';
 
-/**
- * Etkinlik servisi - etkinliklerle ilgili API operasyonları
- */
+export interface Event {
+  id: string;
+  creator_id: string;
+  sport_id: string;
+  title: string;
+  description: string;
+  event_date: string;
+  start_time: string;
+  end_time: string;
+  location_name: string;
+  location_latitude: number;
+  location_longitude: number;
+  max_participants: number;
+  status: 'active' | 'canceled' | 'completed' | 'draft';
+  approval_status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  created_at: string;
+  updated_at: string;
+  participants?: Array<{
+    user_id: string;
+    joined_at: string;
+    event_id?: string;
+    role?: string;
+  }>;
+  ratings?: Array<{
+    user_id: string;
+    rating: number;
+    review: string;
+    created_at: string;
+  }>;
+  average_rating?: number;
+}
+
+export interface EventFilterParams {
+  page?: number;
+  limit?: number;
+  sportId?: string | undefined;
+  status?: string[];
+  keyword?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface PaginatedEventResponse {
+  data: Event[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasMore: boolean;
+    pages?: number;
+  };
+}
+
+export interface EventRating {
+  rating: number;
+  review: string;
+}
+
 class EventService {
-  
   /**
-   * Etkinlikleri listele
+   * List events with optional filters
    */
   async listEvents(params?: EventFilterParams): Promise<{
     success: boolean;
-    data?: Event[];
-    pagination?: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-      hasMore: boolean;
-    };
+    data?: PaginatedEventResponse;
     message?: string;
   }> {
     try {
       const queryParams = new URLSearchParams();
       
-      // Arama ve filtre parametreleri ekle
-      if (params?.search && params.search.length > 2) {
-        queryParams.append('search', params.search);
-        if (params.searchField) {
-          queryParams.append('searchField', params.searchField);
-        }
-      }
-      
-      // Sayfalama bilgileri
-      if (params?.page) {
-        queryParams.append('page', params.page.toString());
-      }
-      
-      if (params?.limit) {
-        queryParams.append('limit', params.limit.toString());
-      }
-      
-      // Kategori filtresi
-      if (params?.category && params.category.length > 0) {
-        params.category.forEach(cat => {
-          queryParams.append('category', cat);
-        });
-      }
-      
-      // Durum filtresi
-      if (params?.status && params.status.length > 0) {
-        params.status.forEach(status => {
-          queryParams.append('status', status);
-        });
-      }
-      
-      // Onay durumu filtresi
-      if (params?.approval_status && params.approval_status.length > 0) {
-        params.approval_status.forEach(status => {
-          queryParams.append('approval_status', status);
-        });
-      }
-      
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      if (params?.sportId) queryParams.append('sportId', params.sportId);
+      if (params?.status) params.status.forEach(s => queryParams.append('status', s));
+      if (params?.keyword) queryParams.append('keyword', params.keyword);
+      if (params?.startDate) queryParams.append('startDate', params.startDate);
+      if (params?.endDate) queryParams.append('endDate', params.endDate);
+
       const response = await api.get(`/events?${queryParams.toString()}`);
+      
+      console.log('Raw API response:', response.data);
+      
+      const rawData = response.data;
+      
+      let events: Event[] = [];
+      
+      if (rawData.data && Array.isArray(rawData.data)) {
+        events = rawData.data;
+      } else if (rawData.data && rawData.data.data && Array.isArray(rawData.data.data)) {
+        events = rawData.data.data;
+      } else if (rawData.events && Array.isArray(rawData.events)) {
+        events = rawData.events;
+      } else if (rawData.data && rawData.data.events && Array.isArray(rawData.data.events)) {
+        events = rawData.data.events;
+      } else {
+        events = [];
+        console.error('Could not find events array in API response:', rawData);
+      }
+      
+      let pagination = {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+        hasMore: false
+      };
+      
+      if (rawData.pagination) {
+        pagination = {
+          total: rawData.pagination.total || 0,
+          page: rawData.pagination.page || 1,
+          limit: rawData.pagination.limit || 10,
+          totalPages: rawData.pagination.totalPages || rawData.pagination.pages || 1,
+          hasMore: rawData.pagination.hasMore || false
+        };
+      } else if (rawData.data && rawData.data.pagination) {
+        pagination = {
+          total: rawData.data.pagination.total || 0,
+          page: rawData.data.pagination.page || 1,
+          limit: rawData.data.pagination.limit || 10,
+          totalPages: rawData.data.pagination.totalPages || rawData.data.pagination.pages || 1,
+          hasMore: rawData.data.pagination.hasMore || false
+        };
+      }
+      
+      const standardizedData: PaginatedEventResponse = {
+        data: events,
+        pagination: pagination
+      };
+      
+      console.log('Standardized response data:', standardizedData);
       
       return {
         success: true,
-        data: response.data.data,
-        pagination: response.data.pagination
+        data: standardizedData
       };
     } catch (error) {
-      console.error('Etkinlikler listelenirken hata:', error);
-      const apiError = handleApiError(error as AxiosError);
+      console.error('Error in listEvents:', error);
       return {
         success: false,
-        message: apiError.message
+        message: handleApiError(error as AxiosError).message
       };
     }
   }
-  
+
   /**
-   * Etkinlik detaylarını getir
+   * Get event details by ID
    */
   async getEventById(eventId: string): Promise<{
     success: boolean;
@@ -90,48 +157,20 @@ class EventService {
   }> {
     try {
       const response = await api.get(`/events/${eventId}`);
-      
       return {
         success: true,
         data: response.data
       };
     } catch (error) {
-      console.error('Etkinlik detayları alınırken hata:', error);
-      const apiError = handleApiError(error as AxiosError);
       return {
         success: false,
-        message: apiError.message
+        message: handleApiError(error as AxiosError).message
       };
     }
   }
-  
+
   /**
-   * Etkinlik detaylarını slug ile getir
-   */
-  async getEventBySlug(slug: string): Promise<{
-    success: boolean;
-    data?: Event;
-    message?: string;
-  }> {
-    try {
-      const response = await api.get(`/events/slug/${slug}`);
-      
-      return {
-        success: true,
-        data: response.data
-      };
-    } catch (error) {
-      console.error('Etkinlik detayları alınırken hata:', error);
-      const apiError = handleApiError(error as AxiosError);
-      return {
-        success: false,
-        message: apiError.message
-      };
-    }
-  }
-  
-  /**
-   * Yeni etkinlik oluştur
+   * Create new event
    */
   async createEvent(eventData: Partial<Event>): Promise<{
     success: boolean;
@@ -140,24 +179,21 @@ class EventService {
   }> {
     try {
       const response = await api.post('/events', eventData);
-      
       return {
         success: true,
-        data: response.data.event,
-        message: response.data.message || 'Etkinlik başarıyla oluşturuldu'
+        data: response.data,
+        message: 'Etkinlik başarıyla oluşturuldu'
       };
     } catch (error) {
-      console.error('Etkinlik oluşturulurken hata:', error);
-      const apiError = handleApiError(error as AxiosError);
       return {
         success: false,
-        message: apiError.message
+        message: handleApiError(error as AxiosError).message
       };
     }
   }
-  
+
   /**
-   * Etkinlik güncelle
+   * Update event
    */
   async updateEvent(eventId: string, eventData: Partial<Event>): Promise<{
     success: boolean;
@@ -166,254 +202,265 @@ class EventService {
   }> {
     try {
       const response = await api.put(`/events/${eventId}`, eventData);
-      
       return {
         success: true,
-        data: response.data.event,
-        message: response.data.message || 'Etkinlik başarıyla güncellendi'
+        data: response.data,
+        message: 'Etkinlik başarıyla güncellendi'
       };
     } catch (error) {
-      console.error('Etkinlik güncellenirken hata:', error);
-      const apiError = handleApiError(error as AxiosError);
       return {
         success: false,
-        message: apiError.message
+        message: handleApiError(error as AxiosError).message
       };
     }
   }
-  
+
   /**
-   * Etkinlik sil
+   * Delete event
    */
   async deleteEvent(eventId: string): Promise<{
     success: boolean;
     message?: string;
   }> {
     try {
-      const response = await api.delete(`/events/${eventId}`);
-      
+      await api.delete(`/events/${eventId}`);
       return {
         success: true,
-        message: response.data.message || 'Etkinlik başarıyla silindi'
+        message: 'Etkinlik başarıyla silindi'
       };
     } catch (error) {
-      console.error('Etkinlik silinirken hata:', error);
-      const apiError = handleApiError(error as AxiosError);
       return {
         success: false,
-        message: apiError.message
+        message: handleApiError(error as AxiosError).message
       };
     }
   }
-  
+
   /**
-   * Etkinliğe katıl
+   * Join event
    */
   async joinEvent(eventId: string): Promise<{
     success: boolean;
     message?: string;
   }> {
     try {
-      const response = await api.post(`/events/${eventId}/join`);
-      
+      await api.post(`/events/${eventId}/join`);
       return {
         success: true,
-        message: response.data.message || 'Etkinliğe başarıyla katıldınız'
+        message: 'Etkinliğe başarıyla katıldınız'
       };
     } catch (error) {
-      console.error('Etkinliğe katılırken hata:', error);
-      const apiError = handleApiError(error as AxiosError);
       return {
         success: false,
-        message: apiError.message
+        message: handleApiError(error as AxiosError).message
       };
     }
   }
-  
+
   /**
-   * Etkinlikten ayrıl
+   * Leave event
    */
   async leaveEvent(eventId: string): Promise<{
     success: boolean;
     message?: string;
   }> {
     try {
-      const response = await api.delete(`/events/${eventId}/leave`);
-      
+      await api.delete(`/events/${eventId}/leave`);
       return {
         success: true,
-        message: response.data.message || 'Etkinlikten başarıyla ayrıldınız'
+        message: 'Etkinlikten başarıyla ayrıldınız'
       };
     } catch (error) {
-      console.error('Etkinlikten ayrılırken hata:', error);
-      const apiError = handleApiError(error as AxiosError);
       return {
         success: false,
-        message: apiError.message
+        message: handleApiError(error as AxiosError).message
       };
     }
   }
-  
+
   /**
-   * Kullanıcının katıldığı etkinlikleri getir
+   * Rate event
    */
-  async getUserEvents(): Promise<{
+  async rateEvent(eventId: string, ratingData: EventRating): Promise<{
     success: boolean;
-    data?: PaginatedEventResponse;
     message?: string;
   }> {
     try {
-      const response = await api.get('/events/my/events');
-      
+      await api.post(`/events/${eventId}/rate`, ratingData);
+      return {
+        success: true,
+        message: 'Etkinlik başarıyla değerlendirildi'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: handleApiError(error as AxiosError).message
+      };
+    }
+  }
+
+  /**
+   * Get event ratings
+   */
+  async getEventRatings(eventId: string): Promise<{
+    success: boolean;
+    data?: {
+      averageRating: number;
+      ratings: Array<EventRating & { user_id: string }>;
+    };
+    message?: string;
+  }> {
+    try {
+      const response = await api.get(`/events/${eventId}/ratings`);
       return {
         success: true,
         data: response.data
       };
     } catch (error) {
-      console.error('Kullanıcı etkinlikleri alınırken hata:', error);
-      const apiError = handleApiError(error as AxiosError);
       return {
         success: false,
-        message: apiError.message
+        message: handleApiError(error as AxiosError).message
       };
     }
   }
-  
+
   /**
-   * Kullanıcının oluşturduğu etkinlikleri getir
+   * Get user's events
    */
-  async getUserCreatedEvents(): Promise<{
+  async getUserEvents(params?: { page?: number; limit?: number }): Promise<{
     success: boolean;
     data?: PaginatedEventResponse;
     message?: string;
   }> {
     try {
-      const response = await api.get('/events/my/created');
-      
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+      const response = await api.get(`/events/my-events?${queryParams.toString()}`);
       return {
         success: true,
         data: response.data
       };
     } catch (error) {
-      console.error('Kullanıcının oluşturduğu etkinlikler alınırken hata:', error);
-      const apiError = handleApiError(error as AxiosError);
       return {
         success: false,
-        message: apiError.message
+        message: handleApiError(error as AxiosError).message
       };
     }
   }
-  
+
   /**
-   * Admin: Onay bekleyen etkinlikleri getir
+   * Get user's created events
    */
-  async getPendingEvents(): Promise<{
+  async getUserCreatedEvents(params?: { page?: number; limit?: number }): Promise<{
     success: boolean;
     data?: PaginatedEventResponse;
     message?: string;
   }> {
     try {
-      const response = await api.get('/events/admin/pending');
-      
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+      const response = await api.get(`/events/created-events?${queryParams.toString()}`);
       return {
         success: true,
         data: response.data
       };
     } catch (error) {
-      console.error('Onay bekleyen etkinlikler alınırken hata:', error);
-      const apiError = handleApiError(error as AxiosError);
       return {
         success: false,
-        message: apiError.message
+        message: handleApiError(error as AxiosError).message
       };
     }
   }
-  
+
   /**
-   * Admin: Etkinliği onayla
+   * Get nearby events
+   */
+  async getNearbyEvents(latitude: number, longitude: number, radius: number): Promise<{
+    success: boolean;
+    data?: Event[];
+    message?: string;
+  }> {
+    try {
+      const response = await api.get(`/events/nearby?latitude=${latitude}&longitude=${longitude}&radius=${radius}`);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: handleApiError(error as AxiosError).message
+      };
+    }
+  }
+
+  /**
+   * Get recommended events
+   */
+  async getRecommendedEvents(): Promise<{
+    success: boolean;
+    data?: Event[];
+    message?: string;
+  }> {
+    try {
+      const response = await api.get('/events/recommended');
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: handleApiError(error as AxiosError).message
+      };
+    }
+  }
+
+  /**
+   * Approve event
    */
   async approveEvent(eventId: string): Promise<{
     success: boolean;
     message?: string;
   }> {
     try {
-      const response = await api.post(`/events/${eventId}/approve`);
-      
+      await api.post(`/events/${eventId}/approve`);
       return {
         success: true,
-        message: response.data.message || 'Etkinlik başarıyla onaylandı'
+        message: 'Etkinlik başarıyla onaylandı'
       };
     } catch (error) {
-      console.error('Etkinlik onaylanırken hata:', error);
-      const apiError = handleApiError(error as AxiosError);
       return {
         success: false,
-        message: apiError.message
+        message: handleApiError(error as AxiosError).message
       };
     }
   }
-  
+
   /**
-   * Admin: Etkinliği reddet
+   * Reject event
    */
   async rejectEvent(eventId: string): Promise<{
     success: boolean;
     message?: string;
   }> {
     try {
-      const response = await api.post(`/events/${eventId}/reject`);
-      
+      await api.post(`/events/${eventId}/reject`);
       return {
         success: true,
-        message: response.data.message || 'Etkinlik başarıyla reddedildi'
+        message: 'Etkinlik başarıyla reddedildi'
       };
     } catch (error) {
-      console.error('Etkinlik reddedilirken hata:', error);
-      const apiError = handleApiError(error as AxiosError);
       return {
         success: false,
-        message: apiError.message
-      };
-    }
-  }
-  
-  /**
-   * Etkinlik resmi yükle
-   */
-  async uploadEventImage(eventId: string, imageFile: File): Promise<{
-    success: boolean;
-    data?: {
-      imageUrl: string;
-    };
-    message?: string;
-  }> {
-    try {
-      const formData = new FormData();
-      formData.append('image', imageFile);
-      
-      const response = await api.post(`/events/${eventId}/upload-image`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      return {
-        success: true,
-        data: {
-          imageUrl: response.data.imageUrl
-        },
-        message: response.data.message || 'Resim başarıyla yüklendi'
-      };
-    } catch (error) {
-      console.error('Etkinlik resmi yüklenirken hata:', error);
-      const apiError = handleApiError(error as AxiosError);
-      return {
-        success: false,
-        message: apiError.message
+        message: handleApiError(error as AxiosError).message
       };
     }
   }
 }
 
-const eventService = new EventService();
-export default eventService; 
+export default new EventService(); 

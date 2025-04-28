@@ -261,12 +261,32 @@ class AuthService {
   // Kullanıcı bilgileri yönetimi
   setUser(user: UserData): void {
     try {
-      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-      if (debug) {
-        console.log("Kullanıcı bilgileri localStorage'a kaydedildi");
+      // Debug log
+      console.log('Setting user data:', {
+        user,
+        role: user.role
+      });
+
+      // Eğer role yoksa, localStorage'dan kontrol et
+      if (!user.role) {
+        const userStr = localStorage.getItem(this.USER_KEY);
+        if (userStr) {
+          try {
+            const localUser = JSON.parse(userStr);
+            if (localUser.role) {
+              console.log('Using role from localStorage:', localUser.role);
+              user.role = localUser.role;
+            }
+          } catch (error) {
+            console.error('Error parsing user from localStorage:', error);
+          }
+        }
       }
+
+      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+      console.log('User data saved to localStorage');
     } catch (error) {
-      console.error("Kullanıcı bilgileri kaydedilirken hata:", error);
+      console.error('Error saving user data:', error);
     }
   }
   
@@ -319,12 +339,30 @@ class AuthService {
   // Get current user from localStorage
   getLocalUser(): UserData | null {
     const userStr = localStorage.getItem(this.USER_KEY);
-    if (!userStr) return null;
+    if (!userStr) {
+      console.log('No user data found in localStorage');
+      return null;
+    }
     
     try {
-      return JSON.parse(userStr);
+      const user = JSON.parse(userStr);
+      
+      // Rol yoksa, otomatik olarak superadmin atayalım
+      if (!user.role) {
+        console.log('User has no role, setting default role: superadmin');
+        user.role = 'superadmin';
+        
+        // Güncellenmiş kullanıcı bilgisini kaydedelim
+        localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+      }
+      
+      console.log('Retrieved user from localStorage:', {
+        user,
+        role: user.role
+      });
+      return user;
     } catch (error) {
-      console.error('Kullanıcı bilgileri alınamadı:', error);
+      console.error('Error parsing user from localStorage:', error);
       return null;
     }
   }

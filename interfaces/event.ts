@@ -11,7 +11,7 @@ export interface Event {
   location_latitude: number;
   location_longitude: number;
   max_participants: number;
-  status: string;
+  status: 'active' | 'canceled' | 'completed' | 'draft' | string;
   approval_status: "pending" | "approved" | "rejected" | "cancelled";
   created_at: string;
   updated_at: string;
@@ -59,13 +59,17 @@ export interface Participant {
 }
 
 export interface EventFilterParams {
-  category?: string[];
+  page?: number;
+  limit?: number;
+  sportId?: string | undefined;
   status?: string[];
+  keyword?: string;
+  startDate?: string;
+  endDate?: string;
+  category?: string[];
   approval_status?: string[];
   search?: string;
   searchField?: string;
-  page?: number;
-  limit?: number;
 }
 
 export interface PaginatedEventResponse {

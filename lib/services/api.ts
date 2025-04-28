@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+import axiosRetry from 'axios-retry';
 
 // API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
@@ -15,11 +16,31 @@ export const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 seconds
+  timeout: 30000, // 30 seconds
+});
+
+// Configure retry logic
+axiosRetry(api, {
+  retries: 3, // Number of retry attempts
+  retryDelay: (retryCount: number) => {
+    return retryCount * 1000; // Time to wait between retries (1s, 2s, 3s)
+  },
+  retryCondition: (error: AxiosError) => {
+    // Retry on network errors or 429 (too many requests)
+    return axiosRetry.isNetworkOrIdempotentRequestError(error) || 
+           error.response?.status === 429;
+  }
 });
 
 // Log middleware - Development only
-const debug = process.env.NODE_ENV === 'development';
+const debug = process.env.NODE_ENV === 'development' || true; // Daima debug modunu etkinleştir
+
+// Axios konfigürasyonu hakkında bilgi
+console.log('Axios yapılandırması: ', {
+  baseURL: API_BASE_URL,
+  timeout: api.defaults.timeout,
+  defaultHeaders: api.defaults.headers
+});
 
 // Request interceptor
 api.interceptors.request.use(
@@ -55,7 +76,8 @@ api.interceptors.request.use(
         
         if (debug) {
           console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
-          console.log('Token bulundu ve header\'a eklendi');
+          console.log('Request Headers:', config.headers);
+          console.log('Request Data:', config.data);
           
           // Kullanıcı rolü kontrolü
           const userStr = localStorage.getItem('user');
@@ -76,11 +98,11 @@ api.interceptors.request.use(
       return config;
     } catch (error) {
       console.error('Token alınırken hata oluştu:', error);
-      // Hata olsa bile isteği devam ettir, backend 401 ile yanıt verecektir
       return config;
     }
   },
   (error: AxiosError) => {
+    console.error('Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -90,6 +112,7 @@ api.interceptors.response.use(
   (response: AxiosResponse) => {
     if (debug) {
       console.log(`API Response: ${response.status} ${response.config.url}`);
+      console.log('Response Data:', response.data);
     }
     return response;
   },
@@ -97,6 +120,14 @@ api.interceptors.response.use(
     if (debug) {
       console.error(`API Error: ${error.response?.status} ${error.config?.url}`);
       console.error('Error Details:', error.response?.data);
+      console.error('Error Config:', error.config);
+      
+      // Daha detaylı hata analizi
+      if (error.response?.status === 404) {
+        console.error('404 Not Found hatası. URL:', error.config?.url);
+        console.error('Bu endpoint backend tarafında mevcut olmayabilir veya yanlış URL kullanılmış olabilir.');
+        console.error('Postman koleksiyonunda doğru endpoint adresini kontrol edin!');
+      }
     }
     
     // Hata tipine göre işlem yap
@@ -111,13 +142,17 @@ api.interceptors.response.use(
         window.location.href = '/auth/login';
       } catch (e) {
         console.error('Token silinemedi:', e);
-        // Yönlendirmeyi yine de yap
         window.location.href = '/auth/login';
       }
     } else if (error.response?.status === 403) {
       // Yetkisiz işlem - token doğru ama bu işlem için yetki yok
       console.error('Yetki hatası: Bu işlem için yetkiniz yok.');
-      // Burada özel bir işlem yapabilirsiniz (örn: bildirim gösterme)
+    } else if (error.response?.status === 404) {
+      // Kaynak bulunamadı
+      console.error('Kaynak bulunamadı:', error.config?.url);
+    } else if (error.response?.status === 500) {
+      // Sunucu hatası
+      console.error('Sunucu hatası:', error.response?.data);
     }
     
     return Promise.reject(error);

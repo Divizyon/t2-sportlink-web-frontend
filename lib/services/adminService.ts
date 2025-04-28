@@ -58,7 +58,7 @@ export interface UsersListResponse {
 
 // Admin servisi sınıfı
 class AdminService {
-  private readonly BASE_PATH = '/admin';
+  private readonly BASE_PATH = '/users/admin';
 
   // Tüm kullanıcıları listele
   async listAllUsers(params?: PaginationParams & { query?: string, searchField?: string }): Promise<UsersListResponse> {
@@ -94,7 +94,7 @@ class AdminService {
       
       if (debug) {
         console.log("API isteği config:", {
-          url: `${this.BASE_PATH}/users`,
+          url: `${this.BASE_PATH}`,
           params: config.params,
           headers: {
             Authorization: config.headers.Authorization ? 
@@ -103,7 +103,7 @@ class AdminService {
         });
       }
       
-      const response = await api.get<UsersListResponse>(`${this.BASE_PATH}/users`, config);
+      const response = await api.get<UsersListResponse>(`${this.BASE_PATH}`, config);
       
       if (debug) {
         console.log("AdminService: Kullanıcı listesi alındı", response.data);
@@ -133,7 +133,7 @@ class AdminService {
         console.log("AdminService: Kullanıcı detayları alınıyor", userId);
       }
       
-      const response = await api.get<{ success: boolean; data: AdminUser }>(`${this.BASE_PATH}/users/${userId}`);
+      const response = await api.get<{ success: boolean; data: AdminUser }>(`${this.BASE_PATH}/${userId}`);
       
       if (debug) {
         console.log("AdminService: Kullanıcı detayları alındı", response.data);
@@ -155,7 +155,7 @@ class AdminService {
         console.log("AdminService: Kullanıcı rolü güncelleniyor", userId, data);
       }
       
-      const response = await api.patch<{ success: boolean; message: string; data: AdminUser }>(`${this.BASE_PATH}/users/${userId}/role`, data);
+      const response = await api.patch<{ success: boolean; message: string; data: AdminUser }>(`${this.BASE_PATH}/${userId}/role`, data);
       
       if (debug) {
         console.log("AdminService: Kullanıcı rolü güncellendi", response.data);
@@ -177,7 +177,7 @@ class AdminService {
         console.log("AdminService: Yeni kullanıcı oluşturuluyor", data);
       }
       
-      const response = await api.post<{ success: boolean; message: string; data: AdminUser }>(`${this.BASE_PATH}/users`, data);
+      const response = await api.post<{ success: boolean; message: string; data: AdminUser }>(`${this.BASE_PATH}`, data);
       
       if (debug) {
         console.log("AdminService: Yeni kullanıcı oluşturuldu", response.data);
@@ -199,7 +199,7 @@ class AdminService {
         console.log("AdminService: Kullanıcı siliniyor", userId);
       }
       
-      const response = await api.delete<{ success: boolean; message: string }>(`${this.BASE_PATH}/users/${userId}`);
+      const response = await api.delete<{ success: boolean; message: string }>(`${this.BASE_PATH}/${userId}`);
       
       if (debug) {
         console.log("AdminService: Kullanıcı silindi", response.data);

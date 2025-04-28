@@ -39,6 +39,7 @@ import EventPreview from "@/components/events/EventPreview";
 
 export default function EventsPage() {
   const { toast } = useToast();
+  // Use the role check again now that we've added default role
   const { user, isLoading: authLoading, isAuthenticated, hasRequiredRole } = useAuth('admin');
   
   const [events, setEvents] = useState<Event[]>([]);
@@ -58,7 +59,8 @@ export default function EventsPage() {
     end_time: "",
     location_name: "",
     max_participants: 10,
-    status: "pending",
+    status: "draft" as 'draft',
+    approval_status: "pending" as "pending",
     sport_id: "",
     creator_id: user?.id || ""
   });
@@ -103,7 +105,19 @@ export default function EventsPage() {
   useEffect(() => {
     // Eğer kimlik doğrulama tamamlandıysa ve gerekli yetkiler varsa, etkinlikleri getir
     if (!authLoading && isAuthenticated && hasRequiredRole) {
+      console.log('Fetching events with params:', {
+        page: pagination.page,
+        limit: pagination.limit,
+        searchQuery,
+        selectedFilters
+      });
       fetchEvents();
+    } else {
+      console.log('Not fetching events because:', {
+        authLoading,
+        isAuthenticated,
+        hasRequiredRole
+      });
     }
   }, [pagination.page, pagination.limit, searchQuery, searchField, selectedFilters, authLoading, isAuthenticated, hasRequiredRole]);
 
@@ -116,72 +130,50 @@ export default function EventsPage() {
 
   // Etkinlikleri API'den yükle
   const fetchEvents = async () => {
-    // Eğer kullanıcının yetkisi yoksa veya giriş yapmamışsa, hemen çık
-    if (!isAuthenticated || !hasRequiredRole) {
-      return;
-    }
-    
     try {
+      console.log('Starting fetchEvents...');
       setLoading(true);
       
-      const params: {
-        page: number;
-        limit: number;
-        search?: string;
-        searchField?: string;
-        category?: string[];
-        status?: string[];
-        approval_status?: string[];
-      } = {
+      const params = {
         page: pagination.page,
-        limit: pagination.limit
+        limit: pagination.limit,
+        keyword: searchQuery,
+        status: selectedFilters.status,
+        sportId: selectedFilters.category[0]
       };
       
-      if (searchQuery.length > 2) {
-        params.search = searchQuery;
-        params.searchField = searchField;
-      }
-      
-      if (selectedFilters.category.length > 0) {
-        params.category = selectedFilters.category;
-      }
-      
-      if (selectedFilters.status.length > 0) {
-        params.status = selectedFilters.status;
-      }
-      
-      if (selectedFilters.approval_status.length > 0) {
-        params.approval_status = selectedFilters.approval_status;
-      }
-      
+      console.log('Calling eventService.listEvents with params:', params);
       const response = await eventService.listEvents(params);
-      
+      console.log('EventService response:', response);
+
       if (response.success && response.data) {
-        console.log("Dashboard/events - Etkinlikler yüklendi:", response.data.length);
-        setEvents(response.data);
-        if (response.pagination) {
-          setPagination({
-            total: response.pagination.total || 0,
-            page: response.pagination.page || 1,
-            limit: response.pagination.limit || 10,
-            pages: response.pagination.totalPages || 0
-          });
+        console.log('Setting events data:', response.data.data);
+        
+        // Now we can directly use the standardized data from the service
+        setEvents(response.data.data as any);
+        
+        // Handle pagination data safely
+        const paginationInfo = response.data.pagination;
+        if (paginationInfo) {
+          setPagination(prev => ({
+            ...prev,
+            total: paginationInfo.total || 0,
+            pages: paginationInfo.totalPages || 1
+          }));
         }
       } else {
-        console.error("Dashboard/events - API başarısız yanıt:", response);
-        
+        console.error('Error in fetchEvents:', response.message);
         toast({
           title: "Hata",
           description: response.message || "Etkinlikler yüklenirken bir hata oluştu",
           variant: "destructive",
         });
       }
-    } catch (error: any) {
-      console.error("Dashboard/events - Etkinlikler yüklenirken hata:", error);
-      
+    } catch (error) {
+      console.error("Error in fetchEvents:", error);
       toast({
         title: "Hata",
-        description: error.message || "Etkinlikler yüklenirken bir hata oluştu",
+        description: "Etkinlikler yüklenirken bir hata oluştu",
         variant: "destructive",
       });
     } finally {
@@ -209,6 +201,7 @@ export default function EventsPage() {
         event_date: new Date(newEvent.event_date).toISOString(),
         start_time: new Date(`${newEvent.event_date}T${newEvent.start_time}`).toISOString(),
         end_time: new Date(`${newEvent.event_date}T${newEvent.end_time}`).toISOString(),
+        status: newEvent.status as 'active' | 'canceled' | 'completed' | 'draft'
       };
       
       const response = await eventService.createEvent(formattedEvent);
@@ -245,7 +238,15 @@ export default function EventsPage() {
     try {
       // Use selectedEvent for update payload if editingEvent is not the source of truth for the form
       const updatePayload = viewMode === 'edit' && selectedEvent ? selectedEvent : editingEvent;
-      const response = await eventService.updateEvent(updatePayload.id, updatePayload);
+      
+      // Ensure the status is one of the expected types
+      const typedPayload = {
+        ...updatePayload,
+        status: updatePayload.status as 'active' | 'canceled' | 'completed' | 'draft',
+        approval_status: updatePayload.approval_status as 'pending' | 'approved' | 'rejected'
+      };
+      
+      const response = await eventService.updateEvent(typedPayload.id, typedPayload);
       
       if (response.success) {
         toast({
@@ -412,7 +413,8 @@ export default function EventsPage() {
       end_time: "",
       location_name: "",
       max_participants: 10,
-      status: "pending",
+      status: "draft" as 'draft',
+      approval_status: "pending" as "pending",
       sport_id: "",
       creator_id: user?.id || ""
     });
