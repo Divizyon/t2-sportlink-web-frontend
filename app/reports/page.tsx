@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,7 +27,7 @@ interface ReportDetail {
 }
 
 export default function ReportsPage() {
-  const auth = useAuth("admin")
+  const { isAdmin } = useAuth()
   const [reportedUsers, setReportedUsers] = useState<ReportedUser[]>([])
   const [selectedUser, setSelectedUser] = useState<ReportedUser | null>(null)
   const [reportDetails, setReportDetails] = useState<ReportDetail[]>([])
@@ -70,15 +70,9 @@ export default function ReportsPage() {
     setLoading(false)
 
     // İlk kullanıcıyı seç
-    const firstUser = mockReportedUsers[0]
-    if (firstUser) {
-      setSelectedUser(firstUser)
-      const details = mockReportDetails[firstUser.id]
-      if (details) {
-        setReportDetails(details)
-      } else {
-        setReportDetails([])
-      }
+    if (mockReportedUsers.length > 0) {
+      setSelectedUser(mockReportedUsers[0])
+      setReportDetails(mockReportDetails[mockReportedUsers[0].id])
     }
   }, [])
 
@@ -106,13 +100,7 @@ export default function ReportsPage() {
         { id: "r9", reporterId: "2", reporterName: "user2", reportDate: "2024-04-20", reason: "Taciz", description: "Rahatsız edici mesajlar gönderiyor." },
       ],
     }
-    
-    const details = userReports[user.id]
-    if (details) {
-      setReportDetails(details)
-    } else {
-      setReportDetails([])
-    }
+    setReportDetails(userReports[user.id])
   }
 
   const handleBlockUser = (userId: string) => {
@@ -133,7 +121,7 @@ export default function ReportsPage() {
     alert(`Kullanıcı ${userId} rapor listesinden kaldırıldı`)
   }
 
-  if (!auth.hasRequiredRole) {
+  if (!isAdmin) {
     return (
       <div className="container mx-auto py-6">
         <h1 className="text-2xl font-bold mb-4">Yetkiniz Bulunmamaktadır</h1>
@@ -152,7 +140,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <div>
+    <div className="container mx-auto py-6">
       <h1 className="text-2xl font-bold mb-4">Raporlar</h1>
       
       <div className="flex flex-col md:flex-row gap-4">
