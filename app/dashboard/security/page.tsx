@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { SecurityLogs } from "@/components/dashboard/security/SecurityLogs";
-import { BlockedUsers } from "@/components/dashboard/security/BlockedUsers";
-import { UserDetailDialog } from "@/components/dashboard/security/UserDetailDialog";
-import { AdminDetailDialog } from "@/components/dashboard/security/AdminDetailDialog";
+import { SecurityLogs } from "@/components/security/SecurityLogs";
+import { BlockedUsers } from "@/components/security/BlockedUsers";
+import { UserDetailDialog } from "@/components/security/UserDetailDialog";
+import { AdminDetailDialog } from "@/components/security/AdminDetailDialog";
 
 interface UserData {
   id: string;
