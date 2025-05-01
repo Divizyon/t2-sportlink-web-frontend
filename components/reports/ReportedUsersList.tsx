@@ -3,7 +3,7 @@
 import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Shield, X } from "lucide-react";
+import { Shield, X, Trash } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import type { ReportedUser } from "./types";
 
@@ -62,8 +62,7 @@ export function ReportedUsersList({
                     size="sm"
                     onClick={() => handleBlockUser(user.id, user.username)}
                   >
-                    <Shield className="h-4 w-4 mr-1" />
-                    Engelle
+                    <Shield className="h-4 w-4" />
                   </Button>
                 )}
                 <Button
@@ -71,8 +70,7 @@ export function ReportedUsersList({
                   size="sm"
                   onClick={() => handleRemoveReport(user.id, user.username)}
                 >
-                  <X className="h-4 w-4 mr-1" />
-                  Kaldır
+                  <Trash className="h-4 w-4" />
                 </Button>
               </div>
             </TableCell>

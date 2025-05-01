@@ -36,31 +36,12 @@ export function ReportDetails({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-4">
         <CardTitle>{selectedUser.username} Hakkında Raporlar</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="mb-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-medium">{selectedUser.username}</h3>
-              <p className="text-sm text-muted-foreground">
-                Toplam {selectedUser.reportCount} rapor
-              </p>
-            </div>
-            <span
-              className={`px-2 py-1 rounded-full text-xs ${
-                selectedUser.status === "blocked"
-                  ? "bg-red-100 text-red-800"
-                  : "bg-green-100 text-green-800"
-              }`}
-            >
-              {selectedUser.status === "blocked" ? "Engellendi" : "Aktif"}
-            </span>
-          </div>
-        </div>
 
-        <Separator className="my-4" />
+        <Separator className="mb-4" />
 
         <div className="space-y-4">
           <h4 className="font-medium">Rapor Geçmişi</h4>
@@ -112,9 +93,9 @@ export function ReportDetails({
                 )}
 
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className="w-full mt-2 text-primary"
+                  className="mt-2 text-primary border-primary hover:bg-primary/5 text-xs px-2 py-0 h-7"
                   onClick={(e) => {
                     e.stopPropagation();
                     onReportClick(report);

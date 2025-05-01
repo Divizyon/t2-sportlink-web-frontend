@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { SecurityLogs } from "@/components/security/SecurityLogs";
-import { BlockedUsers } from "@/components/security/BlockedUsers";
 import { UserDetailDialog } from "@/components/security/UserDetailDialog";
 import { AdminDetailDialog } from "@/components/security/AdminDetailDialog";
 
@@ -171,16 +170,9 @@ export default function SecurityPage() {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="w-full">
       <SecurityLogs initialSearchQuery={searchQuery} />
       
-      <BlockedUsers 
-        blockedUsers={blockedUsers}
-        usersData={usersData}
-        onUserClick={showUserDetails}
-        onAdminClick={showAdminDetails}
-      />
-
       <UserDetailDialog 
         open={showUserDialog}
         onOpenChange={setShowUserDialog}
