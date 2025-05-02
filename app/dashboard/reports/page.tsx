@@ -2,18 +2,9 @@
 
 import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Shield, X, Eye, Search, Filter, XCircle, MessageSquare, ListFilter, CheckCircle2, Trash2 } from "lucide-react"
 import useAuth from "@/lib/hooks/useAuth"
-import { Separator } from "@/components/ui/separator"
-import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
 import { ReportFilterBar } from "@/components/reports/ReportFilterBar"
@@ -21,187 +12,220 @@ import { ReportedUsersList } from "@/components/reports/ReportedUsersList"
 import { ReportDetails } from "@/components/reports/ReportDetails"
 import { ReportSheet } from "@/components/reports/ReportSheet"
 import type { ReportedUser, ReportDetail } from "@/components/reports/types"
+import { useStore } from "@/lib/store"
 
 export default function ReportsPage() {
   const auth = useAuth("admin")
   const router = useRouter()
-  const [reportedUsers, setReportedUsers] = useState<ReportedUser[]>([])
-  const [selectedUser, setSelectedUser] = useState<ReportedUser | null>(null)
-  const [reportDetails, setReportDetails] = useState<ReportDetail[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
+  
+  // Zustand store
+  const { 
+    reportedUsers, 
+    reportSelectedUser,
+    reportDetails, 
+    reportIsLoading,
+    reportError,
+    reportCurrentPage,
+    totalReportedUsers,
+    getReportedUsers,
+    getReportDetailsForUser,
+    getAllReports,
+    getEventReports,
+    setReportSelectedUser,
+    setReportSelectedReport,
+    updateReport,
+    removeReport,
+    blockUserFromReports,
+    searchReportedUsers
+  } = useStore()
+  
+  // Local state
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "blocked">("all")
-  const [selectedReport, setSelectedReport] = useState<ReportDetail | null>(null)
   const [isReportSheetOpen, setIsReportSheetOpen] = useState(false)
   const [adminMessage, setAdminMessage] = useState("")
+  const [selectedReport, setSelectedReport] = useState<ReportDetail | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [limit] = useState(10)
 
-  // Örnek veri
+  // Veri yükleme
   useEffect(() => {
-    // Gerçek uygulamada bu verilerin API'dan çekilmesi gerekir
-    const mockReportedUsers: ReportedUser[] = [
-      { id: "1", username: "user1", reportCount: 3, lastReportDate: "2024-04-25", status: "active" },
-      { id: "2", username: "user2", reportCount: 5, lastReportDate: "2024-04-24", status: "active" },
-      { id: "3", username: "user3", reportCount: 2, lastReportDate: "2024-04-23", status: "blocked" },
-      { id: "4", username: "user4", reportCount: 1, lastReportDate: "2024-04-22", status: "active" },
-      { id: "5", username: "user5", reportCount: 4, lastReportDate: "2024-04-21", status: "active" },
-    ]
-
-    const mockReportDetails: { [key: string]: ReportDetail[] } = {
-      "1": [
-        { id: "r1", reporterId: "5", reporterName: "user5", reportDate: "2024-04-25", reason: "Kötü davranış", description: "Etkinlik sırasında kaba davrandı.", reviewed: false },
-        { id: "r2", reporterId: "4", reporterName: "user4", reportDate: "2024-04-24", reason: "Uygunsuz içerik", description: "Profil fotoğrafı uygunsuz içerik barındırıyor.", reviewed: false },
-        { id: "r3", reporterId: "3", reporterName: "user3", reportDate: "2024-04-23", reason: "Taciz", description: "Özel mesajlarda rahatsız edici ifadeler kullandı.", reviewed: false },
-      ],
-      "2": [
-        { id: "r4", reporterId: "1", reporterName: "user1", reportDate: "2024-04-24", reason: "Spam", description: "Sürekli spam mesajlar gönderiyor.", reviewed: false },
-        { id: "r5", reporterId: "3", reporterName: "user3", reportDate: "2024-04-23", reason: "Sahte profil", description: "Sahte bilgilerle açılmış bir profil.", reviewed: false },
-      ],
-      "3": [
-        { id: "r6", reporterId: "2", reporterName: "user2", reportDate: "2024-04-23", reason: "Nefret söylemi", description: "Yorumlarda nefret söylemi içeren ifadeler kullandı.", reviewed: false },
-      ],
-      "4": [
-        { id: "r7", reporterId: "5", reporterName: "user5", reportDate: "2024-04-22", reason: "Kötü davranış", description: "Etkinlikte agresif davranışlar sergiledi.", reviewed: false },
-      ],
-      "5": [
-        { id: "r8", reporterId: "1", reporterName: "user1", reportDate: "2024-04-21", reason: "Uygunsuz içerik", description: "Paylaşımları uygunsuz içerik barındırıyor.", reviewed: false },
-        { id: "r9", reporterId: "2", reporterName: "user2", reportDate: "2024-04-20", reason: "Taciz", description: "Rahatsız edici mesajlar gönderiyor.", reviewed: false },
-      ],
-    }
-
-    setReportedUsers(mockReportedUsers)
-    setLoading(false)
-
-    // İlk kullanıcıyı seç
-    const firstUser = mockReportedUsers[0]
-    if (firstUser) {
-      setSelectedUser(firstUser)
-      const details = mockReportDetails[firstUser.id]
-      if (details) {
-        setReportDetails(details)
-      } else {
-        setReportDetails([])
-      }
-    }
-  }, [])
+    getReportedUsers(currentPage, limit)
+  }, [getReportedUsers, currentPage, limit])
 
   const handleUserSelect = (user: ReportedUser) => {
-    setSelectedUser(user)
-    // Gerçek uygulamada bu veriler API'dan çekilecek
-    const userReports: { [key: string]: ReportDetail[] } = {
-      "1": [
-        { id: "r1", reporterId: "5", reporterName: "user5", reportDate: "2024-04-25", reason: "Kötü davranış", description: "Etkinlik sırasında kaba davrandı.", reviewed: false },
-        { id: "r2", reporterId: "4", reporterName: "user4", reportDate: "2024-04-24", reason: "Uygunsuz içerik", description: "Profil fotoğrafı uygunsuz içerik barındırıyor.", reviewed: false },
-        { id: "r3", reporterId: "3", reporterName: "user3", reportDate: "2024-04-23", reason: "Taciz", description: "Özel mesajlarda rahatsız edici ifadeler kullandı.", reviewed: false },
-      ],
-      "2": [
-        { id: "r4", reporterId: "1", reporterName: "user1", reportDate: "2024-04-24", reason: "Spam", description: "Sürekli spam mesajlar gönderiyor.", reviewed: false },
-        { id: "r5", reporterId: "3", reporterName: "user3", reportDate: "2024-04-23", reason: "Sahte profil", description: "Sahte bilgilerle açılmış bir profil.", reviewed: false },
-      ],
-      "3": [
-        { id: "r6", reporterId: "2", reporterName: "user2", reportDate: "2024-04-23", reason: "Nefret söylemi", description: "Yorumlarda nefret söylemi içeren ifadeler kullandı.", reviewed: false },
-      ],
-      "4": [
-        { id: "r7", reporterId: "5", reporterName: "user5", reportDate: "2024-04-22", reason: "Kötü davranış", description: "Etkinlikte agresif davranışlar sergiledi.", reviewed: false },
-      ],
-      "5": [
-        { id: "r8", reporterId: "1", reporterName: "user1", reportDate: "2024-04-21", reason: "Uygunsuz içerik", description: "Paylaşımları uygunsuz içerik barındırıyor.", reviewed: false },
-        { id: "r9", reporterId: "2", reporterName: "user2", reportDate: "2024-04-20", reason: "Taciz", description: "Rahatsız edici mesajlar gönderiyor.", reviewed: false },
-      ],
-    }
-    
-    const details = userReports[user.id]
-    if (details) {
-      setReportDetails(details)
-    } else {
-      setReportDetails([])
-    }
+    setReportSelectedUser(user)
+    // getReportDetailsForUser is called inside setReportSelectedUser
   }
 
-  const handleBlockUser = (userId: string, username: string) => {
-    // Kullanıcıyı raporlanan kullanıcılar listesinden kaldır
-    setReportedUsers(reportedUsers.filter(user => user.id !== userId))
-    
-    // Eğer engellenen kullanıcı seçili kullanıcıysa, seçimi temizle
-    if (selectedUser?.id === userId) {
-      setSelectedUser(null)
-      setReportDetails([])
-    }
-    
-    // Engellenen kullanıcıyı Güvenlik sayfasındaki engellenen kullanıcılar listesine eklemek için
-    // localStorage'a kaydedelim (gerçek uygulamada API kullanılacaktır)
+  const handleBlockUser = async (userId: string, username: string) => {
     try {
-      const blockedUsers = JSON.parse(localStorage.getItem('blockedUsers') || '[]')
-      blockedUsers.push({
-        id: userId,
-        username: username,
-        blockedAt: new Date().toISOString(),
-        reason: 'Rapor nedeniyle engellendi',
-      })
-      localStorage.setItem('blockedUsers', JSON.stringify(blockedUsers))
+      const success = await blockUserFromReports(userId, "Rapor nedeniyle engellendi")
       
-      toast({
-        title: "Kullanıcı engellendi",
-        description: `${username} başarıyla engellendi ve güvenlik listesine eklendi.`,
-      })
+      if (success) {
+        toast({
+          title: "Kullanıcı engellendi",
+          description: `${username} başarıyla engellendi ve güvenlik listesine eklendi.`,
+        })
+        
+        // Refresh the list of reported users
+        getReportedUsers(currentPage, limit)
+      } else {
+        toast({
+          title: "Hata",
+          description: reportError || "Kullanıcı engellenirken bir hata oluştu.",
+          variant: "destructive",
+        })
+      }
     } catch (error) {
-      console.error("Engellenen kullanıcılar listesine eklenirken hata oluştu:", error)
+      console.error("Block user error:", error)
       toast({
-        title: "Kullanıcı engellendi",
-        description: `${username} engellendi fakat güvenlik listesine eklenirken hata oluştu.`,
+        title: "API Hatası",
+        description: "Kullanıcı engelleme API'si henüz implemente edilmemiş olabilir.",
         variant: "destructive",
       })
+      
+      // Update UI optimistically assuming the action worked
+      // This is a temporary solution until the API is implemented
+      const updatedUsers = reportedUsers.map(user => 
+        user.id === userId ? { ...user, status: "blocked" as const } : user
+      )
+      
+      // We're simulating a successful block operation on the frontend
+      // This should be removed once the backend API is working
+      toast({
+        title: "Simule Edildi",
+        description: `${username} engellendi (yalnızca UI güncellemesi).`,
+      })
     }
   }
 
-  const handleRemoveReport = (userId: string, username: string) => {
-    // Gerçek uygulamada bu işlem API üzerinden yapılacak
-    setReportedUsers(reportedUsers.filter(user => user.id !== userId))
-    if (selectedUser?.id === userId) {
-      setSelectedUser(null)
-      setReportDetails([])
+  const handleRemoveReport = async (reportId: string, username: string) => {
+    try {
+      const success = await removeReport(reportId)
+      
+      if (success) {
+        toast({
+          title: "Rapor kaldırıldı",
+          description: `${username} için rapor kaldırıldı.`,
+        })
+        
+        // If the user was selected, clear selection
+        if (reportSelectedUser && reportDetails.length <= 1) {
+          setReportSelectedUser(null)
+        }
+        
+        // Refresh report list
+        if (reportSelectedUser) {
+          getReportDetailsForUser(reportSelectedUser.id)
+        }
+      } else {
+        toast({
+          title: "Hata",
+          description: reportError || "Rapor kaldırılırken bir hata oluştu.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Remove report error:", error)
+      toast({
+        title: "API Hatası",
+        description: "Rapor kaldırma API'si henüz implemente edilmemiş olabilir.",
+        variant: "destructive",
+      })
+      
+      // Update UI optimistically assuming the action worked
+      toast({
+        title: "Simule Edildi",
+        description: `${username} için rapor kaldırıldı (yalnızca UI güncellemesi).`,
+      })
+      
+      // If current user is selected, refresh details optimistically
+      if (reportSelectedUser) {
+        // Filter out the removed report from the details
+        const updatedDetails = reportDetails.filter(report => report.id !== reportId)
+        
+        // If this was the last report for the user, clear selection
+        if (updatedDetails.length === 0) {
+          setReportSelectedUser(null)
+        }
+      }
     }
-    toast({
-      title: "Rapor kaldırıldı",
-      description: `${username} rapor listesinden kaldırıldı.`,
-    })
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
   }
 
   const clearFilters = () => {
     setSearchTerm("")
     setStatusFilter("all")
+    getReportedUsers(1, limit) // Filtreleri temizleyince tüm verileri tekrar getir
+    setCurrentPage(1)
   }
 
-  const filteredUsers = reportedUsers.filter(user => {
-    // Kullanıcı adı araması
-    const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    // Durum filtresi
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter
-    
-    return matchesSearch && matchesStatus
-  })
+  const handleSearch = () => {
+    searchReportedUsers(searchTerm, statusFilter)
+  }
 
   const handleReportClick = (report: ReportDetail) => {
     setSelectedReport(report)
+    setReportSelectedReport(report)
     setAdminMessage(report.adminMessage || "")
     setIsReportSheetOpen(true)
   }
 
-  const handleSaveAdminMessage = () => {
+  const handleSaveAdminMessage = async () => {
     if (!selectedReport) return
 
-    // Gerçek uygulamada bu işlem API üzerinden yapılacak
-    setReportDetails(reportDetails.map(report => 
-      report.id === selectedReport.id 
-        ? { ...report, adminMessage, reviewed: true } 
-        : report
-    ))
-    
-    setIsReportSheetOpen(false)
-    toast({
-      title: "Admin notu kaydedildi",
-      description: "Rapor incelendi olarak işaretlendi.",
-    })
+    // Check if admin message is empty (trimmed)
+    const isEmptyMessage = adminMessage.trim() === '';
+
+    try {
+      // Update report via API using updateReport
+      await updateReport(selectedReport.id, {
+        adminMessage: isEmptyMessage ? '' : adminMessage,
+        reviewed: !isEmptyMessage,
+        reviewerAdmin: isEmptyMessage ? undefined : (auth.user?.username || "Admin")
+      })
+      
+      setIsReportSheetOpen(false)
+      toast({
+        title: isEmptyMessage ? "Admin notu temizlendi" : "Admin notu kaydedildi",
+        description: isEmptyMessage 
+          ? "Rapor incelenmedi olarak işaretlendi." 
+          : "Rapor incelendi olarak işaretlendi.",
+      })
+      
+      // Refresh report details if a user is selected
+      if (reportSelectedUser) {
+        getReportDetailsForUser(reportSelectedUser.id)
+      }
+    } catch (error) {
+      console.error("Update report error:", error)
+      
+      // Check if this is an API error (404 or other)
+      if (error instanceof Error && error.message.includes("404")) {
+        toast({
+          title: "API Hatası",
+          description: "Rapor güncelleme API'si henüz implemente edilmemiş olabilir.",
+          variant: "destructive",
+        })
+        
+        // Update UI optimistically
+        setIsReportSheetOpen(false)
+        toast({
+          title: "Simule Edildi",
+          description: `Rapor notu ${isEmptyMessage ? 'temizlendi' : 'güncellendi'} (yalnızca UI).`,
+        })
+      } else {
+        toast({
+          title: "Hata",
+          description: reportError || "Admin notu kaydedilirken bir hata oluştu.",
+          variant: "destructive",
+        })
+      }
+    }
   }
 
   if (!auth.hasRequiredRole) {
@@ -213,7 +237,7 @@ export default function ReportsPage() {
     )
   }
 
-  if (loading) {
+  if (reportIsLoading && reportedUsers.length === 0) {
     return (
       <div className="container mx-auto py-6">
         <h1 className="text-2xl font-bold mb-4">Raporlar</h1>
@@ -240,15 +264,20 @@ export default function ReportsPage() {
                 statusFilter={statusFilter}
                 setStatusFilter={setStatusFilter}
                 clearFilters={clearFilters}
+                onSearch={handleSearch}
               />
             </CardHeader>
             <CardContent>
               <ReportedUsersList
-                reportedUsers={filteredUsers}
-                selectedUser={selectedUser}
+                reportedUsers={reportedUsers}
+                selectedUser={reportSelectedUser}
                 handleUserSelect={handleUserSelect}
                 handleBlockUser={handleBlockUser}
                 handleRemoveReport={handleRemoveReport}
+                currentPage={reportCurrentPage}
+                totalUsers={totalReportedUsers}
+                pageSize={limit}
+                onPageChange={handlePageChange}
               />
             </CardContent>
           </Card>
@@ -257,7 +286,7 @@ export default function ReportsPage() {
         {/* Sağ panel (1/3) - Rapor detayları */}
         <div className="w-full md:w-1/3">
           <ReportDetails
-            selectedUser={selectedUser}
+            selectedUser={reportSelectedUser}
             reportDetails={reportDetails}
             onReportClick={handleReportClick}
           />

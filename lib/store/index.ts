@@ -9,6 +9,7 @@ import { createNewsSlice, type NewsState } from './slices/newsSlice';
 import createFriendSlice, { type FriendState } from './slices/friendSlice';
 import createEventSlice, { type EventState } from './slices/eventSlice';
 import createAnnouncementSlice, { type AnnouncementState } from './slices/announcementSlice';
+import createReportSlice, { type ReportState } from './slices/reportSlice';
 
 // Store State Type
 export type StoreState = AuthState & 
@@ -17,7 +18,8 @@ export type StoreState = AuthState &
   NewsState & 
   FriendState & 
   EventState &
-  AnnouncementState;
+  AnnouncementState &
+  ReportState;
 
 // Create combined store with all slices
 export const useStore = create<StoreState>()(
@@ -44,6 +46,9 @@ export const useStore = create<StoreState>()(
 
         // Announcement slice
         ...createAnnouncementSlice(...a),
+        
+        // Report slice
+        ...createReportSlice(...a),
       }),
       {
         name: 'sport-vision-store',

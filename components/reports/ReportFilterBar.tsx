@@ -14,6 +14,7 @@ interface ReportFilterBarProps {
   statusFilter: "all" | "active" | "blocked";
   setStatusFilter: (status: "all" | "active" | "blocked") => void;
   clearFilters: () => void;
+  onSearch?: () => void;
 }
 
 export function ReportFilterBar({
@@ -22,7 +23,21 @@ export function ReportFilterBar({
   statusFilter,
   setStatusFilter,
   clearFilters,
+  onSearch,
 }: ReportFilterBarProps) {
+  
+  const handleSearch = () => {
+    if (onSearch) {
+      onSearch();
+    }
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && onSearch) {
+      onSearch();
+    }
+  };
+
   return (
     <div className="flex items-center justify-between gap-2 mt-2">
       <div className="flex items-center gap-4">
@@ -31,11 +46,13 @@ export function ReportFilterBar({
             placeholder="Kullanıcı ara..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={handleKeyDown}
             className="w-full rounded-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
           />
           <Button 
             variant="outline" 
             className="rounded-none h-9 px-3 border-0 bg-background hover:bg-muted"
+            onClick={handleSearch}
           >
             <Search className="h-4 w-4" />
           </Button>

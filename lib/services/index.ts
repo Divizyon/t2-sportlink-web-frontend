@@ -6,6 +6,7 @@ import sportService from './sportService';
 import newsService from './newsService';
 import friendService from './friendService';
 import announcementService from './announcementService';
+import reportService from './reportService';
 import api, { handleApiError } from './api';
 
 export {
@@ -16,6 +17,7 @@ export {
   newsService,
   friendService,
   announcementService,
+  reportService,
   api,
   handleApiError
 }; 
