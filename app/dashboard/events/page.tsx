@@ -69,7 +69,6 @@ export default function EventsPage() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [viewMode, setViewMode] = useState<"preview" | "edit">("preview");
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchField, setSearchField] = useState<"title" | "description">("title");
   const [selectedFilters, setSelectedFilters] = useState<{
     category: string[];
     status: string[];
@@ -119,7 +118,7 @@ export default function EventsPage() {
         hasRequiredRole
       });
     }
-  }, [pagination.page, pagination.limit, searchQuery, searchField, selectedFilters, authLoading, isAuthenticated, hasRequiredRole]);
+  }, [pagination.page, pagination.limit, searchQuery, selectedFilters, authLoading, isAuthenticated, hasRequiredRole]);
 
   // Sonuçlar içinden ilk etkinliği seç
   useEffect(() => {
@@ -138,8 +137,9 @@ export default function EventsPage() {
         page: pagination.page,
         limit: pagination.limit,
         keyword: searchQuery,
-        status: selectedFilters.status,
-        sportId: selectedFilters.category[0]
+        status: selectedFilters.status.length > 0 ? selectedFilters.status : undefined,
+        approval_status: selectedFilters.approval_status.length > 0 ? selectedFilters.approval_status : undefined,
+        sportId: selectedFilters.category.length > 0 ? selectedFilters.category[0] : undefined
       };
       
       console.log('Calling eventService.listEvents with params:', params);
@@ -386,12 +386,24 @@ export default function EventsPage() {
   const handleFilterChange = (type: 'category' | 'status' | 'approval_status', value: string) => {
     setSelectedFilters(prev => {
       const currentFilters = prev[type];
+      
+      // Eğer "all" seçildiyse, tüm filtreleri temizle
+      if (value === 'all') {
+        return {
+          ...prev,
+          [type]: []
+        };
+      }
+      
+      // Eğer zaten seçiliyse, kaldır
       if (currentFilters.includes(value)) {
         return {
           ...prev,
           [type]: currentFilters.filter(item => item !== value)
         };
-      } else {
+      } 
+      // Değilse ekle
+      else {
         return {
           ...prev,
           [type]: [...currentFilters, value]
@@ -601,7 +613,7 @@ export default function EventsPage() {
           handleRejectEvent={handleRejectEvent}
           formatDate={formatDate}
         />
-                  </div>
+      </div>
 
       {/* Sağ taraf (2/5) - Etkinlik Önizleme */}
       <div className="lg:col-span-2 overflow-y-auto">
@@ -617,8 +629,8 @@ export default function EventsPage() {
           setViewMode={setViewMode}
           renderSelectWithFallback={renderSelectWithFallback}
           handleEditEvent={handleEditEvent}
-                    />
-                  </div>
+        />
+      </div>
     </div>
   );
 } 

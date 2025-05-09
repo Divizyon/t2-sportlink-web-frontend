@@ -209,9 +209,25 @@ const NewsList: React.FC<NewsListProps> = ({
     });
   }, [news, searchTerm, selectedStatuses]);
 
+  // Function to extract URL from content and remove it from displayed content
+  const extractUrlFromContent = (content: string): { content: string, url: string | null } => {
+    const urlRegex = /\[(https?:\/\/[^\s\]]+)\]/;
+    const match = content.match(urlRegex);
+    
+    if (match && match[1]) {
+      // Return the content without the bracketed URL and the extracted URL
+      return {
+        content: content.replace(urlRegex, '').trim(),
+        url: match[1]
+      };
+    }
+    
+    return { content, url: null };
+  };
+
   return (
-    <Card>
-      <CardHeader>
+    <Card className="h-full flex flex-col rounded-l-none border-l-0 rounded-b-none border-b-0">
+      <CardHeader className="pl-4 pb-2">
         <CardTitle>Haber Listesi</CardTitle>
         {showSearchAndCreate && (
           <div className="flex items-center justify-between gap-2 mt-2">
@@ -324,9 +340,9 @@ const NewsList: React.FC<NewsListProps> = ({
           </div>
         )}
       </CardHeader>
-      <CardContent>
-        <div className="rounded-md border">
-          <div className="max-h-[500px] overflow-y-auto">
+      <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
+        <div className="rounded-md rounded-b-none border border-b-0 mx-4 mt-0 mb-0 flex-1 flex flex-col">
+          <div className="overflow-auto h-[calc(100vh-180px)]">
             <Table>
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
@@ -339,7 +355,7 @@ const NewsList: React.FC<NewsListProps> = ({
                   {showActions && <TableHead className="text-right">İşlemler</TableHead>}
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody className="overflow-y-auto">
                 {loading ? (
                   <TableRow>
                     <TableCell colSpan={showActions ? 7 : 6} className="text-center py-4">
@@ -391,7 +407,7 @@ const NewsList: React.FC<NewsListProps> = ({
                           </div>
                         </TableCell>
                         <TableCell className="font-medium">{item.title}</TableCell>
-                        <TableCell className="max-w-xs truncate">{item.content}</TableCell>
+                        <TableCell className="max-w-xs truncate">{extractUrlFromContent(item.content).content}</TableCell>
                         <TableCell>{item.category}</TableCell>
                         <TableCell>{new Date(item.date).toLocaleDateString('tr-TR')}</TableCell>
                         <TableCell>{getStatusBadge(item.status)}</TableCell>

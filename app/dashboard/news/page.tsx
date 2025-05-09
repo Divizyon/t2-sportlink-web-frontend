@@ -17,7 +17,6 @@ import { toast } from "@/components/ui/use-toast";
 import { Plus } from "lucide-react";
 import NewsList from "@/components/news/NewsList";
 import NewsPreview from "@/components/news/NewsPreview";
-import NewsApprovalCenter from "@/components/news/NewsApprovalCenter";
 
 // Yardımcı tip tanımlaması (fetchNewsFromUrl için)
 type NewsItemSource = {
@@ -31,7 +30,6 @@ type NewsItemSource = {
 export default function NewsPage() {
   const { news, getAllNews, setSelectedNews } = useStore();
   
-  const [pendingNews, setPendingNews] = useState<News[]>([]);
   const [sourceUrl, setSourceUrl] = useState("");
   const [isUrlDialogOpen, setIsUrlDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,13 +53,9 @@ export default function NewsPage() {
     fetchAllNews();
   }, [getAllNews]);
 
-  // Extract pending news from the fetched news
+  // Only select first news if none is selected, no need to track drafts separately
   useEffect(() => {
     if (news && news.length > 0) {
-      // Onay bekleyen haberleri filtrele
-      const pending = news.filter(item => item.status === "Onay Bekliyor");
-      setPendingNews(pending);
-      
       // Otomatik olarak ilk haberi seç (eğer haber varsa ve henüz seçili haber yoksa)
       if (news.length > 0 && news[0]) {
         // Zaten seçili bir haber var mı kontrol et
@@ -121,7 +115,7 @@ export default function NewsPage() {
       
       const newPendingNews: News[] = fetchedItems.map((item, index) => {
         return {
-          id: pendingNews.length + news.length + index + 1,
+          id: news.length + index + 1,
           title: item.title,
           content: item.content,
           category: "Spor",
@@ -134,8 +128,7 @@ export default function NewsPage() {
         };
       });
       
-      // State'i güncelle
-      setPendingNews([...pendingNews, ...newPendingNews]);
+      // State'i güncelle - we no longer need to update draftNews
       setSourceUrl("");
       setIsUrlDialogOpen(false);
       
@@ -162,35 +155,24 @@ export default function NewsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight">Haber Yönetimi</h2>
-      </div>
-
+    <div className="space-y-6 h-full flex flex-col">
       {/* Yeni grid layout: Sol tarafta haberler, sağ tarafta önizleme */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sol kolon: Haber listesi ve onay bekleyen haberler */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Haber Listesi */}
-          <div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+        {/* Sol kolon: Haber listesi */}
+        <div className="lg:col-span-2 flex flex-col">
+          {/* Haber Listesi - stretching to full height */}
+          <div className="h-full">
             <NewsList 
               showActions={true}
               showSearchAndCreate={true}
             />
           </div>
           
-          {/* Onay Bekleyen Haberler */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Onay Bekleyen Haberler ({pendingNews.length})</h3>
-            <NewsApprovalCenter
-              news={pendingNews}
-              formatDate={formatDate}
-            />
-          </div>
+          {/* Taslak Haberler section removed */}
         </div>
         
         {/* Sağ kolon: Haber önizleme */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 h-full">
           <NewsPreview
             defaultImage="/placeholder-image.jpg"
             onSave={async (news) => {

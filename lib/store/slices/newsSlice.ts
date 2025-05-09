@@ -16,6 +16,7 @@ export interface NewsState {
   getFeaturedNews: (limit?: number) => Promise<{ success: boolean, data: News[], pagination: any, message?: string }>;
   approveNews: (newsId: number | string) => Promise<{ success: boolean, message?: string }>;
   rejectNews: (newsId: number | string) => Promise<{ success: boolean, message?: string }>;
+  submitForApproval: (newsId: number | string) => Promise<{ success: boolean, message?: string }>;
   setSelectedNews: (news: News | null) => void;
   updateNewsStatus: (newsId: number | string, status: NewsStatus) => void;
   createNews: (newsData: {
@@ -209,6 +210,35 @@ export const createNewsSlice: StateCreator<StoreState, [], [], NewsState> = (set
       return {
         success: false,
         message: 'Haber reddedilirken bir hata oluştu.'
+      };
+    }
+  },
+
+  submitForApproval: async (newsId) => {
+    set({ loading: true, error: null });
+    console.log("submitForApproval called with newsId:", newsId);
+    
+    try {
+      // Sayısal ID'ye dönüştür
+      const numericId = typeof newsId === 'string' ? parseInt(newsId) : newsId;
+      const response = await newsService.submitForApproval(numericId);
+      console.log("submitForApproval response:", response);
+      
+      if (response.success) {
+        // Haber durumunu state'de güncelle
+        get().updateNewsStatus(newsId, "Onay Bekliyor");
+        set({ loading: false });
+      } else {
+        console.error("Error in submitForApproval:", response.message);
+        set({ error: response.message || 'Haber onaya gönderilirken bir hata oluştu.', loading: false });
+      }
+      return response;
+    } catch (error) {
+      console.error('Haber onaya gönderilirken bir hata oluştu:', error);
+      set({ error: 'Haber onaya gönderilirken bir hata oluştu.', loading: false });
+      return {
+        success: false,
+        message: 'Haber onaya gönderilirken bir hata oluştu.'
       };
     }
   },

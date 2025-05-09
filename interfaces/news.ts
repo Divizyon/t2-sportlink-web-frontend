@@ -13,6 +13,7 @@ export interface News {
   };
   source?: string;
   tags?: string[];
+  status?: 'draft' | 'pending' | 'active' | 'inactive';
   created_at: string;
   updated_at: string;
   views?: number;

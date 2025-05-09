@@ -33,12 +33,20 @@ const mapApiNewsToUiNews = (apiNews: ApiNews): UINews => {
  * Maps API news status to UI news status
  */
 const mapNewsStatus = (apiNews: ApiNews): NewsStatus => {
-  // Bu kısım backend durumuna göre ayarlanabilir
-  // Örnek bir mantık: published_at varsa Aktif, yoksa Taslak
-  if (apiNews.published_at) {
-    return "Aktif";
+  // Explicit status check, if provided by the API
+  if (apiNews.status) {
+    if (apiNews.status === 'draft') return "Taslak";
+    if (apiNews.status === 'pending') return "Onay Bekliyor";
+    if (apiNews.status === 'active') return "Aktif";
+    if (apiNews.status === 'inactive') return "Pasif";
   }
-  return "Taslak";
+  
+  // Fallback logic based on published_at field
+  if (!apiNews.published_at) {
+    return "Taslak"; // No published date means it's a draft
+  }
+  
+  return "Aktif"; // Default for published news
 };
 
 /**
@@ -305,6 +313,26 @@ class NewsService {
       };
     } catch (error) {
       console.error('Haber reddedilirken hata:', error);
+      const apiError = handleApiError(error as AxiosError);
+      return {
+        success: false,
+        message: apiError.message
+      };
+    }
+  }
+
+  /**
+   * Taslak haberi onaya gönderme
+   */
+  async submitForApproval(newsId: number): Promise<{ success: boolean, message?: string }> {
+    try {
+      const response = await api.put(`${this.BASE_PATH}/${newsId}/submit-for-approval`);
+      return {
+        success: true,
+        message: 'Haber başarıyla onaya gönderildi'
+      };
+    } catch (error) {
+      console.error('Haber onaya gönderilirken hata:', error);
       const apiError = handleApiError(error as AxiosError);
       return {
         success: false,

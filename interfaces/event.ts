@@ -61,15 +61,10 @@ export interface Participant {
 export interface EventFilterParams {
   page?: number;
   limit?: number;
-  sportId?: string | undefined;
-  status?: string[];
   keyword?: string;
-  startDate?: string;
-  endDate?: string;
-  category?: string[];
+  status?: string[];
   approval_status?: string[];
-  search?: string;
-  searchField?: string;
+  sportId?: string;
 }
 
 export interface PaginatedEventResponse {
