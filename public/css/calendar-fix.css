@@ -1,0 +1,123 @@
+/* Takvim görünümü düzeltmeleri */
+/* Ay/yıl başlığını gizle - tüm versiyonları hedefleyerek */
+.rdp-caption,
+.rdp-caption_label,
+.rdp-caption_dropdowns,
+.rdp-nav,
+.rdp-months + div,
+.rdp-caption-label {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Takvim wrapper için stil */
+.calendar-wrapper {
+  position: relative;
+  z-index: 1;
+}
+
+/* Takvim kapsayıcısı için pointer-events izni */
+.rdp {
+  position: relative !important;
+  pointer-events: auto !important;
+  z-index: 1;
+}
+
+/* Gün başlıkları düzeltmeleri */
+.rdp-head_cell {
+  text-align: center !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 2rem !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Aylık görünümü düzeltme */
+.rdp-month {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Takvim tablo kısmına margin ekleme */
+.rdp-table {
+  margin: 0 auto !important;
+}
+
+/* Günleri merkezleme ve tıklanabilir yapma */
+.rdp-day {
+  margin: 0 auto !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  cursor: pointer !important;
+  pointer-events: all !important;
+  position: relative !important;
+  user-select: none !important;
+  z-index: 2 !important;
+}
+
+/* Gün butonunu tam tıklanabilir yapma */
+button.rdp-button_reset {
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: all !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+/* Tablo hücrelerini düzeltme */
+.rdp-cell {
+  width: 2rem !important;
+  text-align: center !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 0 !important;
+  pointer-events: all !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Tablo satırlarını düzeltme */
+.rdp-row {
+  justify-content: center !important;
+  display: flex !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0.5rem 0 !important;
+  pointer-events: all !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Takvim içeriğini hizalama */
+.rdp-table {
+  margin: 0 auto !important; 
+  width: auto !important;
+  pointer-events: all !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.rdp-months {
+  pointer-events: all !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Sağ ve sol oklara ince stil */
+.calendar-with-arrows-container .side-arrow {
+  transition: all 0.2s ease;
+  z-index: 10 !important;
+}
+
+.calendar-with-arrows-container .side-arrow:hover {
+  transform: scale(1.1);
+  background-color: #f0f0f0;
+} 
