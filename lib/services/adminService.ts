@@ -56,6 +56,48 @@ export interface UsersListResponse {
   };
 }
 
+// SuperAdmin servisleri için tipler
+export interface AdminUser {
+  id: string;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  created_at: string;
+  profile_picture?: string;
+}
+
+export interface AdminCreateData {
+  username: string;
+  email: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  phone?: string;
+}
+
+export interface RoleCheckResponse {
+  success: boolean;
+  data: {
+    isSuperAdmin: boolean;
+    userRole: string;
+  };
+}
+
+export interface AdminListResponse {
+  success: boolean;
+  data: {
+    admins: AdminUser[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  };
+}
+
 // Admin servisi sınıfı
 class AdminService {
   private readonly BASE_PATH = '/users/admin';
@@ -70,7 +112,7 @@ class AdminService {
         console.log("Token durumu:", !!token);
         if (token) {
           console.log("Token önizleme:", token.substring(0, 15) + "...");
-          
+
           // Kullanıcı rolü kontrolü
           const userStr = localStorage.getItem('user');
           if (userStr) {
@@ -83,32 +125,32 @@ class AdminService {
           }
         }
       }
-      
+
       // API isteği ayarlarını görmek için config oluşturalım
-      const config = { 
+      const config = {
         params,
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       };
-      
+
       if (debug) {
         console.log("API isteği config:", {
           url: `${this.BASE_PATH}`,
           params: config.params,
           headers: {
-            Authorization: config.headers.Authorization ? 
+            Authorization: config.headers.Authorization ?
               `Bearer ${config.headers.Authorization.substring(7, 22)}...` : 'Yok'
           }
         });
       }
-      
+
       const response = await api.get<UsersListResponse>(`${this.BASE_PATH}`, config);
-      
+
       if (debug) {
         console.log("AdminService: Kullanıcı listesi alındı", response.data);
       }
-      
+
       return response.data;
     } catch (error) {
       if (debug) {
@@ -132,13 +174,13 @@ class AdminService {
       if (debug) {
         console.log("AdminService: Kullanıcı detayları alınıyor", userId);
       }
-      
+
       const response = await api.get<{ success: boolean; data: AdminUser }>(`${this.BASE_PATH}/${userId}`);
-      
+
       if (debug) {
         console.log("AdminService: Kullanıcı detayları alındı", response.data);
       }
-      
+
       return response.data;
     } catch (error) {
       if (debug) {
@@ -154,13 +196,13 @@ class AdminService {
       if (debug) {
         console.log("AdminService: Kullanıcı rolü güncelleniyor", userId, data);
       }
-      
+
       const response = await api.patch<{ success: boolean; message: string; data: AdminUser }>(`${this.BASE_PATH}/${userId}/role`, data);
-      
+
       if (debug) {
         console.log("AdminService: Kullanıcı rolü güncellendi", response.data);
       }
-      
+
       return response.data;
     } catch (error) {
       if (debug) {
@@ -176,13 +218,13 @@ class AdminService {
       if (debug) {
         console.log("AdminService: Yeni kullanıcı oluşturuluyor", data);
       }
-      
+
       const response = await api.post<{ success: boolean; message: string; data: AdminUser }>(`${this.BASE_PATH}`, data);
-      
+
       if (debug) {
         console.log("AdminService: Yeni kullanıcı oluşturuldu", response.data);
       }
-      
+
       return response.data;
     } catch (error) {
       if (debug) {
@@ -198,13 +240,13 @@ class AdminService {
       if (debug) {
         console.log("AdminService: Kullanıcı siliniyor", userId);
       }
-      
+
       const response = await api.delete<{ success: boolean; message: string }>(`${this.BASE_PATH}/${userId}`);
-      
+
       if (debug) {
         console.log("AdminService: Kullanıcı silindi", response.data);
       }
-      
+
       return response.data;
     } catch (error) {
       if (debug) {
@@ -215,5 +257,56 @@ class AdminService {
   }
 }
 
+const superAdminService = {
+  /**
+   * Kullanıcının superadmin olup olmadığını kontrol eder
+   */
+  async checkSuperAdminStatus(): Promise<RoleCheckResponse> {
+    const response = await api.get<RoleCheckResponse>('/superadmin/check-status');
+    return response.data;
+  },
+
+  /**
+   * Admin kullanıcılarını listeler
+   */
+  async getAdminsList(page: number = 1, limit: number = 10, filter?: string): Promise<AdminListResponse> {
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString()
+    });
+
+    if (filter) {
+      queryParams.append('q', filter);
+    }
+
+    const response = await api.get<AdminListResponse>(`/superadmin/admins?${queryParams.toString()}`);
+    return response.data;
+  },
+
+  /**
+   * Yeni bir admin kullanıcısı oluşturur
+   */
+  async createAdmin(data: AdminCreateData) {
+    const response = await api.post('/superadmin/admins', data);
+    return response.data;
+  },
+
+  /**
+   * Admin kullanıcısını devre dışı bırakır
+   */
+  async deactivateAdmin(adminId: string) {
+    const response = await api.put(`/superadmin/admins/${adminId}/deactivate`);
+    return response.data;
+  },
+
+  /**
+   * Dashboard özet bilgilerini alır
+   */
+  async getDashboardInfo() {
+    const response = await api.get('/superadmin/dashboard');
+    return response.data;
+  }
+};
+
 export const adminService = new AdminService();
-export default adminService; 
+export default { ...adminService, ...superAdminService }; 

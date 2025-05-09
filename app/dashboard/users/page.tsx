@@ -6,6 +6,7 @@ import { toast } from "@/components/ui/use-toast";
 import UserList from "@/components/users/UserList";
 import UserDetails from "@/components/users/UserDetails";
 import type { UserType } from "@/interfaces/user";
+import { Button } from "@/components/ui/button";
 
 export default function UsersPage() {
   const {
@@ -14,7 +15,6 @@ export default function UsersPage() {
     isLoading,
     error,
     getUsers,
-    createUser,
     updateUser,
     deleteUser,
     selectUser,
@@ -33,7 +33,7 @@ export default function UsersPage() {
   // Load users on component mount
   useEffect(() => {
     console.log('Dashboard/users sayfası yükleniyor, kullanıcıları getiriyoruz...');
-    
+
     getUsers()
       .then(() => {
         console.log('Kullanıcılar başarıyla yüklendi');
@@ -91,24 +91,13 @@ export default function UsersPage() {
     }
   };
 
-  // Handle user create
-  const handleCreateUser = async (userData: Partial<UserType>) => {
-    const result = await createUser(userData);
-    if (result.success) {
-      toast({
-        title: "Başarılı",
-        description: result.message || "Kullanıcı başarıyla oluşturuldu",
-      });
-    }
-  };
-
   // Handle user update
   const handleUpdateUser = async (userData: Partial<UserType>) => {
     if (!userData.id) {
       console.error("Update için kullanıcı ID'si eksik");
       return;
     }
-    
+
     const result = await updateUser(userData.id, userData);
     if (result.success) {
       toast({
@@ -137,29 +126,50 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="flex h-full">
-      <UserList
-        users={users}
-        selectedUser={selectedUser}
-        selectedColumns={selectedColumns}
-        searchQuery={searchQuery}
-        onSearchChange={handleSearchChange}
-        onColumnToggle={handleColumnToggle}
-        onUserClick={handleUserClick}
-        onDeleteUser={handleDeleteUser}
-        onCreateUser={handleCreateUser}
-        onUpdateUser={handleUpdateUser}
-        onFilterChange={handleFilterChange}
-        onFilterReset={handleFilterReset}
-      />
-      <UserDetails 
-        user={selectedUser} 
-        onUpdateUser={(userData) => {
-          if (userData.id) {
-            handleUpdateUser(userData);
-          }
-        }} 
-      />
+    <div className="flex flex-col h-full w-full gap-6 p-4">
+      {/* Mobil görünümde ve kullanıcı seçildiğinde */}
+      {selectedUser && (
+        <div className="md:hidden mb-4">
+          <Button
+            variant="outline"
+            className="w-full mb-2"
+            onClick={() => selectUser(null)}
+          >
+            ← Kullanıcı Listesine Dön
+          </Button>
+        </div>
+      )}
+
+      <div className="flex flex-col lg:flex-row w-full gap-6">
+        {/* Mobil görünümde kullanıcı seçilince liste gizlensin */}
+        <div className={`${selectedUser ? 'hidden md:block' : 'block'} w-full lg:flex-1`}>
+          <UserList
+            users={users}
+            selectedUser={selectedUser}
+            selectedColumns={selectedColumns}
+            searchQuery={searchQuery}
+            onSearchChange={handleSearchChange}
+            onColumnToggle={handleColumnToggle}
+            onUserClick={handleUserClick}
+            onDeleteUser={handleDeleteUser}
+            onUpdateUser={handleUpdateUser}
+            onFilterChange={handleFilterChange}
+            onFilterReset={handleFilterReset}
+          />
+        </div>
+
+        {/* Mobil görünümde kullanıcı seçilince sadece detay görünsün */}
+        <div className={`${selectedUser ? 'block' : 'hidden md:block'} w-full lg:w-auto lg:min-w-[350px] lg:max-w-[450px]`}>
+          <UserDetails
+            user={selectedUser}
+            onUpdateUser={(userData) => {
+              if (userData.id) {
+                handleUpdateUser(userData);
+              }
+            }}
+          />
+        </div>
+      </div>
     </div>
   );
 } 

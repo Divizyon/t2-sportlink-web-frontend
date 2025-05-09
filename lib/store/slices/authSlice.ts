@@ -1,9 +1,9 @@
 import { type StateCreator } from 'zustand';
 import authService from '@/lib/services/authService';
-import type { 
-  LoginCredentials, 
-  RegisterData, 
-  UserData, 
+import type {
+  LoginCredentials,
+  RegisterData,
+  UserData,
   AuthResponse,
   SessionData
 } from '@/lib/services/authService';
@@ -56,65 +56,72 @@ const createAuthSlice: StateCreator<AuthState> = (set, get) => {
     login: async (credentials: LoginCredentials) => {
       console.log("AuthSlice: Login işlemi başlatılıyor...");
       set({ isLoading: true, error: null });
-      
+
       try {
         const response = await authService.login(credentials);
         console.log("AuthSlice: Login API yanıtı alındı:", response ? "Başarılı" : "Başarısız");
-        
+
         if (response.session && response.session.access_token) {
           console.log("AuthSlice: Token bulundu, state güncelleniyor");
-          set({ 
-            user: response.user, 
-            token: response.session.access_token, 
-            isAuthenticated: true, 
-            isLoading: false 
+          set({
+            user: response.user,
+            token: response.session.access_token,
+            isAuthenticated: true,
+            isLoading: false
           });
         } else {
           console.warn("AuthSlice: Token bulunamadı!");
-          set({ isLoading: false });
+          set((state) => ({
+            ...state,
+            isLoading: false,
+            isAuthenticated: false
+          }));
         }
-        
+
         return response;
       } catch (error) {
         console.error("AuthSlice: Login işleminde hata:", error);
         const apiError = error as ApiError;
         const errorMessage = apiError.message || 'Giriş işlemi başarısız oldu.';
-        
-        set({ 
-          error: errorMessage, 
+
+        set({
+          error: errorMessage,
           isLoading: false,
           isAuthenticated: false
         });
-        
+
         throw apiError; // Hata yukarıya iletiliyor
       }
     },
 
     register: async (data: RegisterData) => {
       set({ isLoading: true, error: null });
-      
+
       try {
         const response = await authService.register(data);
-        
+
         // Kayıt başarılı olduğunda, kullanıcı otomatik olarak giriş yapmayabilir
         // Bu API'nizin davranışına bağlıdır
         if (response.session && response.session.access_token) {
-          set({ 
-            user: response.user, 
-            token: response.session.access_token, 
+          set({
+            user: response.user,
+            token: response.session.access_token,
             isAuthenticated: true,
-            isLoading: false 
+            isLoading: false
           });
         } else {
-          set({ isLoading: false });
+          set((state) => ({
+            ...state,
+            isLoading: false
+          }));
         }
-        
+
         return response;
       } catch (error) {
         const apiError = error as ApiError;
-        set({ 
-          error: apiError.message || 'Kayıt işlemi başarısız oldu.', 
-          isLoading: false 
+        set({
+          error: apiError.message || 'Kayıt işlemi başarısız oldu.',
+          isLoading: false
         });
         throw apiError;
       }
@@ -122,61 +129,73 @@ const createAuthSlice: StateCreator<AuthState> = (set, get) => {
 
     logout: () => {
       authService.logout();
-      set({ 
-        user: null, 
-        token: null, 
-        isAuthenticated: false 
+      set({
+        user: null,
+        token: null,
+        isAuthenticated: false
       });
     },
 
     forgotPassword: async (email: string) => {
       set({ isLoading: true, error: null });
-      
+
       try {
         const response = await authService.resetPassword(email);
-        set({ isLoading: false });
+        set((state) => ({
+          ...state,
+          isLoading: false
+        }));
         return response;
       } catch (error) {
         const apiError = error as ApiError;
-        set({ 
-          error: apiError.message || 'Şifre sıfırlama isteği başarısız oldu.', 
-          isLoading: false 
-        });
+        set((state) => ({
+          ...state,
+          error: apiError.message || 'Şifre sıfırlama isteği başarısız oldu.',
+          isLoading: false
+        }));
         throw apiError;
       }
     },
 
     resendEmailConfirmation: async (email: string) => {
       set({ isLoading: true, error: null });
-      
+
       try {
         const response = await authService.resendEmailConfirmation(email);
-        set({ isLoading: false });
+        set((state) => ({
+          ...state,
+          isLoading: false
+        }));
         return response;
       } catch (error) {
         const apiError = error as ApiError;
-        set({ 
-          error: apiError.message || 'E-posta doğrulama isteği başarısız oldu.', 
-          isLoading: false 
-        });
+        set((state) => ({
+          ...state,
+          error: apiError.message || 'E-posta doğrulama isteği başarısız oldu.',
+          isLoading: false
+        }));
         throw apiError;
       }
     },
 
     verifyEmail: async (token: string) => {
       set({ isLoading: true, error: null });
-      
+
       try {
         // API'nizde yoksa bu metodu authService'e eklemeniz gerekebilir
         const response = await api.get<{ message: string }>(`/auth/verify-email?token=${token}`);
-        set({ isLoading: false });
+        set((state) => ({
+          ...state,
+          isLoading: false
+        }));
         return response.data;
       } catch (error) {
         const apiError = error as ApiError;
-        set({ 
-          error: apiError.message || 'E-posta doğrulama başarısız oldu.', 
-          isLoading: false 
-        });
+        set((state) => ({
+          ...state,
+          error: apiError.message || 'E-posta doğrulama başarısız oldu.',
+          isLoading: false
+        }));
         throw apiError;
       }
     },
