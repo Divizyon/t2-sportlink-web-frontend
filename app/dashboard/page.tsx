@@ -296,7 +296,8 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [redirecting, setRedirecting] = useState(false);
-  
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
   // Dialog açık/kapalı durumları
   const [openDialogs, setOpenDialogs] = useState<{
     events: boolean;
@@ -325,11 +326,11 @@ export default function DashboardPage() {
     if (typeof window !== 'undefined') {
       const returnDialog = new URLSearchParams(window.location.search).get('returnDialog');
       const lastOpenDialog = localStorage.getItem('lastOpenDialog');
-      
+
       // URL'de returnDialog parametresi varsa veya localStorage'da kayıt varsa
       if (returnDialog || lastOpenDialog) {
         const dialogToOpen = returnDialog || lastOpenDialog || '';
-        
+
         // Dialog'u aç
         setOpenDialogs(prev => ({
           ...prev,
@@ -337,10 +338,10 @@ export default function DashboardPage() {
           news: dialogToOpen === 'news',
           announcements: dialogToOpen === 'announcements'
         }));
-        
+
         // URL'yi güncelle
         router.push(`/dashboard?dialog=${dialogToOpen}`, { scroll: false });
-        
+
         // Temizle
         localStorage.removeItem('lastOpenDialog');
       }
@@ -350,7 +351,7 @@ export default function DashboardPage() {
   // Dialog durumu değiştiğinde URL'yi güncelle
   const handleDialogChange = (type: 'events' | 'news' | 'announcements', isOpen: boolean) => {
     setOpenDialogs(prev => ({ ...prev, [type]: isOpen }));
-    
+
     if (isOpen) {
       // Dialog açıldığında URL'yi güncelle
       router.push(`/dashboard?dialog=${type}`, { scroll: false });
@@ -402,7 +403,7 @@ export default function DashboardPage() {
   // Helper function that filters content from the last 24 hours
   const getLast24HoursItems = () => {
     const last24Hours = subDays(new Date(), 1);
-    
+
     // Tüm veri kümesinden son 24 saatteki öğeleri filtreleme
     // Filtering items from the last 24 hours from the entire dataset
     const last24HoursEvents = allEvents.filter(event => {
@@ -410,17 +411,17 @@ export default function DashboardPage() {
       const eventDate = new Date(event.date.split(' ')[0] + ' ' + new Date().getFullYear());
       return eventDate >= last24Hours;
     });
-    
+
     const last24HoursNews = allNews.filter(news => {
       const newsDate = new Date(news.date.split(' ')[0] + ' ' + new Date().getFullYear());
       return newsDate >= last24Hours;
     });
-    
+
     const last24HoursAnnouncements = allAnnouncements;
-    
+
     return { last24HoursEvents, last24HoursNews, last24HoursAnnouncements };
   };
-  
+
   // Son 24 saatteki içerikler
   // Content from the last 24 hours
 
@@ -452,7 +453,7 @@ export default function DashboardPage() {
     // Tarih aralığı seçilmişse, bu aralığa göre özel veri oluştur
     // Gerçek uygulamada burada API çağrısı yapılabilir
     generateRangeStats(selectedDateRange)
-    
+
   }, [selectedDateRange])
 
   // Rastgele veri oluşturan fonksiyon
@@ -468,7 +469,7 @@ export default function DashboardPage() {
         Yüzme: Math.floor(Math.random() * 8) + 1,
       });
     }
-    
+
     setStats({
       events: Math.floor(Math.random() * 50) + 20,
       news: Math.floor(Math.random() * 30) + 15,
@@ -485,23 +486,23 @@ export default function DashboardPage() {
         swimming: Math.floor(Math.random() * 15) + 5,
       },
       eventAnalysis: [
-        { 
-          name: "Futbol Etkinliği", 
-          date: format(date, "d MMMM yyyy", { locale: tr }), 
-          participants: Math.floor(Math.random() * 50) + 50, 
-          satisfaction: Math.floor(Math.random() * 15) + 80 
+        {
+          name: "Futbol Etkinliği",
+          date: format(date, "d MMMM yyyy", { locale: tr }),
+          participants: Math.floor(Math.random() * 50) + 50,
+          satisfaction: Math.floor(Math.random() * 15) + 80
         },
-        { 
-          name: "Basketbol Etkinliği", 
-          date: format(date, "d MMMM yyyy", { locale: tr }), 
-          participants: Math.floor(Math.random() * 40) + 40, 
-          satisfaction: Math.floor(Math.random() * 15) + 80 
+        {
+          name: "Basketbol Etkinliği",
+          date: format(date, "d MMMM yyyy", { locale: tr }),
+          participants: Math.floor(Math.random() * 40) + 40,
+          satisfaction: Math.floor(Math.random() * 15) + 80
         },
-        { 
-          name: "Voleybol Etkinliği", 
-          date: format(date, "d MMMM yyyy", { locale: tr }), 
-          participants: Math.floor(Math.random() * 30) + 30, 
-          satisfaction: Math.floor(Math.random() * 15) + 80 
+        {
+          name: "Voleybol Etkinliği",
+          date: format(date, "d MMMM yyyy", { locale: tr }),
+          participants: Math.floor(Math.random() * 30) + 30,
+          satisfaction: Math.floor(Math.random() * 15) + 80
         }
       ],
       latestEvents: [
@@ -532,17 +533,17 @@ export default function DashboardPage() {
   // Tarih aralığına göre özel veri oluşturan fonksiyon
   const generateRangeStats = (range: DateRange) => {
     if (!range.from || !range.to) return;
-    
+
     // Gün farkına göre veri ölçeklendirme
     const diffFactor = Math.ceil((range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24));
     const maxDays = Math.min(diffFactor, 10); // En fazla 10 gün göster
-    
+
     // Tarih aralığı için spor verileri oluştur
     const sportsByDate = [];
     for (let i = 0; i < maxDays; i++) {
       const currentDate = addDays(range.from, i);
       if (currentDate > range.to) break;
-      
+
       sportsByDate.push({
         date: format(currentDate, "dd.MM.yyyy"),
         Futbol: Math.floor(Math.random() * 15) + 5,
@@ -551,40 +552,40 @@ export default function DashboardPage() {
         Yüzme: Math.floor(Math.random() * 8) + 1,
       });
     }
-    
+
     setStats({
-      events: Math.floor(Math.random() * 50 * diffFactor/10) + 20,
-      news: Math.floor(Math.random() * 30 * diffFactor/10) + 15,
-      announcements: Math.floor(Math.random() * 30 * diffFactor/10) + 15,
-      users: Math.floor(Math.random() * 100 * diffFactor/30) + 200,
+      events: Math.floor(Math.random() * 50 * diffFactor / 10) + 20,
+      news: Math.floor(Math.random() * 30 * diffFactor / 10) + 15,
+      announcements: Math.floor(Math.random() * 30 * diffFactor / 10) + 15,
+      users: Math.floor(Math.random() * 100 * diffFactor / 30) + 200,
       eventPercentage: +(Math.random() * 5 - 2.5).toFixed(1),
       newsPercentage: +(Math.random() * 10).toFixed(1),
       announcementPercentage: +(Math.random() * 5).toFixed(1),
       userPercentage: +(Math.random() * 8).toFixed(1),
       sportsPercentages: {
-        football: Math.floor(Math.random() * 30 * diffFactor/10) + 20,
-        basketball: Math.floor(Math.random() * 20 * diffFactor/10) + 20,
-        volleyball: Math.floor(Math.random() * 20 * diffFactor/10) + 10,
-        swimming: Math.floor(Math.random() * 15 * diffFactor/10) + 5,
+        football: Math.floor(Math.random() * 30 * diffFactor / 10) + 20,
+        basketball: Math.floor(Math.random() * 20 * diffFactor / 10) + 20,
+        volleyball: Math.floor(Math.random() * 20 * diffFactor / 10) + 10,
+        swimming: Math.floor(Math.random() * 15 * diffFactor / 10) + 5,
       },
       eventAnalysis: [
-        { 
-          name: "Futbol Etkinliği", 
-          date: `${format(range.from, "d MMM", { locale: tr })} - ${format(range.to, "d MMM", { locale: tr })}`, 
-          participants: Math.floor(Math.random() * 50 * diffFactor/10) + 50, 
-          satisfaction: Math.floor(Math.random() * 15) + 80 
+        {
+          name: "Futbol Etkinliği",
+          date: `${format(range.from, "d MMM", { locale: tr })} - ${format(range.to, "d MMM", { locale: tr })}`,
+          participants: Math.floor(Math.random() * 50 * diffFactor / 10) + 50,
+          satisfaction: Math.floor(Math.random() * 15) + 80
         },
-        { 
-          name: "Basketbol Etkinliği", 
-          date: `${format(range.from, "d MMM", { locale: tr })} - ${format(range.to, "d MMM", { locale: tr })}`, 
-          participants: Math.floor(Math.random() * 40 * diffFactor/10) + 40, 
-          satisfaction: Math.floor(Math.random() * 15) + 80 
+        {
+          name: "Basketbol Etkinliği",
+          date: `${format(range.from, "d MMM", { locale: tr })} - ${format(range.to, "d MMM", { locale: tr })}`,
+          participants: Math.floor(Math.random() * 40 * diffFactor / 10) + 40,
+          satisfaction: Math.floor(Math.random() * 15) + 80
         },
-        { 
-          name: "Voleybol Etkinliği", 
-          date: `${format(range.from, "d MMM", { locale: tr })} - ${format(range.to, "d MMM", { locale: tr })}`, 
-          participants: Math.floor(Math.random() * 30 * diffFactor/10) + 30, 
-          satisfaction: Math.floor(Math.random() * 15) + 80 
+        {
+          name: "Voleybol Etkinliği",
+          date: `${format(range.from, "d MMM", { locale: tr })} - ${format(range.to, "d MMM", { locale: tr })}`,
+          participants: Math.floor(Math.random() * 30 * diffFactor / 10) + 30,
+          satisfaction: Math.floor(Math.random() * 15) + 80
         }
       ],
       latestEvents: [
@@ -600,13 +601,13 @@ export default function DashboardPage() {
         { title: "Önemli Duyuru", content: "Tarih aralığı için önemli bilgilendirme" }
       ],
       exerciseMinutes: [
-        { name: "Pazartesi", minutes: Math.floor(Math.random() * 60 * diffFactor/7) + 15 },
-        { name: "Salı", minutes: Math.floor(Math.random() * 60 * diffFactor/7) + 15 },
-        { name: "Çarşamba", minutes: Math.floor(Math.random() * 60 * diffFactor/7) + 15 },
-        { name: "Perşembe", minutes: Math.floor(Math.random() * 60 * diffFactor/7) + 15 },
-        { name: "Cuma", minutes: Math.floor(Math.random() * 60 * diffFactor/7) + 15 },
-        { name: "Cumartesi", minutes: Math.floor(Math.random() * 60 * diffFactor/7) + 15 },
-        { name: "Pazar", minutes: Math.floor(Math.random() * 60 * diffFactor/7) + 15 }
+        { name: "Pazartesi", minutes: Math.floor(Math.random() * 60 * diffFactor / 7) + 15 },
+        { name: "Salı", minutes: Math.floor(Math.random() * 60 * diffFactor / 7) + 15 },
+        { name: "Çarşamba", minutes: Math.floor(Math.random() * 60 * diffFactor / 7) + 15 },
+        { name: "Perşembe", minutes: Math.floor(Math.random() * 60 * diffFactor / 7) + 15 },
+        { name: "Cuma", minutes: Math.floor(Math.random() * 60 * diffFactor / 7) + 15 },
+        { name: "Cumartesi", minutes: Math.floor(Math.random() * 60 * diffFactor / 7) + 15 },
+        { name: "Pazar", minutes: Math.floor(Math.random() * 60 * diffFactor / 7) + 15 }
       ],
       sportsByDate,
     })
@@ -619,13 +620,13 @@ export default function DashboardPage() {
       if (!isAuthenticated) {
         console.log("Dashboard: Kullanıcı giriş yapmamış!");
         setRedirecting(true);
-        
+
         toast({
           title: "Erişim Engellendi",
           description: "Bu sayfayı görüntülemek için giriş yapmalısınız.",
           variant: "destructive",
         });
-        
+
         // Önce yönlendirme durumunu set et
         setTimeout(() => {
           // Tarayıcı konumunu doğrudan değiştir
@@ -633,9 +634,25 @@ export default function DashboardPage() {
         }, 100);
       } else {
         setIsLoading(false);
+
+        // Kullanıcı SuperAdmin mi kontrol et
+        const checkSuperAdminStatus = async () => {
+          try {
+            const adminService = (await import('@/lib/services/adminService')).default;
+            const response = await adminService.checkSuperAdminStatus();
+
+            if (response.success) {
+              setIsSuperAdmin(response.data.isSuperAdmin);
+            }
+          } catch (error) {
+            console.error("SuperAdmin kontrolü sırasında hata:", error);
+          }
+        };
+
+        checkSuperAdminStatus();
       }
     }, 500);
-    
+
     return () => clearTimeout(timer);
   }, [isAuthenticated, toast]);
 
@@ -651,7 +668,7 @@ export default function DashboardPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
         <div className="w-10 h-10 border-t-2 border-primary rounded-full animate-spin"></div>
-        
+
       </div>
     );
   }
@@ -663,37 +680,46 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold">Hoş Geldiniz, {user?.first_name}</h1>
           <p className="text-muted-foreground mt-1">Spor etkinlikleri dünyasına katılmaya hazır mısınız?</p>
         </div>
-        
+
         <Button variant="outline" onClick={handleLogout}>
           Çıkış Yap
         </Button>
       </div>
 
       <Separator className="my-6" />
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <DashboardCard 
-          title="Etkinlikler" 
+        <DashboardCard
+          title="Etkinlikler"
           description="Tüm etkinlikleri görüntüle ve katıl"
           link="/events"
           linkText="Etkinlikleri Keşfet"
         />
-        
-        <DashboardCard 
-          title="Profil" 
+
+        <DashboardCard
+          title="Profil"
           description="Profil bilgilerinizi güncelleyin"
           link="/profile"
           linkText="Profil'e Git"
         />
-        
-        <DashboardCard 
-          title="Spor Dalları" 
+
+        <DashboardCard
+          title="Spor Dalları"
           description="Tüm spor dallarını keşfedin"
           link="/sports"
           linkText="Spor Dallarını Görüntüle"
         />
+
+        {isSuperAdmin && (
+          <DashboardCard
+            title="Admin Yönetimi"
+            description="Admin kullanıcılarını yönetin"
+            link="/dashboard/admins"
+            linkText="Admin Sayfasına Git"
+          />
+        )}
       </div>
-                        </div>
+    </div>
   );
 }
 
@@ -713,7 +739,7 @@ function DashboardCard({ title, description, link, linkText }: DashboardCardProp
         <Button variant="outline" className="w-full">
           {linkText}
         </Button>
-                      </Link>
+      </Link>
     </div>
   );
 } 

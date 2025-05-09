@@ -6,27 +6,30 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { 
-  Menu, 
-  Home, 
-  Users, 
-  Calendar, 
-  Newspaper, 
-  Shield, 
+import {
+  Menu,
+  Home,
+  Users,
+  Calendar,
+  Newspaper,
+  Shield,
   BarChart2,
   Megaphone,
   Settings,
   BookOpen,
   Activity,
   Map,
-  UserCog
+  UserCog,
+  UserPlus
 } from "lucide-react";
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import adminService from "@/lib/services/adminService";
 
 // Icon mapping bileşeni
 const IconComponent = ({ name, className }: { name: string, className?: string }) => {
   const iconProps = { className: cn("h-5 w-5", className) };
-  
+
   switch (name) {
     case "Home":
       return <Home {...iconProps} />;
@@ -52,12 +55,14 @@ const IconComponent = ({ name, className }: { name: string, className?: string }
       return <Map {...iconProps} />;
     case "UserCog":
       return <UserCog {...iconProps} />;
+    case "UserPlus":
+      return <UserPlus {...iconProps} />;
     default:
       return <div className={cn("h-5 w-5", className)} />;
   }
 };
 
-const routes = [
+const baseRoutes = [
   {
     label: "Ana Sayfa",
     href: "/dashboard",
@@ -95,8 +100,41 @@ const routes = [
   },
 ];
 
+// Sadece superadmin için gösterilecek rotalar
+const superAdminRoutes = [
+  {
+    label: "Admin Yönetimi",
+    href: "/dashboard/admins",
+    icon: "UserPlus",
+  }
+];
+
 export function Sidebar() {
   const pathname = usePathname();
+  const [routes, setRoutes] = useState(baseRoutes);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  // SuperAdmin durumunu kontrol et ve rotaları güncelle
+  useEffect(() => {
+    const checkSuperAdminStatus = async () => {
+      try {
+        // Kullanıcı oturum açmış mı kontrol et
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await adminService.checkSuperAdminStatus();
+
+        if (response.success && response.data.isSuperAdmin) {
+          setIsSuperAdmin(true);
+          setRoutes([...baseRoutes, ...superAdminRoutes]);
+        }
+      } catch (error) {
+        console.error("SuperAdmin kontrolü sırasında hata:", error);
+      }
+    };
+
+    checkSuperAdminStatus();
+  }, []);
 
   return (
     <>
@@ -114,9 +152,9 @@ export function Sidebar() {
         <SheetContent side="left" className="w-64 p-0">
           <div className="flex h-16 items-center justify-center px-6 border-b">
             <Link href="/dashboard" className="flex items-center justify-center">
-              <img 
-                src="/sportLink.svg" 
-                alt="SportLink Logo" 
+              <img
+                src="/sportLink.svg"
+                alt="SportLink Logo"
                 className="h-12 w-auto"
               />
             </Link>
@@ -129,14 +167,14 @@ export function Sidebar() {
                   href={route.href}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors duration-200",
-                    pathname === route.href 
-                      ? "bg-accent text-accent-foreground" 
+                    pathname === route.href
+                      ? "bg-accent text-accent-foreground"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  <IconComponent 
-                    name={route.icon} 
-                    className={pathname === route.href ? "text-primary" : "text-muted-foreground"} 
+                  <IconComponent
+                    name={route.icon}
+                    className={pathname === route.href ? "text-primary" : "text-muted-foreground"}
                   />
                   <span>{route.label}</span>
                 </Link>
@@ -148,9 +186,9 @@ export function Sidebar() {
       <div className="hidden md:flex h-screen w-64 flex-col border-r bg-background">
         <div className="flex h-16 items-center justify-center px-6 border-b">
           <Link href="/dashboard" className="flex items-center justify-center">
-            <img 
-              src="/sportLink.svg" 
-              alt="SportLink Logo" 
+            <img
+              src="/sportLink.svg"
+              alt="SportLink Logo"
               className="h-12 w-auto"
             />
           </Link>
@@ -163,14 +201,14 @@ export function Sidebar() {
                 href={route.href}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors duration-200",
-                  pathname === route.href 
-                    ? "bg-accent text-accent-foreground" 
+                  pathname === route.href
+                    ? "bg-accent text-accent-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <IconComponent 
-                  name={route.icon} 
-                  className={pathname === route.href ? "text-primary" : "text-muted-foreground"}  
+                <IconComponent
+                  name={route.icon}
+                  className={pathname === route.href ? "text-primary" : "text-muted-foreground"}
                 />
                 <span>{route.label}</span>
               </Link>

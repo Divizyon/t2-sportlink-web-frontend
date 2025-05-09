@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Trash, Pencil } from "lucide-react";
+import { Search, Trash, Pencil } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -41,7 +41,6 @@ interface UserListProps {
   onColumnToggle: (column: keyof UserListProps['selectedColumns']) => void;
   onUserClick: (user: UserType) => void;
   onDeleteUser: (id: string) => void;
-  onCreateUser: (userData: Partial<UserType>) => void;
   onUpdateUser: (userData: Partial<UserType>) => void;
   onFilterChange: (filters: {
     role?: string | undefined;
@@ -60,18 +59,11 @@ export default function UserList({
   onColumnToggle,
   onUserClick,
   onDeleteUser,
-  onCreateUser,
   onUpdateUser,
   onFilterChange,
   onFilterReset,
 }: UserListProps) {
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-
-  const handleCreateUser = (userData: Partial<UserType>) => {
-    onCreateUser(userData);
-    setIsCreateDialogOpen(false);
-  };
 
   const handleUpdateUser = (userData: Partial<UserType>) => {
     onUpdateUser(userData);
@@ -79,153 +71,166 @@ export default function UserList({
   };
 
   return (
-    <div className="w-2/3 p-6 space-y-6 overflow-auto border-r">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Kullanıcı Yönetimi</h1>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <div className="flex items-center">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Kullanıcı ara..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-              />
-            </div>
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="flex-none p-4 space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Kullanıcı Yönetimi</h1>
+            <p className="text-sm text-muted-foreground">Kullanıcıları yönetin, düzenleyin ve kontrol edin</p>
           </div>
-          <UserFilter
-            onFilterChange={onFilterChange}
-            onReset={onFilterReset}
-          />
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Yeni Kullanıcı Ekle
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Yeni Kullanıcı Ekle</DialogTitle>
-            </DialogHeader>
-            <UserForm
-              onSubmit={handleCreateUser}
-              onCancel={() => setIsCreateDialogOpen(false)}
+
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full">
+            <div className="relative w-full sm:w-64">
+              <div className="flex items-center">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Kullanıcı ara..."
+                  className="pl-8 w-full"
+                  value={searchQuery}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                />
+              </div>
+            </div>
+            <UserFilter
+              onFilterChange={onFilterChange}
+              onReset={onFilterReset}
             />
-          </DialogContent>
-        </Dialog>
+          </div>
+        </div>
       </div>
 
-      <div className="overflow-auto border rounded-lg">
-        <Table className="min-w-full divide-y divide-gray-200">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kullanıcı</TableHead>
-              {selectedColumns.email && (
-                <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">E-posta</TableHead>
-              )}
-              {selectedColumns.phone && (
-                <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telefon</TableHead>
-              )}
-              {selectedColumns.role && (
-                <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</TableHead>
-              )}
-              <TableHead className="py-3 px-4 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => (
-              <TableRow 
-                key={user.id}
-                className="hover:bg-green-50 cursor-pointer"
-                style={{
-                  borderLeft: selectedUser?.id === user.id ? '6px solid #059669' : 'none'
-                }}
-                onClick={() => onUserClick(user)}
-              >
-                <TableCell className="py-4 px-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-10 w-10">
-                      <Avatar>
-                        <AvatarImage src={user.profile_picture || undefined} />
-                        <AvatarFallback>
-                          {user.first_name?.[0]}{user.last_name?.[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {user.first_name} {user.last_name}
-                      </div>
-                      <div className="text-sm text-gray-500">{user.username}</div>
-                    </div>
-                  </div>
-                </TableCell>
-                {selectedColumns.email && (
-                  <TableCell className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.email}
-                  </TableCell>
-                )}
-                {selectedColumns.phone && (
-                  <TableCell className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.phone}
-                  </TableCell>
-                )}
-                {selectedColumns.role && (
-                  <TableCell className="py-4 px-4 whitespace-nowrap">
-                    <Badge variant={user.role === 'admin' ? 'destructive' : 'default'}>
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                )}
-                <TableCell className="py-4 px-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex justify-end space-x-2">
-                    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onUserClick(user);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[600px]">
-                        <DialogHeader>
-                          <DialogTitle>Kullanıcı Düzenle</DialogTitle>
-                        </DialogHeader>
-                        <UserForm
-                          user={user}
-                          onSubmit={handleUpdateUser}
-                          onCancel={() => setIsEditDialogOpen(false)}
-                          isEditing={true}
-                        />
-                      </DialogContent>
-                    </Dialog>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteUser(user.id);
+      <div className="flex-1 overflow-auto px-4 pb-4">
+        <div className="rounded-lg border shadow-sm overflow-hidden bg-card h-full">
+          <div className="overflow-x-auto h-full">
+            <Table className="w-full">
+              <TableHeader className="sticky top-0 bg-card z-10">
+                <TableRow className="bg-muted/50">
+                  <TableHead className="font-semibold">Kullanıcı</TableHead>
+                  {selectedColumns.email && (
+                    <TableHead className="font-semibold">E-posta</TableHead>
+                  )}
+                  {selectedColumns.phone && (
+                    <TableHead className="font-semibold">Telefon</TableHead>
+                  )}
+                  {selectedColumns.role && (
+                    <TableHead className="font-semibold">Rol</TableHead>
+                  )}
+                  <TableHead className="text-right font-semibold">İşlemler</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                      Kullanıcı bulunamadı.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  users.map((user) => (
+                    <TableRow
+                      key={user.id}
+                      className="hover:bg-muted/50 cursor-pointer transition-colors"
+                      style={{
+                        borderLeft: selectedUser?.id === user.id ? '4px solid #10b981' : 'none'
                       }}
+                      onClick={() => onUserClick(user)}
                     >
-                      <Trash className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9 border">
+                            <AvatarImage src={user.profile_picture || undefined} />
+                            <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                              {user.first_name?.[0]}{user.last_name?.[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">{user.first_name} {user.last_name}</div>
+                            <div className="text-xs text-muted-foreground">@{user.username}</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      {selectedColumns.email && (
+                        <TableCell className="text-sm">
+                          {user.email}
+                        </TableCell>
+                      )}
+                      {selectedColumns.phone && (
+                        <TableCell className="text-sm">
+                          {user.phone || "-"}
+                        </TableCell>
+                      )}
+                      {selectedColumns.role && (
+                        <TableCell>
+                          <Badge
+                            variant={
+                              user.role === 'superadmin'
+                                ? 'destructive'
+                                : user.role === 'admin'
+                                  ? 'default'
+                                  : 'secondary'
+                            }
+                            className="font-normal"
+                          >
+                            {user.role === 'superadmin' ? 'Süper Admin' :
+                              user.role === 'admin' ? 'Admin' : 'Kullanıcı'}
+                          </Badge>
+                        </TableCell>
+                      )}
+                      <TableCell className="text-right">
+                        <div className="flex justify-end space-x-1">
+                          <Dialog open={isEditDialogOpen && selectedUser?.id === user.id} onOpenChange={(open) => {
+                            if (open) onUserClick(user);
+                            setIsEditDialogOpen(open);
+                          }}>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onUserClick(user);
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                                <span className="sr-only">Düzenle</span>
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[600px]">
+                              <DialogHeader>
+                                <DialogTitle>Kullanıcı Düzenle</DialogTitle>
+                              </DialogHeader>
+                              <UserForm
+                                user={user}
+                                onSubmit={handleUpdateUser}
+                                onCancel={() => setIsEditDialogOpen(false)}
+                                isEditing={true}
+                              />
+                            </DialogContent>
+                          </Dialog>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteUser(user.id);
+                            }}
+                          >
+                            <Trash className="h-4 w-4" />
+                            <span className="sr-only">Sil</span>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       </div>
     </div>
   );

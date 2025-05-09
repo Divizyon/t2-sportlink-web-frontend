@@ -15,40 +15,40 @@ import useAuth from "@/lib/hooks/useAuth";
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { 
-    login, 
-    isLoading, 
-    error: authError, 
+  const {
+    login,
+    isLoading,
+    error: authError,
     isAuthenticated,
     clearError,
     resendEmailConfirmation
   } = useAuth();
-  
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [localError, setLocalError] = useState("");
-  
+
   // Debug - localStorage öğelerini kontrol et
   useEffect(() => {
     try {
       console.log("Debug - LocalStorage Kontrol:");
       console.log("access_token:", localStorage.getItem("access_token"));
-      console.log("token:", localStorage.getItem("token")); 
+      console.log("token:", localStorage.getItem("token"));
     } catch (error) {
       console.error("LocalStorage debug kontrolü sırasında hata:", error);
     }
   }, []);
-  
+
   // Eğer kullanıcı zaten giriş yapmışsa, dashboard'a yönlendir
   useEffect(() => {
     try {
       if (isAuthenticated) {
         console.log("Login: Kullanıcı zaten giriş yapmış!");
         setRedirecting(true);
-        
+
         // Doğrudan sayfayı yönlendir
         setTimeout(() => {
           window.location.href = "/dashboard";
@@ -63,85 +63,95 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault(); // Form submission'ı önle
-    
+
     setLocalError("");
     clearError(); // Zustand store'daki hatayı temizle
-    
+
     if (!email || !password) {
       setLocalError("Email ve şifre alanları boş bırakılamaz");
       return;
     }
-    
+
     try {
       const result = await login({
         email,
         password
       });
 
-      if (result.session.access_token) {
+      // Güvenli bir şekilde result ve session kontrolü yap
+      if (result && result.session && result.session.access_token) {
         console.log("Login: Giriş başarılı, yönlendiriliyor...");
-        
+
         // Auth anahtarlarını senkronize et
         try {
           // Auth.ts tarafından kullanılan anahtar
           localStorage.setItem('token', result.session.access_token);
-          
+
           // Tarayıcıda ikisi de olmasını sağla
           if (!localStorage.getItem('token')) {
             localStorage.setItem('token', result.session.access_token);
           }
-          
+
           // Kullanıcı rolü bilgisini ayarla
           if (result.user && result.user.role) {
             localStorage.setItem('userRole', result.user.role);
           }
-          
-          console.log("Token'lar senkronize edildi:", 
+
+          console.log("Token'lar senkronize edildi:",
             "access_token:", !!localStorage.getItem("access_token"),
             "token:", !!localStorage.getItem("token"));
         } catch (error) {
           console.error("Token senkronizasyonu sırasında hata:", error);
         }
-        
-        toast({
-          title: "Giriş başarılı",
-          description: "Ana sayfaya yönlendiriliyorsunuz",
-        });
-        
+
+        // Toast'u try/catch içine alarak hata olasılığını azalt
+        try {
+          toast({
+            title: "Giriş başarılı",
+            description: "Ana sayfaya yönlendiriliyorsunuz",
+          });
+        } catch (toastError) {
+          console.error("Toast gösterilirken hata:", toastError);
+        }
+
         // Yönlendirme öncesi durum ayarla
         setRedirecting(true);
-        
+
         // Tarayıcı konumunu doğrudan değiştir - setTimeout ile işlemi asenkron yap
         setTimeout(() => {
           window.location.href = "/dashboard";
         }, 100); // Yönlendirme süresini artır
-      } else if ((result as any).needsEmailVerification) {
+      } else if (result && (result as any).needsEmailVerification) {
         // Email doğrulama gerekiyor
         setNeedsEmailVerification(true);
         setLocalError("Email adresinizi doğrulamanız gerekmektedir. Doğrulama emaili için gelen kutunuzu kontrol edin.");
+      } else {
+        // Geçerli token ya da oturum yok
+        console.warn("Login: Geçerli bir token alınamadı");
+        setLocalError("Giriş yapılamadı: Sunucudan geçerli bir yanıt alınamadı.");
       }
     } catch (error: any) {
       console.error("Giriş hatası:", error);
       setLocalError(error.message || "Giriş yapılırken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
-      
+
       // E-posta doğrulama hatasını yakalamak için özel kontrol
       if (error.message?.includes('doğrulama')) {
         setNeedsEmailVerification(true);
       }
     }
   };
-  
+
   const handleResendVerification = async () => {
     if (!email) {
       setLocalError("Email adresi gereklidir");
       return;
     }
-    
+
     setResendingEmail(true);
-    
+
     try {
       await resendEmailConfirmation(email);
-      
+
       toast({
         title: "Email gönderildi",
         description: "Doğrulama emaili adresinize yeniden gönderildi.",
@@ -175,19 +185,19 @@ export default function LoginPage() {
           Hesabınıza giriş yaparak devam edin
         </p>
       </div>
-      
+
       <Separator />
-      
+
       {errorMessage && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{errorMessage}</AlertDescription>
-          
+
           {needsEmailVerification && (
             <div className="mt-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleResendVerification}
                 disabled={resendingEmail}
                 type="button"
@@ -198,7 +208,7 @@ export default function LoginPage() {
           )}
         </Alert>
       )}
-      
+
       <form className="space-y-4" onSubmit={handleLogin}>
         <div className="space-y-2">
           <Label htmlFor="email">Email Adresi</Label>
@@ -231,21 +241,18 @@ export default function LoginPage() {
             Şifremi Unuttum
           </Link>
         </div>
-        <Button 
-          type="submit" 
-          className="w-full" 
+        <Button
+          type="submit"
+          className="w-full"
           disabled={isLoading}
         >
           {isLoading ? "Giriş yapılıyor..." : "Giriş Yap"}
         </Button>
       </form>
-      
+
       <div className="text-center text-sm">
         <p className="text-muted-foreground">
-          Hesabınız yok mu?{" "}
-          <Link href="/auth/register" className="text-primary hover:underline">
-            Kayıt ol
-          </Link>
+          {/* Kayıt ol bağlantısı kaldırıldı - sadece admin ve süper admin kullanıcılar girebilir */}
         </p>
       </div>
     </div>

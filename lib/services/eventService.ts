@@ -71,9 +71,9 @@ class EventService {
   }> {
     try {
       const queryParams = new URLSearchParams();
-      
+
       if (params?.page) queryParams.append('page', params.page.toString());
-      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      queryParams.append('limit', '10');
       if (params?.sportId) queryParams.append('sportId', params.sportId);
       if (params?.status) params.status.forEach(s => queryParams.append('status', s));
       if (params?.keyword) queryParams.append('keyword', params.keyword);
@@ -81,13 +81,13 @@ class EventService {
       if (params?.endDate) queryParams.append('endDate', params.endDate);
 
       const response = await api.get(`/events?${queryParams.toString()}`);
-      
+
       console.log('Raw API response:', response.data);
-      
+
       const rawData = response.data;
-      
+
       let events: Event[] = [];
-      
+
       if (rawData.data && Array.isArray(rawData.data)) {
         events = rawData.data;
       } else if (rawData.data && rawData.data.data && Array.isArray(rawData.data.data)) {
@@ -100,7 +100,7 @@ class EventService {
         events = [];
         console.error('Could not find events array in API response:', rawData);
       }
-      
+
       let pagination = {
         total: 0,
         page: 1,
@@ -108,7 +108,7 @@ class EventService {
         totalPages: 1,
         hasMore: false
       };
-      
+
       if (rawData.pagination) {
         pagination = {
           total: rawData.pagination.total || 0,
@@ -126,14 +126,14 @@ class EventService {
           hasMore: rawData.data.pagination.hasMore || false
         };
       }
-      
+
       const standardizedData: PaginatedEventResponse = {
         data: events,
         pagination: pagination
       };
-      
+
       console.log('Standardized response data:', standardizedData);
-      
+
       return {
         success: true,
         data: standardizedData
@@ -335,7 +335,7 @@ class EventService {
     try {
       const queryParams = new URLSearchParams();
       if (params?.page) queryParams.append('page', params.page.toString());
-      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      queryParams.append('limit', '10');
 
       const response = await api.get(`/events/my-events?${queryParams.toString()}`);
       return {
@@ -361,7 +361,7 @@ class EventService {
     try {
       const queryParams = new URLSearchParams();
       if (params?.page) queryParams.append('page', params.page.toString());
-      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      queryParams.append('limit', '10');
 
       const response = await api.get(`/events/created-events?${queryParams.toString()}`);
       return {
