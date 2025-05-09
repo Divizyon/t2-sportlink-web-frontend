@@ -33,7 +33,9 @@ interface ExtendedAnnouncement extends Announcement {
 }
 
 export default function AnnouncementsPage() {
+  // Modal ve duyuru yönetimi için state
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [modalAnnouncement, setModalAnnouncement] = useState<ExtendedAnnouncement | null>(null)
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<ExtendedAnnouncement | null>(null)
   const [viewMode, setViewMode] = useState<"preview" | "edit">("preview")
   
@@ -43,6 +45,7 @@ export default function AnnouncementsPage() {
   const error = useStore(state => state.error)
   const getAnnouncements = useStore(state => state.getAnnouncements)
   const updateAnnouncement = useStore(state => state.updateAnnouncement)
+  const setCurrentAnnouncement = useStore(state => state.setCurrentAnnouncement)
   
   const { toast } = useToast()
 
@@ -97,20 +100,28 @@ export default function AnnouncementsPage() {
 
   // Duyuru düzenleme
   const handleEdit = (announcement: Announcement) => {
-    setSelectedAnnouncement(announcement as ExtendedAnnouncement)
-    setIsModalOpen(true)
+    console.log("handleEdit çağrıldı:", announcement);
+    setModalAnnouncement(announcement as ExtendedAnnouncement);
+    setIsModalOpen(true);
   }
 
   // Duyuru görüntüleme
   const handleView = (announcement: Announcement) => {
+    console.log("handleView çağrıldı:", announcement);
     setSelectedAnnouncement(announcement as ExtendedAnnouncement);
     setViewMode("preview");
   }
 
   // Yeni duyuru ekleme
   const handleAdd = () => {
-    setSelectedAnnouncement(null)
-    setIsModalOpen(true)
+    console.log("handleAdd çağrıldı - Yeni duyuru ekleme butonu tıklandı");
+    // Modalda gösterilecek duyuruyu null olarak ayarla (yeni duyuru oluşturma)
+    setModalAnnouncement(null);
+    // Store'daki mevcut duyuruyu temizle
+    setCurrentAnnouncement(null);
+    // Sonra modal'ı aç
+    console.log("Modal açılıyor, isModalOpen değeri:", isModalOpen, " -> true");
+    setIsModalOpen(true);
   }
 
   // Duyuru verilerini güncelleme
@@ -146,29 +157,67 @@ export default function AnnouncementsPage() {
     }
 
     try {
-      console.log("Duyuru güncelleniyor...", selectedAnnouncement);
+      console.log("%c Duyuru güncelleme işlemi başlatıldı", "background: #e0f7fa; color: #00695c; font-weight: bold;");
+      console.log("Güncellenecek duyuru verileri:", JSON.stringify(selectedAnnouncement, null, 2));
       
-      // Veri temizliği ve doğrulama
-      const updatedAnnouncement = {
-        ...selectedAnnouncement,
-        id: selectedAnnouncement.id.trim(), // ID'yi temizle
-        title: selectedAnnouncement.title || "Başlıksız Duyuru", // Başlık zorunlu
-        content: selectedAnnouncement.content || "", // İçerik
-        // Date stringlerini düzgün formata getirme
-        start_date: selectedAnnouncement.start_date || null,
-        end_date: selectedAnnouncement.end_date || null,
-        // Status kontrolü
-        status: selectedAnnouncement.status || (selectedAnnouncement.published ? "published" : "draft"),
+      // Daha güvenli yaklaşım - API için gerekli veri yapısını oluştur
+      const updateData: Partial<Record<string, any>> = {
+        title: selectedAnnouncement.title,
+        content: selectedAnnouncement.content
       };
       
-      console.log("Temizlenmiş veri:", updatedAnnouncement);
-      console.log("API call - updateAnnouncement fonksiyonu çağrılıyor, ID:", updatedAnnouncement.id);
+      // Optional fields - only add if they exist and are valid
+      if (typeof selectedAnnouncement.summary === 'string') {
+        updateData.summary = selectedAnnouncement.summary;
+      }
+      
+      // Status kontrolü
+      if (selectedAnnouncement.status) {
+        updateData.status = selectedAnnouncement.status;
+      } else if (selectedAnnouncement.published !== undefined) {
+        updateData.status = selectedAnnouncement.published ? "published" : "draft";
+      }
+      
+      // Diğer alanlar
+      if (selectedAnnouncement.start_date) {
+        updateData.start_date = selectedAnnouncement.start_date;
+      }
+      
+      if (selectedAnnouncement.end_date) {
+        updateData.end_date = selectedAnnouncement.end_date;
+      }
+      
+      if (selectedAnnouncement.imageUrl) {
+        updateData.imageUrl = selectedAnnouncement.imageUrl;
+      } else if (selectedAnnouncement.image) {
+        updateData.imageUrl = selectedAnnouncement.image;
+      }
+      
+      if (Array.isArray(selectedAnnouncement.tags)) {
+        updateData.tags = selectedAnnouncement.tags;
+      }
+      
+      if (typeof selectedAnnouncement.priority === 'number') {
+        updateData.priority = selectedAnnouncement.priority;
+      }
+      
+      if (typeof selectedAnnouncement.pinned === 'boolean') {
+        updateData.pinned = selectedAnnouncement.pinned;
+      }
+      
+      if (selectedAnnouncement.visibility) {
+        updateData.visibility = selectedAnnouncement.visibility;
+      }
+      
+      console.log("API için hazırlanan veri:", JSON.stringify(updateData, null, 2));
+      console.log("API call - updateAnnouncement fonksiyonu çağrılıyor, ID:", selectedAnnouncement.id);
       
       // Doğrudan store'dan updateAnnouncement fonksiyonunu çağır
-      const success = await updateAnnouncement(updatedAnnouncement.id, updatedAnnouncement);
+      const success = await updateAnnouncement(selectedAnnouncement.id, updateData);
       console.log("Duyuru güncelleme sonucu:", success);
       
       if (success) {
+        console.log("%c Duyuru güncelleme işlemi başarılı", "background: #e8f5e9; color: #2e7d32; font-weight: bold;");
         toast({
           title: "Başarılı",
           description: "Duyuru başarıyla güncellendi.",
@@ -179,6 +228,7 @@ export default function AnnouncementsPage() {
           getAnnouncements();
         }, 500);
       } else {
+        console.error("%c Duyuru güncelleme işlemi başarısız", "background: #ffebee; color: #c62828; font-weight: bold;");
         toast({
           title: "Hata",
           description: "Duyuru güncellenemedi. Lütfen tekrar deneyin.",
@@ -186,7 +236,8 @@ export default function AnnouncementsPage() {
         });
       }
     } catch (error) {
-      console.error("Duyuru güncellenirken hata:", error);
+      console.error("%c Duyuru güncellenirken hata oluştu", "background: #ffebee; color: #c62828; font-weight: bold;");
+      console.error("Hata detayı:", error);
       toast({
         title: "Hata",
         description: "Duyuru güncellenirken bir hata oluştu: " + (error instanceof Error ? error.message : "Bilinmeyen hata"),
@@ -196,9 +247,14 @@ export default function AnnouncementsPage() {
   }
 
   // Modal kapandığında
-  const handleModalClose = () => {
-    setIsModalOpen(false)
-    setSelectedAnnouncement(null)
+  const handleModalOpenChange = (open: boolean) => {
+    console.log("handleModalOpenChange çağrıldı - Modal durumu değişiyor:", open);
+    setIsModalOpen(open);
+    
+    // Modal kapandığında modalAnnouncement'ı sıfırla
+    if (!open) {
+      setModalAnnouncement(null);
+    }
   }
 
   // İşlemler başarılı olduğunda
@@ -268,7 +324,7 @@ export default function AnnouncementsPage() {
   };
 
   // Debug için her render'ı logla
-  console.log("AnnouncementsPage RENDER edildi", new Date().toISOString());
+  console.log("AnnouncementsPage RENDER edildi", new Date().toISOString(), "isModalOpen:", isModalOpen, "modalAnnouncement:", modalAnnouncement);
 
   return (
     <div className="container mx-auto py-6">
@@ -291,6 +347,10 @@ export default function AnnouncementsPage() {
             <MegaphoneIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">Henüz duyuru bulunmuyor</h3>
             <p className="text-muted-foreground mb-4">İlk duyuruyu eklemek için "Yeni Duyuru" butonuna tıklayın.</p>
+            <Button onClick={handleAdd}>
+              <Plus className="mr-2 h-4 w-4" />
+              Yeni Duyuru Ekle
+            </Button>
           </div>
         </div>
       ) : (
@@ -375,10 +435,11 @@ export default function AnnouncementsPage() {
         </div>
       )}
 
+      {/* Tüm modal props'larını güncelledik */}
       <AnnouncementFormModal
         isOpen={isModalOpen}
-        onOpenChange={handleModalClose}
-        announcement={selectedAnnouncement}
+        onOpenChange={handleModalOpenChange}
+        announcement={modalAnnouncement}
         onSuccess={handleSuccess}
       />
     </div>

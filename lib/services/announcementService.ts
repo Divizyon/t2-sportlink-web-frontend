@@ -288,20 +288,24 @@ class AnnouncementService {
    */
   async updateAnnouncement(id: string, updateData: UpdateAnnouncementDTO): Promise<AnnouncementDetailResponse> {
     try {
-      console.log("Duyuru güncelleme verisi:", id, updateData);
+      // Debug için detaylı log
+      console.log(`%c Duyuru güncelleme başladı - ID: ${id}`, 'background: #f0f0f0; color: #0000ff; font-weight: bold;');
+      console.log("Gönderilecek veri:", JSON.stringify(updateData, null, 2));
       
-      // Status alanından önbellek kontrolü
-      const statusToSend = updateData.status;
+      // Veri kontrolü
+      if (!id || id.trim() === '') {
+        throw new Error('Geçersiz duyuru ID');
+      }
       
-      // Backend'in beklediği formatta veri gönder
-      const requestData = {
-        ...updateData,
-        status: statusToSend
-      };
+      // Status değerini kontrol et ve normalleştir
+      let normalizedData = { ...updateData };
       
-      console.log("API'ye gönderilen güncelleme verisi:", requestData);
+      // API isteği için tam URL logla
+      const fullEndpoint = `${this.BASE_PATH}/${id}`;
+      console.log(`PUT isteği gönderiliyor: ${fullEndpoint}`);
       
-      const response = await api.put(`${this.BASE_PATH}/${id}`, requestData);
+      // API isteği gönderiliyor
+      const response = await api.put(fullEndpoint, normalizedData);
       
       console.log("Duyuru güncelleme API yanıtı:", response.data);
       
@@ -311,7 +315,7 @@ class AnnouncementService {
       return {
         success: success,
         data: response.data?.data || response.data,
-        message: success ? "Duyuru başarıyla güncellendi" : "Duyuru güncellenirken bir sorun oluştu"
+        message: response.data?.message || (success ? 'Duyuru başarıyla güncellendi' : 'Duyuru güncellenirken bir hata oluştu')
       };
     } catch (error) {
       console.error('Duyuru güncellenirken hata:', error);

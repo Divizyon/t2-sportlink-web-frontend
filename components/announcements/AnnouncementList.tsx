@@ -423,16 +423,6 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
                         size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
-                          onEdit(announcement);
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
                           // Eğer ID yoksa silme işlemini engelle
                           if (!announcement.id || announcement.id.trim() === "") {
                             toast({

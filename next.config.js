@@ -4,7 +4,7 @@ const nextConfig = {
     ignoreDuringBuilds: true
   },
   images: {
-    domains: ['www.konyaspor.org.tr', 'example.com']
+    domains: ['www.konyaspor.org.tr', 'example.com', 'www.konhaber.com']
   }
 }
 

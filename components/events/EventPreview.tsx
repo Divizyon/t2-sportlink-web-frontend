@@ -117,7 +117,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
     <>
       <Card className="h-full">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Etkinlik Önizleme</CardTitle>
+          <CardTitle>{viewMode === "edit" ? "Etkinlik Düzenle" : "Etkinlik Önizleme"}</CardTitle>
           <div className="flex space-x-2">
             <Button 
               variant={viewMode === "preview" ? "default" : "outline"} 
@@ -186,28 +186,42 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                     <p className="text-sm text-gray-600 whitespace-pre-line">{selectedEvent.description}</p>
                   </div>
                   
-                  {/* Sadece onaylanmış etkinlikler için katılımcılar bölümünü göster */}
-                  {selectedEvent.approval_status === "approved" && (
-                    <div className="pt-4">
-                      <h4 className="font-medium mb-2">
-                        Katılımcılar ({selectedEvent.participants ? selectedEvent.participants.length : 0} / {selectedEvent.max_participants})
-                      </h4>
-                      {renderParticipants(selectedEvent.participants)}
-                      <div className="mt-2 text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-sm"
-                        >
-                          Katılımcıları Dışa Aktar
-                        </Button>
+                  {/* Katılımcılar bölümünü tüm etkinlikler için göster */}
+                  <div className="pt-4 border-t border-gray-200">
+                    <h4 className="font-medium mb-2 flex items-center">
+                      <Users className="h-4 w-4 mr-1 text-blue-500" />
+                      <span>Katılımcılar ({selectedEvent.participants?.length || 0} / {selectedEvent.max_participants || 0})</span>
+                    </h4>
+                    
+                    {/* Katılımcı listesi */}
+                    {renderParticipants(selectedEvent.participants)}
+                    
+                    {/* Katılımcıları dışa aktarma butonu */}
+                    <div className="mt-2 text-right">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-sm"
+                      >
+                        <Mail className="h-4 w-4 mr-1" />
+                        Katılımcıları Dışa Aktar
+                      </Button>
                     </div>
-                    </div>
-                  )}
+                    
+                    {/* Eğer katılımcı yoksa bilgi mesajı */}
+                    {(!selectedEvent.participants?.length) && (
+                      <div className="p-4 bg-gray-50 rounded-md text-center flex items-center justify-center">
+                        <Info className="h-4 w-4 mr-2 text-blue-500" />
+                        <span className="text-gray-600">
+                          Henüz katılımcı bulunmamaktadır.
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ) : ( // Edit Mode
-              <div className="space-y-6">
+              <div className="space-y-6 max-h-[calc(100vh-14rem)] overflow-y-auto pr-4">
                 <div className="grid gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="edit-title">Başlık</Label>
@@ -259,12 +273,22 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="edit-time">Saat</Label>
+                    <Label htmlFor="edit-time">Başlangıç Saati</Label>
                     <Input
                       id="edit-time"
                       type="time"
-                      // Format time for input type='time'
-                      value={selectedEvent.start_time ? new Date(selectedEvent.start_time).toISOString().split('T')[1].substring(0, 5) : ''}
+                      // Güvenli bir şekilde saati formatla
+                      value={
+                        selectedEvent.start_time ? 
+                          (() => {
+                            try {
+                              return new Date(selectedEvent.start_time).toTimeString().substring(0, 5);
+                            } catch(e) {
+                              return '';
+                            }
+                          })() : 
+                          ''
+                      }
                       onChange={(e) => handleChange('start_time', e.target.value)}
                     />
                   </div>
@@ -273,7 +297,18 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                     <Input
                       id="edit-end-time"
                       type="time"
-                      value={selectedEvent.end_time ? new Date(selectedEvent.end_time).toISOString().split('T')[1].substring(0, 5) : ''}
+                      // Güvenli bir şekilde saati formatla
+                      value={
+                        selectedEvent.end_time ? 
+                          (() => {
+                            try {
+                              return new Date(selectedEvent.end_time).toTimeString().substring(0, 5);
+                            } catch(e) {
+                              return '';
+                            }
+                          })() : 
+                          ''
+                      }
                       onChange={(e) => handleChange('end_time', e.target.value)}
                     />
                   </div>
@@ -331,35 +366,18 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                   </div>
                    */}
                   <div className="grid gap-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="edit-status">Durum</Label>
-                        {renderSelectWithFallback(
-                           selectedEvent.status,
-                           (value) => handleChange('status', value),
-                           "Durum seçin",
-                           [
-                             { value: "pending", label: "Beklemede" },
-                             { value: "active", label: "Aktif" },
-                             { value: "completed", label: "Tamamlandı" },
-                             { value: "cancelled", label: "İptal Edildi" },
-                           ]
-                         )}
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="edit-approval_status">Onay Durumu</Label>
-                        {renderSelectWithFallback(
-                           selectedEvent.approval_status,
-                           (value) => handleChange('approval_status', value),
-                           "Onay Durumu seçin",
-                           [
-                             { value: "pending", label: "Onay Bekliyor" },
-                             { value: "approved", label: "Onaylanmış" },
-                             { value: "rejected", label: "Reddedildi" },
-                             { value: "cancelled", label: "İptal Edildi" },
-                           ]
-                         )}
-                      </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-status">Durum</Label>
+                      {renderSelectWithFallback(
+                         selectedEvent.status,
+                         (value) => handleChange('status', value),
+                         "Durum seçin",
+                         [
+                           { value: "pending", label: "Beklemede" },
+                           { value: "active", label: "Aktif" },
+                           { value: "cancelled", label: "İptal Edildi" },
+                         ]
+                       )}
                     </div>
                   </div>
                   <div className="flex justify-end pt-4">

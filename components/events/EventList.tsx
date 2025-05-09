@@ -45,8 +45,8 @@ interface EventListProps {
   setNewEvent: React.Dispatch<React.SetStateAction<Partial<Event>>>;
   handleAddEvent: () => Promise<void>;
   formatDate: (dateString: string) => string;
-  getStatusBadge: (status: string) => JSX.Element;
-  getApprovalBadge: (status: string) => JSX.Element;
+  getStatusBadge: (status: string) => React.ReactElement;
+  getApprovalBadge: (status: string) => React.ReactElement;
   loading: boolean;
 }
 
@@ -123,23 +123,6 @@ const EventList: React.FC<EventListProps> = ({
                             className="h-4 w-4"
                           />
                           <label htmlFor={`status-${status}`}>{status}</label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Onay Durumu</h4>
-                    <div className="space-y-2">
-                      {['Onaylanmış', 'Onay Bekliyor'].map((approval_status) => (
-                        <div key={approval_status} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={`approval_status-${approval_status}`}
-                            checked={selectedFilters.approval_status.includes(approval_status)}
-                            onChange={() => handleFilterChange('approval_status', approval_status)}
-                            className="h-4 w-4"
-                          />
-                          <label htmlFor={`approval_status-${approval_status}`}>{approval_status}</label>
                         </div>
                       ))}
                     </div>
@@ -276,7 +259,6 @@ const EventList: React.FC<EventListProps> = ({
                 <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tarih</TableHead>
                 <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</TableHead>
                 <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durum</TableHead>
-                <TableHead className="py-3 px-4 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Onay</TableHead>
                 <TableHead className="py-3 px-4 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</TableHead>
               </TableRow>
             </TableHeader>
@@ -300,10 +282,9 @@ const EventList: React.FC<EventListProps> = ({
                     {event.sport ? event.sport.name : 'Belirtilmemiş'}
                   </td>
                   <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
-                    {getStatusBadge(event.status)}
-                  </td>
-                  <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
-                    {getApprovalBadge(event.approval_status)}
+                    <div className="flex flex-col space-y-1">
+                      {getStatusBadge(event.status)}
+                    </div>
                   </td>
                   <td className="py-4 px-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end">

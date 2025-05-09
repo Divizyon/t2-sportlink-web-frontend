@@ -23,7 +23,7 @@ import { Upload, X, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import useStore from '@/lib/store';
 import { Switch } from '@/components/ui/switch';
-import type { Announcement, AnnouncementStatus, CreateAnnouncementDTO, UpdateAnnouncementDTO } from '@/interfaces/announcement';
+import type { Announcement, AnnouncementStatus, CreateAnnouncementDTO, UpdateAnnouncementDTO, AnnouncementVisibility } from '@/interfaces/announcement';
 
 type AnnouncementFormModalProps = {
   isOpen: boolean;
@@ -44,7 +44,7 @@ interface FormDataType {
   pinned?: boolean | undefined;
   start_date?: string | null;
   end_date?: string | null;
-  visibility?: string;
+  visibility?: AnnouncementVisibility;
 }
 
 const defaultAnnouncement: FormDataType = {
@@ -79,6 +79,7 @@ export function AnnouncementFormModal({
   // Form açıldığında mevcut duyuru bilgilerini yükle veya sıfırla
   useEffect(() => {
     if (isOpen) {
+      console.log('Modal açıldı, isEditing:', isEditing, 'announcement:', announcement);
       // Eğer düzenleme modundaysa ve geçerli bir duyuru varsa
       if (isEditing && announcement) {
         console.log('Duyuru düzenleme modu, duyuru ID:', announcement.id);
@@ -120,6 +121,7 @@ export function AnnouncementFormModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("[ANNOUNCEMENT FORM] Form submit edildi");
     
     try {
       setIsSubmitting(true);
@@ -131,6 +133,7 @@ export function AnnouncementFormModal({
           description: "Duyuru başlığı boş olamaz",
           variant: "destructive",
         });
+        setIsSubmitting(false);
         return;
       }
       
@@ -140,51 +143,80 @@ export function AnnouncementFormModal({
           description: "Duyuru içeriği boş olamaz",
           variant: "destructive",
         });
+        setIsSubmitting(false);
         return;
       }
       
-      console.log("[ANNOUNCEMENT FORM] Form gönderiliyor:", formData);
+      console.log("[ANNOUNCEMENT FORM] Form doğrulaması geçildi, gönderiliyor:", formData);
       
-      // Veri nesnesini hazırla
-      const requestData = {
+      // Belirli propertyler için kesin değerlerden oluşan DTO hazırla
+      const baseData = {
         title: formData.title,
         content: formData.content,
-        summary: formData.summary || undefined,
-        status: formData.publishNow ? 'published' : formData.status,
-        imageUrl: formData.imageUrl || undefined,
-        tags: formData.tags || undefined,
-        priority: formData.priority || undefined,
-        pinned: formData.pinned || undefined,
-        start_date: formData.start_date || undefined,
-        end_date: formData.end_date || undefined,
-        visibility: formData.visibility || undefined
+        status: formData.publishNow ? 'published' as const : formData.status,
       };
       
+      // İsteğe bağlı alanları ekle
+      const optionalFields: Partial<CreateAnnouncementDTO | UpdateAnnouncementDTO> = {};
+      
+      if (formData.summary && formData.summary.trim() !== '') {
+        optionalFields.summary = formData.summary;
+      }
+      
+      if (formData.imageUrl && formData.imageUrl.trim() !== '') {
+        optionalFields.imageUrl = formData.imageUrl;
+      }
+      
+      if (formData.tags && formData.tags.length > 0) {
+        optionalFields.tags = formData.tags;
+      }
+      
+      if (formData.priority !== undefined) {
+        optionalFields.priority = formData.priority;
+      }
+      
+      if (formData.pinned !== undefined) {
+        optionalFields.pinned = formData.pinned;
+      }
+      
+      if (formData.visibility) {
+        optionalFields.visibility = formData.visibility;
+      }
+
+      // DTO'ları birleştir
+      const requestData = {
+        ...baseData,
+        ...optionalFields
+      };
+      
+      console.log("[ANNOUNCEMENT FORM] Hazırlanan veri:", requestData);
+      
       // Düzenleme modu mu yoksa ekleme modu mu kontrol et
-      const isEditMode = isEditing && announcement && announcement.id;
       let success = false;
       
-      if (isEditMode) {
+      if (isEditing && announcement && announcement.id) {
         console.log("[ANNOUNCEMENT FORM] Mevcut duyuru güncelleniyor, ID:", announcement.id);
         // Store üzerinden duyuru güncelleme fonksiyonunu çağır
-        success = await updateAnnouncement(announcement.id, requestData);
+        success = await updateAnnouncement(announcement.id, requestData as UpdateAnnouncementDTO);
       } else {
         console.log("[ANNOUNCEMENT FORM] Yeni duyuru oluşturuluyor");
         // Store üzerinden duyuru oluşturma fonksiyonunu çağır  
-        success = await createAnnouncement(requestData);
+        success = await createAnnouncement(requestData as CreateAnnouncementDTO);
       }
+      
+      console.log("[ANNOUNCEMENT FORM] API yanıtı:", success);
       
       if (success) {
         console.log("[ANNOUNCEMENT FORM] İşlem başarılı");
         toast({
-          title: isEditMode ? "Duyuru Güncellendi" : "Duyuru Oluşturuldu",
-          description: isEditMode 
+          title: isEditing ? "Duyuru Güncellendi" : "Duyuru Oluşturuldu",
+          description: isEditing 
             ? "Duyuru başarıyla güncellendi." 
             : "Yeni duyuru başarıyla oluşturuldu.",
         });
         
         // Form başarıyla tamamlandı, modal'ı kapat
-        onOpenChange(false);
+        handleModalClose(false);
         
         // Duyuru listesini güncelle (sadece başarılı olduğunda)
         if (onSuccess) {
@@ -245,13 +277,18 @@ export function AnnouncementFormModal({
 
   // Modal kapatma işlemini ele al
   const handleModalClose = (open: boolean) => {
+    console.log('Modal durumu değişiyor:', open);
+    
+    // Modalı kapatıyoruz
     if (!open) {
       // Modal kapanırken formda yapılan değişiklikleri temizle
       console.log('Modal kapatılıyor - form sıfırlanıyor');
-      setFormData(defaultAnnouncement);
+      setFormData({...defaultAnnouncement});
       // Store'daki mevcut duyuruyu da temizle
       setCurrentAnnouncement(null);
     }
+    
+    // onOpenChange fonksiyonunu çağır
     onOpenChange(open);
   };
 
@@ -298,28 +335,7 @@ export function AnnouncementFormModal({
               />
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status" className="text-right">
-                Durum
-              </Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value: AnnouncementStatus) => setFormData({
-                  ...formData,
-                  status: value,
-                })}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Durum seçin" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="published">Yayında</SelectItem>
-                  <SelectItem value="draft">Taslak</SelectItem>
-                  <SelectItem value="archived">Arşivlenmiş</SelectItem>
-                  <SelectItem value="pending">Onay Bekliyor</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+           
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="publishNow" className="text-right">
@@ -390,68 +406,14 @@ export function AnnouncementFormModal({
                 })}
               />
             </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="tags" className="text-right">
-                Etiketler
-              </Label>
-              <Input
-                id="tags"
-                placeholder="Etiketleri virgülle ayırarak girin"
-                className="col-span-3"
-                value={formData.tags ? formData.tags.join(', ') : ''}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  tags: e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
-                })}
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="priority" className="text-right">
-                Öncelik
-              </Label>
-              <Input
-                id="priority"
-                type="number"
-                min="0"
-                max="10"
-                placeholder="0-10 arası değer (10 en yüksek)"
-                className="col-span-3"
-                value={formData.priority !== undefined ? formData.priority : ''}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  priority: parseInt(e.target.value) || 0,
-                })}
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="pinned" className="text-right">
-                Sabitlenmiş
-              </Label>
-              <div className="col-span-3 flex items-center">
-                <Switch
-                  id="pinned"
-                  checked={!!formData.pinned}
-                  onCheckedChange={(checked) => setFormData({
-                    ...formData,
-                    pinned: checked,
-                  })}
-                />
-                <span className="ml-2 text-sm text-gray-600">
-                  {formData.pinned ? "Duyuru sabitlenecek" : "Duyuru sabitlenmeyecek"}
-                </span>
-              </div>
-            </div>
-
+           
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="visibility" className="text-right">
                 Görünürlük
               </Label>
               <Select
                 value={formData.visibility || 'public'}
-                onValueChange={(value) => setFormData({
+                onValueChange={(value: AnnouncementVisibility) => setFormData({
                   ...formData,
                   visibility: value,
                 })}
@@ -519,12 +481,16 @@ export function AnnouncementFormModal({
             <Button 
               type="button" 
               variant="outline" 
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleModalClose(false)}
               disabled={isLoading || isSubmitting}
             >
               İptal
             </Button>
-            <Button type="submit" disabled={isLoading || isSubmitting}>
+            <Button 
+              type="submit" 
+              disabled={isLoading || isSubmitting}
+              onClick={() => console.log("Ekle butonu tıklandı")}
+            >
               {isLoading || isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

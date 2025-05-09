@@ -29,10 +29,12 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
   const { selectedNews, setSelectedNews } = useStore();
   const [viewMode, setViewMode] = useState<"preview" | "edit">("preview");
   const [editedNews, setEditedNews] = useState<News | null>(null);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     if (selectedNews) {
       setEditedNews(JSON.parse(JSON.stringify(selectedNews)));
+      setImageError(false);
     }
   }, [selectedNews]);
 
@@ -51,6 +53,19 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
     if (!e.target.files || !e.target.files[0] || !editedNews) return;
     
     const file = e.target.files[0];
+    
+    // Dosya boyutu kontrolü (örn. 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Dosya boyutu çok büyük! Maksimum 5MB olmalıdır.');
+      return;
+    }
+    
+    // Dosya tipi kontrolü
+    if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) {
+      alert('Sadece JPEG, PNG, GIF ve WEBP formatları desteklenmektedir.');
+      return;
+    }
+    
     const reader = new FileReader();
     
     reader.onload = (event) => {
@@ -60,6 +75,11 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
           image: event.target.result as string
         });
       }
+    };
+    
+    reader.onerror = (error) => {
+      console.error('Dosya okuma hatası:', error);
+      alert('Dosya okunurken bir hata oluştu.');
     };
     
     reader.readAsDataURL(file);
@@ -155,16 +175,21 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
         {viewMode === "preview" ? (
           <div className="space-y-6">
             <div className="relative h-48 w-full rounded-lg overflow-hidden bg-gray-100">
-              {editedNews.image ? (
+              {editedNews.image && !imageError ? (
                 <Image
-                  src={editedNews.image}
+                  src={editedNews.image.startsWith('data:') || editedNews.image.startsWith('http') ? editedNews.image : defaultImage}
                   alt={editedNews.title}
                   fill
                   className="object-cover"
-                />
+                  onError={() => {
+                    console.error(`Görsel yüklenemedi: ${editedNews.image}`);
+                    setImageError(true);
+                  }}
+                  unoptimized={editedNews.image.startsWith('data:')}
+                />  
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <span className="text-gray-400">Görsel bulunamadı</span>
+                  <span className="text-gray-400">Görsel bulunamadı veya yüklenemedi</span>
                 </div>
               )}
             </div>
@@ -232,13 +257,40 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="image">Görsel URL</Label>
-              <Input
-                id="image"
-                value={editedNews.image}
-                onChange={(e) => handleChange("image", e.target.value)}
-                placeholder="Görsel URL'i"
-              />
+              <Label htmlFor="image">Görsel</Label>
+              <div className="space-y-2">
+                <Input
+                  id="image"
+                  placeholder="Görsel URL'i"
+                  value={editedNews.image && (editedNews.image.startsWith('http') ? editedNews.image : '')}
+                  onChange={(e) => handleChange("image", e.target.value)}
+                />
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="imageUpload" className="text-xs text-gray-500">veya bir dosya yükle:</Label>
+                  <Input
+                    id="imageUpload"
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleImageUpload}
+                  />
+                </div>
+                {editedNews.image && (
+                  <div className="mt-2">
+                    <div className="relative h-32 w-48 rounded-md overflow-hidden">
+                      <Image
+                        src={editedNews.image.startsWith('data:') || editedNews.image.startsWith('http') ? editedNews.image : defaultImage}
+                        alt="Önizleme"
+                        fill
+                        className="object-cover"
+                        onError={() => {
+                          console.error(`Önizleme görseli yüklenemedi: ${editedNews.image}`);
+                        }}
+                        unoptimized={editedNews.image.startsWith('data:')}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="sourceUrl">Kaynak URL</Label>
