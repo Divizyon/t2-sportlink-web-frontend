@@ -19,7 +19,7 @@ const truncateText = (text: string, maxLength: number = 40) => {
 // Helper function to format date 
 const formatDate = (dateString: string): string => {
   if (!dateString) return 'Bilinmiyor';
-  
+
   try {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('tr-TR', {
@@ -50,7 +50,7 @@ export function ReportDetails({
     username: string;
     fullName?: string | undefined;
   } | null>(null);
-  
+
   // Kullanıcı adı gösterimi için yardımcı fonksiyon
   const displayUsername = (username: string | undefined): string => {
     // Username undefined veya boş string ise daha kullanıcı dostu bir mesaj göster
@@ -61,14 +61,14 @@ export function ReportDetails({
   };
 
   const openUserProfile = (
-    userId: string, 
-    username: string, 
+    userId: string,
+    username: string,
     fullName?: string,
     event?: React.MouseEvent
   ) => {
     if (event) event.stopPropagation();
     if (!userId || !username) return;
-    
+
     setProfileUser({
       id: userId,
       username: username,
@@ -110,12 +110,12 @@ export function ReportDetails({
     <Card>
       <CardHeader className="pb-4">
         <CardTitle>
-          <Popover 
-            open={profileUser?.id === selectedUser.id} 
+          <Popover
+            open={profileUser?.id === selectedUser.id}
             onOpenChange={(open) => !open && closeUserProfile()}
           >
             <PopoverTrigger asChild>
-              <span 
+              <span
                 className="cursor-pointer text-primary hover:underline"
                 onClick={(e) => openUserProfile(selectedUser.id, selectedUser.username, selectedUser.fullName, e)}
               >
@@ -146,13 +146,13 @@ export function ReportDetails({
           {reportDetails.length > 0 ? (
             <>
               {/* İlk raporu seçmek için düğme ekleyelim */}
-              <button 
+              <button
                 onClick={selectFirstReport}
                 className="text-sm text-primary hover:underline mb-2"
               >
                 İlk raporu göster
               </button>
-              
+
               {reportDetails.map((report) => (
                 <div
                   key={report.id}
@@ -163,15 +163,15 @@ export function ReportDetails({
                     <div>
                       <div className="font-medium">
                         <span>Raporlayan: </span>
-                        <Popover 
-                          open={profileUser?.id === report.reporter_id} 
+                        <Popover
+                          open={profileUser?.id === report.reporter_id}
                           onOpenChange={(open) => !open && closeUserProfile()}
                         >
                           <PopoverTrigger asChild>
-                            <span 
+                            <span
                               className="text-primary hover:underline"
                               onClick={(e) => openUserProfile(
-                                report.reporter_id, 
+                                report.reporter_id,
                                 displayUsername(report.reporter_username || report.reporterName),
                                 report.reporter_name,
                                 e
@@ -191,6 +191,7 @@ export function ReportDetails({
                             </PopoverContent>
                           )}
                         </Popover>
+                        <span className="ml-1 text-xs text-muted-foreground font-mono">(ID: {report.reporter_id})</span>
                       </div>
                       <p className="text-sm text-muted-foreground">{formatDate(report.report_date || report.reportDate || "")}</p>
                     </div>

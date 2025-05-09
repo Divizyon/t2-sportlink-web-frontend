@@ -176,6 +176,15 @@ class UserService {
       const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
       const response = await api.get(`${this.BASE_PATH}/admin/users${queryString}`);
 
+      // Kullanıcı listesinde telefon alanlarını normalize et
+      if (response.data.data && response.data.data.users) {
+        response.data.data.users = response.data.data.users.map((user: any) => ({
+          ...user,
+          // Telefon alanı null veya boş string ise null olarak standartlaştır
+          phone: (user.phone === '' || user.phone === null) ? null : user.phone
+        }));
+      }
+
       return {
         success: true,
         data: response.data.data,
@@ -197,6 +206,14 @@ class UserService {
   async getUserById(userId: string): Promise<UserResponse> {
     try {
       const response = await api.get(`${this.BASE_PATH}/admin/users/${userId}`);
+
+      // Telefon alanını normalizasyon işlemi
+      if (response.data.data) {
+        // Telefon alanı null veya boş string ise null olarak standartlaştır
+        if (response.data.data.phone === '' || response.data.data.phone === null) {
+          response.data.data.phone = null;
+        }
+      }
 
       return {
         success: true,

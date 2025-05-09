@@ -13,7 +13,7 @@ import { UserProfileCard } from "./UserProfileCard";
 // Helper function to format date 
 const formatDate = (dateString: string): string => {
   if (!dateString) return 'Bilinmiyor';
-  
+
   try {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('tr-TR', {
@@ -58,19 +58,19 @@ export function ReportedUsersList({
     fullName?: string | undefined;
     avatar?: string | undefined;
   } | null>(null);
-  
+
   const handlePrevPage = () => {
     if (currentPage > 1 && onPageChange) {
       onPageChange(currentPage - 1);
     }
   };
-  
+
   const handleNextPage = () => {
     if (currentPage < totalPages && onPageChange) {
       onPageChange(currentPage + 1);
     }
   };
-  
+
   const openUserProfile = (user: ReportedUser, event: React.MouseEvent) => {
     event.stopPropagation();
     setProfileUser({
@@ -129,7 +129,7 @@ export function ReportedUsersList({
               <TableCell>
                 <Popover open={profileUser?.id === user.id} onOpenChange={(open) => !open && closeUserProfile()}>
                   <PopoverTrigger asChild>
-                    <span 
+                    <span
                       className="text-primary hover:underline cursor-pointer"
                       onClick={(e) => openUserProfile(user, e)}
                     >
@@ -148,41 +148,44 @@ export function ReportedUsersList({
                     </PopoverContent>
                   )}
                 </Popover>
+                <div className="text-xs text-muted-foreground font-mono mt-1">ID: {user.id}</div>
               </TableCell>
               <TableCell>
                 {user.reporter_id && (
-                  <Popover open={profileUser?.id === user.reporter_id} onOpenChange={(open) => !open && closeUserProfile()}>
-                    <PopoverTrigger asChild>
-                      <span 
-                        className="text-primary hover:underline cursor-pointer"
-                        onClick={(e) => openReporterProfile(user.reporter_id || "", user.reporter_username || "", e)}
-                      >
-                        {displayUsername(user.reporter_username)}
-                      </span>
-                    </PopoverTrigger>
-                    {profileUser?.id === user.reporter_id && (
-                      <PopoverContent className="w-80 p-0" align="start">
-                        <UserProfileCard
-                          userId={profileUser?.id || ""}
-                          username={profileUser?.username || ""}
-                          fullName={profileUser?.fullName}
-                          avatar={profileUser?.avatar}
-                          onClose={closeUserProfile}
-                        />
-                      </PopoverContent>
-                    )}
-                  </Popover>
+                  <>
+                    <Popover open={profileUser?.id === user.reporter_id} onOpenChange={(open) => !open && closeUserProfile()}>
+                      <PopoverTrigger asChild>
+                        <span
+                          className="text-primary hover:underline cursor-pointer"
+                          onClick={(e) => openReporterProfile(user.reporter_id || "", user.reporter_username || "", e)}
+                        >
+                          {displayUsername(user.reporter_username)}
+                        </span>
+                      </PopoverTrigger>
+                      {profileUser?.id === user.reporter_id && (
+                        <PopoverContent className="w-80 p-0" align="start">
+                          <UserProfileCard
+                            userId={profileUser?.id || ""}
+                            username={profileUser?.username || ""}
+                            fullName={profileUser?.fullName}
+                            avatar={profileUser?.avatar}
+                            onClose={closeUserProfile}
+                          />
+                        </PopoverContent>
+                      )}
+                    </Popover>
+                    <div className="text-xs text-muted-foreground font-mono mt-1">ID: {user.reporter_id}</div>
+                  </>
                 )}
               </TableCell>
               <TableCell>{user.reportCount}</TableCell>
               <TableCell>{formatDate(user.lastReportDate)}</TableCell>
               <TableCell>
                 <span
-                  className={`px-2 py-1 rounded-full text-xs ${
-                    user.status === 'blocked'
+                  className={`px-2 py-1 rounded-full text-xs ${user.status === 'blocked'
                       ? 'bg-red-100 text-red-800'
                       : 'bg-green-100 text-green-800'
-                  }`}
+                    }`}
                 >
                   {user.status === 'blocked' ? 'Engellendi' : 'Aktif'}
                 </span>
@@ -218,7 +221,7 @@ export function ReportedUsersList({
           )}
         </TableBody>
       </Table>
-      
+
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-end space-x-2 py-4">

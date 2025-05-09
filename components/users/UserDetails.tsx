@@ -70,7 +70,7 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16 border-2 border-background shadow-md">
-                <AvatarImage src={currentUser?.profile_picture || ""} />
+                <AvatarImage src={currentUser?.profile_picture || undefined} />
                 <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
                   {currentUser?.first_name?.charAt(0)}{currentUser?.last_name?.charAt(0)}
                 </AvatarFallback>
@@ -150,13 +150,20 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
                     <div className="mt-1">
                       <Input
                         id="phone"
-                        value={currentUser?.phone}
+                        value={currentUser?.phone || ''}
                         onChange={(e) => handleChange('phone', e.target.value)}
                         className="h-9"
                       />
                     </div>
                   ) : (
-                    <p className="text-sm font-medium">{currentUser?.phone || '-'}</p>
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <p className="text-sm font-medium">
+                        {currentUser && currentUser.phone !== null
+                          ? currentUser.phone
+                          : 'Belirtilmemiş'}
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>

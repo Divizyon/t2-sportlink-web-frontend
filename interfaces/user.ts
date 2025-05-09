@@ -4,13 +4,13 @@ export interface User {
   email: string;
   first_name: string;
   last_name: string;
-  phone?: string;
+  phone?: string | null;
   profile_picture?: string | null;
   default_location_latitude?: number | null;
   default_location_longitude?: number | null;
   role: string;
   created_at: string;
-  
+
   // API yanıtından gelen ek alanlar
   user_sports?: any[];
   name?: string;
@@ -22,7 +22,7 @@ export interface User {
   joinDate?: string;
   registrationDate?: string;
   createdEvents?: any[];
-  
+
   // Opsiyonel alanlar (backend'den henüz gelmiyor olabilir)
   updated_at?: string;
   birthDate?: string;
@@ -34,7 +34,7 @@ export interface UserType {
   email: string;
   first_name: string;
   last_name: string;
-  phone: string;
+  phone: string | null;
   role: string;
   profile_picture?: string;
   default_location_latitude?: number;
