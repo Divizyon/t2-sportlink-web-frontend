@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import { ChevronRight, Mail, Phone, Calendar, User, MapPin, Trophy, Pencil, X, LogOut, Star, CalendarCheck } from "lucide-react"
+import { ChevronRight, Mail, Phone, Calendar, MapPin, Trophy, Pencil, X, Star, CalendarCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -189,9 +189,6 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
   const fullName = profile.name || `${profile.first_name} ${profile.last_name}`;
   const initials = `${profile.first_name?.charAt(0) || ''}${profile.last_name?.charAt(0) || ''}`;
   const profilePicture = profile.profileImage || profile.profile_picture;
-  // Kullanıcı istatistikleri
-  const eventCount = profile.events || 0;
-  const friendCount = profile.friends || 0;
   // Konum bilgisi
   const locationInfo = profile.location || "Konum Bilgisi Belirtilmemiş";
   // Kayıt tarihi

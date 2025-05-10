@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Trash, Pencil, Plus, Filter, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
+import { Search, Trash, Plus, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -11,13 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -27,9 +20,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import UserFilter from "./UserFilter";
-import UserForm from "./UserForm";
 import type { UserType } from "@/interfaces/user";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 
 interface UserListProps {
   users: UserType[];
@@ -45,7 +37,6 @@ interface UserListProps {
   onSearchChange: (value: string) => void;
   onUserClick: (user: UserType) => void;
   onDeleteUser: (id: string) => void;
-  onUpdateUser: (userData: Partial<UserType>) => void;
   onFilterChange: (filters: {
     role?: string | undefined;
     searchQuery?: string | undefined;
@@ -68,7 +59,6 @@ export default function UserList({
   onSearchChange,
   onUserClick,
   onDeleteUser,
-  onUpdateUser,
   onFilterChange,
   onFilterReset,
   totalUsers: totalUsersProp,
@@ -76,8 +66,6 @@ export default function UserList({
   pageSize,
   onPageChange,
 }: UserListProps) {
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-
   // Toplam sayfa sayısını hesapla
   const totalPages = Math.max(1, Math.ceil((totalUsersProp || 0) / Math.max(1, pageSize || 10)));
 
@@ -143,11 +131,6 @@ export default function UserList({
       onUserClick(users[0]);
     }
   }, [users, selectedUser, onUserClick]);
-
-  const handleUpdateUser = (userData: Partial<UserType>) => {
-    onUpdateUser(userData);
-    setIsEditDialogOpen(false);
-  };
 
   return (
     <Card className="h-full flex flex-col rounded-l-none border-l-0 rounded-b-none border-b-0">

@@ -3,7 +3,7 @@ import announcementService, {
   type CreateAnnouncementDTO,
   type UpdateAnnouncementDTO
 } from '@/lib/services/announcementService';
-import type { Announcement, AnnouncementListParams, AnnouncementStatus } from '@/interfaces/announcement';
+import type { Announcement, AnnouncementListParams } from '@/interfaces/announcement';
 import { type ApiError } from '@/lib/services/api';
 
 export interface AnnouncementState {

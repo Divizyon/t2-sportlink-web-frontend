@@ -176,7 +176,6 @@ export default function UsersPage() {
             onSearchChange={handleSearchChange}
             onUserClick={handleUserClick}
             onDeleteUser={handleDeleteUser}
-            onUpdateUser={handleUpdateUser}
             onFilterChange={handleFilterChange}
             onFilterReset={handleFilterReset}
             totalUsers={totalUsers}

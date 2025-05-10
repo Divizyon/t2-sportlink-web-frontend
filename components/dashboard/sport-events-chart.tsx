@@ -13,7 +13,6 @@ import {
   Legend
 } from "recharts"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Badge } from "@/components/ui/badge"
 import type { DateRange } from "react-day-picker"
 import { Button } from "@/components/ui/button"
 import { Filter, Check, Save, X } from "lucide-react"
@@ -184,11 +183,6 @@ export function SportEventsChart({
   const cancelFilters = () => {
     setTempVisibleSports({ ...visibleSports });
     setIsDropdownOpen(false);
-  };
-
-  // Görünür spor dallarının sayısını hesaplayan yardımcı fonksiyon
-  const getVisibleSportsCount = () => {
-    return Object.values(visibleSports).filter(Boolean).length;
   };
 
   // Tüm spor dalları seçili mi kontrol eden fonksiyon

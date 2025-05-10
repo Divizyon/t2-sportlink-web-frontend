@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserIcon, Phone, Mail, Calendar, MapPin, Trophy, Users, Shield, Star, CalendarCheck, Loader2 } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { UserIcon, Phone, Mail, Calendar, MapPin, Trophy, Shield, Star, CalendarCheck } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -57,7 +56,6 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
   // Etkinlik listeleri state
   const [createdEvents, setCreatedEvents] = useState<EventInfo[]>([]);
   const [participatedEvents, setParticipatedEvents] = useState<EventInfo[]>([]);
-  const [isLoadingEventList, setIsLoadingEventList] = useState<boolean>(false);
 
   // Kullanıcı değiştiğinde etkinlik sayılarını yükle
   useEffect(() => {
@@ -104,22 +102,6 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
         });
     }
   }, [user?.id]);
-
-  // Format date
-  const formatDate = (dateString?: string): string => {
-    if (!dateString) return 'Bilinmiyor';
-
-    try {
-      const date = new Date(dateString);
-      return new Intl.DateTimeFormat('tr-TR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }).format(date);
-    } catch (e) {
-      return dateString;
-    }
-  };
 
   // Format date in DD.MM.YYYY format
   const formatShortDate = (dateString?: string): string => {

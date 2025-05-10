@@ -3,7 +3,7 @@
 import * as React from "react"
 import { format } from "date-fns"
 import { tr } from 'date-fns/locale'
-import { Calendar as CalendarIcon, X } from "lucide-react"
+import { Calendar as CalendarIcon } from "lucide-react"
 import type { DateRange } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
@@ -69,12 +69,6 @@ export function DateRangePicker({
   const togglePopover = () => {
     setPopoverOpen(!popoverOpen);
     setActiveCalendar(null);
-  };
-
-  // Temizleme butonu
-  const handleClear = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setDateRange(undefined);
   };
 
   // Takvim butonlarına tıklayınca bir sonraki render için

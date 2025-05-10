@@ -6,7 +6,6 @@ import { tr } from "date-fns/locale"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Calendar, Newspaper, Megaphone, User, Download, ChevronRight, ExternalLink } from "lucide-react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { SportEventsChart } from "@/components/dashboard/sport-events-chart"
 import { SportPopularityChart } from "@/components/dashboard/sport-popularity-chart"
@@ -18,8 +17,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogClose,
 } from "@/components/ui/dialog"
 import type { DateRange } from "react-day-picker"
 import jsPDF from 'jspdf'
@@ -364,11 +361,17 @@ export default function DashboardPage() {
     }
   };
 
-  const [date, setDate] = useState(new Date())
+  const handleDatesChange = (range: DateRange | undefined) => {
+    if (!range) return;
+
+    setSelectedDateRange(range);
+    generateRangeStats(range);
+  };
+
   const [stats, setStats] = useState(statsData.current)
   const [selectedDateRange, setSelectedDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 6),
-    to: new Date(),
+    to: new Date()
   })
 
   // Daha fazla örnek veri oluşturalım
@@ -840,7 +843,7 @@ export default function DashboardPage() {
         <div className="flex items-center space-x-4">
           <DateRangePicker 
             dateRange={selectedDateRange} 
-            setDateRange={setSelectedDateRange}
+            setDateRange={handleDatesChange}
             placeholder="Tarih Aralığı Seçin"
           />
           <Button onClick={generateAndDownloadReport}>
