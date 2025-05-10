@@ -549,42 +549,6 @@ export default function EventsPage() {
     }
   };
 
-  // Onay durumu için yardımcı fonksiyon
-  const getApprovalBadge = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return (
-          <Badge variant="outline" className="border-blue-500 text-blue-600 bg-blue-50">
-            Onaylanmış
-          </Badge>
-        );
-      case 'rejected':
-        return (
-          <Badge variant="outline" className="border-red-500 text-red-600 bg-red-50">
-            Reddedilmiş
-          </Badge>
-        );
-      case 'pending':
-        return (
-          <Badge variant="outline" className="border-yellow-500 text-yellow-600 bg-yellow-50">
-            Onay Bekliyor
-          </Badge>
-        );
-      case 'cancelled':
-        return (
-          <Badge variant="outline" className="border-gray-500 text-gray-600 bg-gray-50">
-            İptal Edildi
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant="outline">
-            {status}
-          </Badge>
-        );
-    }
-  };
-
   // Sayfa değişikliği için handler
   const handlePageChange = (page: number) => {
     // Yeni sayfaya geçerken yükleme gösterecek şekilde state'i güncelle

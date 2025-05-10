@@ -1,11 +1,11 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { format, addMonths, subMonths, isSameMonth, isWithinInterval, parseISO, subDays, addDays } from "date-fns"
+import { format, subMonths, isSameMonth, subDays, addDays } from "date-fns"
 import { tr } from "date-fns/locale"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Calendar, Newspaper, Megaphone, TrendingUp, User, Activity, Download, ChevronRight, ExternalLink } from "lucide-react"
+import { Calendar, Newspaper, Megaphone, User, Download, ChevronRight, ExternalLink } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { SportEventsChart } from "@/components/dashboard/sport-events-chart"
