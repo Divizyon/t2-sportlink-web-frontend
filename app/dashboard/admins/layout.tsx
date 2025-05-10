@@ -57,7 +57,7 @@ export default function AdminLayout({
                 console.error("SuperAdmin kontrolü sırasında hata:", error);
                 toast({
                     title: "Hata",
-                    description: "Yetki kontrolü sırasında bir hata oluştu.",
+                    description: "Yetki kontrolü sırasında bir hata oluştu. ",
                     variant: "destructive",
                 });
             } finally {
