@@ -38,6 +38,7 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("all");
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const { toast } = useToast();
 
   // Ref ile ilk yükleme durumunu takip et
@@ -80,6 +81,30 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
       });
     }
   }, [error, toast]);
+
+  // Duyurular yüklendiğinde ilk duyuruyu otomatik seç
+  useEffect(() => {
+    if (!isLoading && announcements && Array.isArray(announcements) && announcements.length > 0 && !selectedAnnouncement) {
+      // İlk duyuruyu seç ve undefined olup olmadığını kontrol et
+      const firstAnnouncement = announcements[0];
+      if (firstAnnouncement) {
+        // Type assertion to ensure the announcement has all required fields
+        const announcementWithId = {
+          ...firstAnnouncement,
+          id: generateUniqueId(firstAnnouncement),
+          // Ensure required properties are present
+          title: firstAnnouncement.title || '',
+          content: firstAnnouncement.content || ''
+        } as Announcement;
+        
+        setSelectedAnnouncement(announcementWithId);
+        setCurrentAnnouncement(announcementWithId);
+        onView(announcementWithId);
+        
+        console.log("İlk duyuru otomatik seçildi:", announcementWithId.title);
+      }
+    }
+  }, [isLoading, announcements, selectedAnnouncement, setCurrentAnnouncement, onView]);
 
   // Tarih formatla
   const formatDate = (dateString: string | null | undefined) => {
@@ -168,6 +193,7 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
       return [];
     }
 
+    // Filtreleme işlemi
     return announcements.filter(announcement => {
       const matchesSearch = !searchTerm ||
         announcement.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -393,50 +419,68 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
                 </TableCell>
               </TableRow>
             ) : (
-              filteredAnnouncements.map((announcement) => (
-                <TableRow
-                  key={generateUniqueId(announcement)}
-                  className="cursor-pointer hover:bg-gray-50"
-                  onClick={() => onView(announcement)}
-                >
-                  <TableCell className="font-medium">{announcement.title}</TableCell>
-                  <TableCell>{formatDate(announcement.created_at || announcement.createdAt)}</TableCell>
-                  <TableCell>{formatDate(announcement.start_date)}</TableCell>
-                  <TableCell>{formatDate(announcement.end_date)}</TableCell>
-                  <TableCell>{announcement.creator?.name || announcement.author || 'Bilinmiyor'}</TableCell>
-                  <TableCell>{announcement.views || 0}</TableCell>
-                  <TableCell>
-                    {getStatusBadge(
-                      announcement.published !== undefined
-                        ? announcement.published
-                        : (announcement.status as AnnouncementStatus || 'draft')
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Eğer ID yoksa silme işlemini engelle
-                          if (!announcement.id || announcement.id.trim() === "") {
-                            toast({
-                              title: "Hata",
-                              description: "Bu duyuru henüz kaydedilmemiş, silinemiyor.",
-                              variant: "destructive",
-                            });
-                            return;
-                          }
-                          handleDelete(announcement.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+              filteredAnnouncements.map((announcement) => {
+                const announcementId = generateUniqueId(announcement);
+                const isSelected = selectedAnnouncement?.id === announcementId;
+                
+                return (
+                  <TableRow
+                    key={announcementId}
+                    style={isSelected ? { 
+                      backgroundColor: '#d1fae5 !important',
+                      borderLeft: '6px solid #059669'
+                    } : {}}
+                    className={`cursor-pointer ${isSelected ? '!bg-green-100 hover:!bg-green-200' : 'hover:bg-muted'}`}
+                    onClick={() => {
+                      const announcementWithId = {
+                        ...announcement,
+                        id: announcementId
+                      };
+                      setSelectedAnnouncement(announcementWithId);
+                      setCurrentAnnouncement(announcementWithId);
+                      onView(announcementWithId);
+                    }}
+                  >
+                    <TableCell className="font-medium">{announcement.title}</TableCell>
+                    <TableCell>{formatDate(announcement.created_at || announcement.createdAt)}</TableCell>
+                    <TableCell>{formatDate(announcement.start_date)}</TableCell>
+                    <TableCell>{formatDate(announcement.end_date)}</TableCell>
+                    <TableCell>{announcement.creator?.name || announcement.author || 'Bilinmiyor'}</TableCell>
+                    <TableCell>{announcement.views || 0}</TableCell>
+                    <TableCell>
+                      {getStatusBadge(
+                        announcement.published !== undefined
+                          ? announcement.published
+                          : (announcement.status as AnnouncementStatus || 'draft')
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Eğer ID yoksa silme işlemini engelle
+                            if (!announcement.id || announcement.id.trim() === "") {
+                              toast({
+                                title: "Hata",
+                                description: "Bu duyuru henüz kaydedilmemiş, silinemiyor.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            handleDelete(announcement.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

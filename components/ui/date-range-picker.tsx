@@ -41,7 +41,7 @@ export function DateRangePicker({
     if (date && dateRange?.to && date > dateRange.to) {
       setDateRange({ from: date, to: undefined });
     } else {
-      setDateRange({ from: date, to: dateRange?.to });
+    setDateRange({ from: date, to: dateRange?.to });
     }
     setTimeout(() => {
       setActiveCalendar(null);

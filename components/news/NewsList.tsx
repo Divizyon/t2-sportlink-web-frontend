@@ -378,7 +378,10 @@ const NewsList: React.FC<NewsListProps> = ({
                     return (
                       <TableRow
                         key={item.id}
-                        style={isSelected ? { backgroundColor: '#d1fae5 !important' } : {}}
+                        style={isSelected ? { 
+                          backgroundColor: '#d1fae5 !important',
+                          borderLeft: '6px solid #059669'
+                        } : {}}
                         className={`cursor-pointer ${isSelected ? '!bg-green-100 hover:!bg-green-200' : 'hover:bg-muted'}`}
                         onClick={() => setSelectedNews(item)}
                         data-selected={isSelected ? "true" : "false"}

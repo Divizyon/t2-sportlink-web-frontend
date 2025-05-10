@@ -19,6 +19,16 @@ export interface UserResponse {
   message?: string;
 }
 
+// Telefon verisini işlemek için yardımcı fonksiyon
+const formatPhoneNumber = (phone: any): string | null => {
+  if (phone === null || phone === undefined) return null;
+  if (phone === '') return null;
+  
+  // Number tipinde gelirse string'e çevir
+  const phoneStr = phone.toString().trim();
+  return phoneStr === '' ? null : phoneStr;
+};
+
 /**
  * Kullanıcı servisi - kullanıcı profili yönetimi işlemleri
  */
@@ -176,18 +186,51 @@ class UserService {
       const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
       const response = await api.get(`${this.BASE_PATH}/admin/users${queryString}`);
 
-      // Kullanıcı listesinde telefon alanlarını normalize et
+      // Pagination bilgilerini konsola yazdır (debug için)
+      console.log('API Response:', {
+        users: response.data.data?.users?.length,
+        pagination: response.data.data?.pagination,
+      });
+
+      // Telefon verilerini düzenle
       if (response.data.data && response.data.data.users) {
         response.data.data.users = response.data.data.users.map((user: any) => ({
           ...user,
-          // Telefon alanı null veya boş string ise null olarak standartlaştır
-          phone: (user.phone === '' || user.phone === null) ? null : user.phone
+          phone: formatPhoneNumber(user.phone)
         }));
       }
 
+      // Pagination verilerini ayarla
+      let total = 0;
+      let page = params?.page || 1;
+      let limit = params?.limit || 10;
+      
+      // API yanıtından sayfalama verilerini al
+      if (response.data.data) {
+        if (response.data.data.pagination) {
+          // API'den gelen pagination objesi varsa kullan
+          total = response.data.data.pagination.total || 0;
+          page = response.data.data.pagination.page || page;
+          limit = response.data.data.pagination.limit || limit;
+        } else if (response.data.data.total !== undefined) {
+          // Doğrudan data içinde total değeri varsa kullan
+          total = response.data.data.total;
+          page = response.data.data.page || page;
+          limit = response.data.data.limit || limit;
+        } else {
+          // Hiçbir sayfalama verisi yoksa, kullanıcı sayısını kullan
+          total = response.data.data.users?.length || 0;
+        }
+      }
+      
       return {
         success: true,
-        data: response.data.data,
+        data: {
+          users: response.data.data?.users || [],
+          total: total,
+          page: page,
+          limit: limit
+        },
         message: response.data.message
       };
     } catch (error) {
@@ -207,12 +250,18 @@ class UserService {
     try {
       const response = await api.get(`${this.BASE_PATH}/admin/users/${userId}`);
 
-      // Telefon alanını normalizasyon işlemi
+      // Telefon verisini düzenle
       if (response.data.data) {
-        // Telefon alanı null veya boş string ise null olarak standartlaştır
-        if (response.data.data.phone === '' || response.data.data.phone === null) {
-          response.data.data.phone = null;
-        }
+        response.data.data.phone = formatPhoneNumber(response.data.data.phone);
+      }
+
+      // Debug: Kullanıcı telefon verisini incele
+      if (response.data.data) {
+        console.log("API'den gelen kullanıcı telefon verisi:", {
+          id: response.data.data.id,
+          phone: response.data.data.phone,
+          phoneType: typeof response.data.data.phone
+        });
       }
 
       return {

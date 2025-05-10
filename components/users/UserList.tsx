@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Trash, Pencil } from "lucide-react";
+import { Search, Trash, Pencil, Plus, Filter, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -20,10 +20,16 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import UserFilter from "./UserFilter";
 import UserForm from "./UserForm";
 import type { UserType } from "@/interfaces/user";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface UserListProps {
   users: UserType[];
@@ -46,6 +52,12 @@ interface UserListProps {
     isActive?: boolean | undefined;
   }) => void;
   onFilterReset: () => void;
+  
+  // Sayfalama props'ları
+  totalUsers: number;
+  currentPage: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
 }
 
 export default function UserList({
@@ -59,8 +71,78 @@ export default function UserList({
   onUpdateUser,
   onFilterChange,
   onFilterReset,
+  totalUsers: totalUsersProp,
+  currentPage,
+  pageSize,
+  onPageChange,
 }: UserListProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  // Toplam sayfa sayısını hesapla
+  const totalPages = Math.max(1, Math.ceil((totalUsersProp || 0) / Math.max(1, pageSize || 10)));
+
+  // Debug bilgisi için useEffect
+  useEffect(() => {
+    console.log('Pagination Props:', {
+      totalUsers: totalUsersProp,
+      currentPage,
+      pageSize,
+      calculatedTotalPages: totalPages,
+      shouldShowPagination: totalPages > 1
+    });
+  }, [totalUsersProp, currentPage, pageSize, totalPages]);
+
+  // Sayfa numaralarını oluştur
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5; // Maksimum görünür sayfa sayısı
+    
+    if (totalPages <= maxVisiblePages) {
+      // Toplam sayfa sayısı az ise tümünü göster
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Başlangıç ve bitiş sayfalarını hesapla
+      let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+      let endPage = startPage + maxVisiblePages - 1;
+      
+      if (endPage > totalPages) {
+        endPage = totalPages;
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+      }
+      
+      // İlk sayfa
+      if (startPage > 1) {
+        pages.push(1);
+        if (startPage > 2) {
+          pages.push('ellipsis');
+        }
+      }
+      
+      // Sayfa numaraları
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+      
+      // Son sayfa
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          pages.push('ellipsis');
+        }
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
+
+  // Automatically select the first user when the component renders or when users change
+  useEffect(() => {
+    if (users.length > 0 && !selectedUser && users[0]) {
+      onUserClick(users[0]);
+    }
+  }, [users, selectedUser, onUserClick]);
 
   const handleUpdateUser = (userData: Partial<UserType>) => {
     onUpdateUser(userData);
@@ -68,39 +150,43 @@ export default function UserList({
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="flex-none p-4 space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">Kullanıcı Yönetimi</h1>
-            <p className="text-sm text-muted-foreground">Kullanıcıları yönetin, düzenleyin ve kontrol edin</p>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full">
-            <div className="relative w-full sm:w-64">
-              <div className="flex items-center">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Kullanıcı ara..."
-                  className="pl-8 w-full"
-                  value={searchQuery}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                />
-              </div>
+    <Card className="h-full flex flex-col rounded-l-none border-l-0 rounded-b-none border-b-0">
+      <CardHeader className="pl-4 pb-2">
+        <CardTitle>Kullanıcı Yönetimi</CardTitle>
+        <div className="flex items-center justify-between gap-2 mt-2">
+          <div className="flex items-center gap-4">
+            <div className="relative flex w-[300px] overflow-hidden rounded-md ring-1 ring-input">
+              <Input
+                placeholder="Kullanıcı ara..."
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="w-full rounded-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+              />
+              <Button
+                variant="outline"
+                className="rounded-none h-9 px-3 border-0 bg-background hover:bg-muted"
+                onClick={() => {
+                  console.log("Arama yapılıyor:", searchQuery);
+                }}
+              >
+                <Search className="h-4 w-4" />
+              </Button>
             </div>
+
             <UserFilter
               onFilterChange={onFilterChange}
               onReset={onFilterReset}
             />
           </div>
-        </div>
-      </div>
 
-      <div className="flex-1 overflow-auto px-4 pb-4">
-        <div className="rounded-lg border shadow-sm overflow-hidden bg-card h-full">
-          <div className="overflow-x-auto h-full">
+          <Button size="sm" className="gap-1">
+            <Plus className="h-4 w-4" /> Yeni Kullanıcı Ekle
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
+        <div className="rounded-md rounded-b-none border border-b-0 mx-4 mt-0 mb-0 flex-1 flex flex-col">
+          <div className="overflow-auto h-[calc(100vh-180px)]">
             <Table className="w-full">
               <TableHeader className="sticky top-0 bg-card z-10">
                 <TableRow className="bg-muted/50">
@@ -121,14 +207,20 @@ export default function UserList({
                 {users.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center">
-                      Kullanıcı bulunamadı.
+                      <div className="flex flex-col items-center py-6">
+                        <h3 className="text-lg font-medium mb-2">Kullanıcı bulunamadı</h3>
+                        <p className="text-muted-foreground mb-4">Farklı filtreler kullanmayı veya arama terimini değiştirmeyi deneyin.</p>
+                        <Button variant="outline" onClick={onFilterReset}>
+                          Filtreleri Temizle
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
                   users.map((user) => (
                     <TableRow
                       key={user.id}
-                      className="hover:bg-muted/50 cursor-pointer transition-colors"
+                      className={`cursor-pointer ${selectedUser?.id === user.id ? '!bg-green-100 hover:!bg-green-200' : 'hover:bg-muted'}`}
                       style={{
                         borderLeft: selectedUser?.id === user.id ? '4px solid #10b981' : 'none'
                       }}
@@ -150,7 +242,22 @@ export default function UserList({
                       </TableCell>
                       {selectedColumns.email && (
                         <TableCell className="text-sm">
-                          {user.email}
+                          <div className="flex items-center gap-2">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-4 w-4 text-muted-foreground"
+                            >
+                              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                              <path d="m22 6-10 7L2 6"></path>
+                            </svg>
+                            {user.email}
+                          </div>
                         </TableCell>
                       )}
                       {selectedColumns.phone && (
@@ -168,7 +275,7 @@ export default function UserList({
                             >
                               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                             </svg>
-                            {user.phone !== null
+                            {user.phone
                               ? user.phone
                               : <span className="text-muted-foreground italic">Belirtilmemiş</span>
                             }
@@ -194,36 +301,6 @@ export default function UserList({
                       )}
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-1">
-                          <Dialog open={isEditDialogOpen && selectedUser?.id === user.id} onOpenChange={(open) => {
-                            if (open) onUserClick(user);
-                            setIsEditDialogOpen(open);
-                          }}>
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onUserClick(user);
-                                }}
-                              >
-                                <Pencil className="h-4 w-4" />
-                                <span className="sr-only">Düzenle</span>
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-[600px]">
-                              <DialogHeader>
-                                <DialogTitle>Kullanıcı Düzenle</DialogTitle>
-                              </DialogHeader>
-                              <UserForm
-                                user={user}
-                                onSubmit={handleUpdateUser}
-                                onCancel={() => setIsEditDialogOpen(false)}
-                                isEditing={true}
-                              />
-                            </DialogContent>
-                          </Dialog>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -245,7 +322,65 @@ export default function UserList({
             </Table>
           </div>
         </div>
-      </div>
-    </div>
+        
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="border border-t-0 rounded-b-md rounded-t-none mx-4 py-2 px-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 text-sm text-muted-foreground">
+                Toplam <strong>{totalUsersProp}</strong> kullanıcı, <strong>{pageSize}</strong> kayıt/sayfa
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => onPageChange(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  className="h-7 w-7"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="sr-only">Önceki Sayfa</span>
+                </Button>
+                
+                {getPageNumbers().map((page, index) => (
+                  page === 'ellipsis' ? (
+                    <Button
+                      key={`ellipsis-${index}`}
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7 cursor-default"
+                      disabled
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="icon"
+                      onClick={() => onPageChange(page as number)}
+                      className="h-7 w-7"
+                    >
+                      {page}
+                    </Button>
+                  )
+                ))}
+                
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => onPageChange(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                  className="h-7 w-7"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                  <span className="sr-only">Sonraki Sayfa</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 } 

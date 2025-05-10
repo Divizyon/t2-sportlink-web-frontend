@@ -923,7 +923,7 @@ export default function DashboardPage() {
       {/* Additional Cards */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {/* Son Etkinlikler */}
-        <Dialog open={openDialogs.events} onOpenChange={(isOpen) => handleDialogChange('events', isOpen)}>
+          <Dialog open={openDialogs.events} onOpenChange={(isOpen) => handleDialogChange('events', isOpen)}>
           <Card className="cursor-pointer hover:shadow-md transition-shadow etkinlikler-karti card-hover">
             <div 
               className="w-full text-left"
@@ -964,43 +964,43 @@ export default function DashboardPage() {
               )}
             </div>
           </Card>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Tüm Etkinlikler</DialogTitle>
-              <DialogDescription>Son dönemdeki tüm etkinliklerin listesi</DialogDescription>
-            </DialogHeader>
-            <div className="max-h-[60vh] overflow-y-auto mt-4">
-              <div className="space-y-4">
-                {allEvents.map((event, index) => (
-                  <div key={index}>
-                    <Link 
-                      href={`/dashboard/events?id=${event.id}&returnDialog=events`} 
-                      passHref 
-                      className="block"
-                      onClick={() => {
-                        localStorage.setItem('lastOpenDialog', 'events');
-                      }}
-                    >
-                      <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
-                        <div className="flex items-center">
-                          <div className="w-2 h-2 rounded-full bg-green-500 mr-2" />
-                          <div className="flex-1 space-y-1">
-                            <p className="text-sm font-medium">{event.name}</p>
-                            <p className="text-xs text-muted-foreground">{event.date}</p>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Tüm Etkinlikler</DialogTitle>
+                <DialogDescription>Son dönemdeki tüm etkinliklerin listesi</DialogDescription>
+              </DialogHeader>
+              <div className="max-h-[60vh] overflow-y-auto mt-4">
+                <div className="space-y-4">
+                  {allEvents.map((event, index) => (
+                    <div key={index}>
+                      <Link 
+                        href={`/dashboard/events?id=${event.id}&returnDialog=events`} 
+                        passHref 
+                        className="block"
+                        onClick={() => {
+                          localStorage.setItem('lastOpenDialog', 'events');
+                        }}
+                      >
+                        <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
+                          <div className="flex items-center">
+                            <div className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+                            <div className="flex-1 space-y-1">
+                              <p className="text-sm font-medium">{event.name}</p>
+                              <p className="text-xs text-muted-foreground">{event.date}</p>
+                            </div>
                           </div>
+                          <ExternalLink className="h-4 w-4 text-gray-400" />
                         </div>
-                        <ExternalLink className="h-4 w-4 text-gray-400" />
-                      </div>
-                    </Link>
-                  </div>
-                ))}
+                      </Link>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
 
         {/* Son Haberler */}
-        <Dialog open={openDialogs.news} onOpenChange={(isOpen) => handleDialogChange('news', isOpen)}>
+          <Dialog open={openDialogs.news} onOpenChange={(isOpen) => handleDialogChange('news', isOpen)}>
           <Card className="cursor-pointer hover:shadow-md transition-shadow haberler-karti card-hover">
             <div 
               className="w-full text-left"
@@ -1041,43 +1041,43 @@ export default function DashboardPage() {
               )}
             </div>
           </Card>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Tüm Haberler</DialogTitle>
-              <DialogDescription>Son dönemdeki tüm haberlerin listesi</DialogDescription>
-            </DialogHeader>
-            <div className="max-h-[60vh] overflow-y-auto mt-4">
-              <div className="space-y-4">
-                {allNews.map((news, index) => (
-                  <div key={index}>
-                    <Link 
-                      href={`/dashboard/news?id=${news.id}&returnDialog=news`} 
-                      passHref 
-                      className="block"
-                      onClick={() => {
-                        localStorage.setItem('lastOpenDialog', 'news');
-                      }}
-                    >
-                      <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
-                        <div className="flex items-center">
-                          <div className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
-                          <div className="flex-1 space-y-1">
-                            <p className="text-sm font-medium">{news.title}</p>
-                            <p className="text-xs text-muted-foreground">{news.date}</p>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Tüm Haberler</DialogTitle>
+                <DialogDescription>Son dönemdeki tüm haberlerin listesi</DialogDescription>
+              </DialogHeader>
+              <div className="max-h-[60vh] overflow-y-auto mt-4">
+                <div className="space-y-4">
+                  {allNews.map((news, index) => (
+                    <div key={index}>
+                      <Link 
+                        href={`/dashboard/news?id=${news.id}&returnDialog=news`} 
+                        passHref 
+                        className="block"
+                        onClick={() => {
+                          localStorage.setItem('lastOpenDialog', 'news');
+                        }}
+                      >
+                        <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
+                          <div className="flex items-center">
+                            <div className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
+                            <div className="flex-1 space-y-1">
+                              <p className="text-sm font-medium">{news.title}</p>
+                              <p className="text-xs text-muted-foreground">{news.date}</p>
+                            </div>
                           </div>
+                          <ExternalLink className="h-4 w-4 text-gray-400" />
                         </div>
-                        <ExternalLink className="h-4 w-4 text-gray-400" />
-                      </div>
-                    </Link>
-                  </div>
-                ))}
+                      </Link>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
 
         {/* Son Duyurular */}
-        <Dialog open={openDialogs.announcements} onOpenChange={(isOpen) => handleDialogChange('announcements', isOpen)}>
+          <Dialog open={openDialogs.announcements} onOpenChange={(isOpen) => handleDialogChange('announcements', isOpen)}>
           <Card className="cursor-pointer hover:shadow-md transition-shadow duyurular-karti card-hover">
             <div 
               className="w-full text-left"
@@ -1118,40 +1118,40 @@ export default function DashboardPage() {
               )}
             </div>
           </Card>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Tüm Duyurular</DialogTitle>
-              <DialogDescription>Son dönemdeki tüm duyuruların listesi</DialogDescription>
-            </DialogHeader>
-            <div className="max-h-[60vh] overflow-y-auto mt-4">
-              <div className="space-y-4">
-                {allAnnouncements.map((announcement, index) => (
-                  <div key={index}>
-                    <Link 
-                      href={`/dashboard/announcements?id=${announcement.id}&returnDialog=announcements`} 
-                      passHref 
-                      className="block"
-                      onClick={() => {
-                        localStorage.setItem('lastOpenDialog', 'announcements');
-                      }}
-                    >
-                      <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
-                        <div className="flex items-center">
-                          <div className="w-2 h-2 rounded-full bg-yellow-500 mr-2" />
-                          <div className="flex-1 space-y-1">
-                            <p className="text-sm font-medium">{announcement.title}</p>
-                            <p className="text-xs text-muted-foreground">{announcement.content}</p>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Tüm Duyurular</DialogTitle>
+                <DialogDescription>Son dönemdeki tüm duyuruların listesi</DialogDescription>
+              </DialogHeader>
+              <div className="max-h-[60vh] overflow-y-auto mt-4">
+                <div className="space-y-4">
+                  {allAnnouncements.map((announcement, index) => (
+                    <div key={index}>
+                      <Link 
+                        href={`/dashboard/announcements?id=${announcement.id}&returnDialog=announcements`} 
+                        passHref 
+                        className="block"
+                        onClick={() => {
+                          localStorage.setItem('lastOpenDialog', 'announcements');
+                        }}
+                      >
+                        <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
+                          <div className="flex items-center">
+                            <div className="w-2 h-2 rounded-full bg-yellow-500 mr-2" />
+                            <div className="flex-1 space-y-1">
+                              <p className="text-sm font-medium">{announcement.title}</p>
+                              <p className="text-xs text-muted-foreground">{announcement.content}</p>
+                            </div>
                           </div>
+                          <ExternalLink className="h-4 w-4 text-gray-400" />
                         </div>
-                        <ExternalLink className="h-4 w-4 text-gray-400" />
-                      </div>
-                    </Link>
-                  </div>
-                ))}
+                      </Link>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
       </div>
     </div>
   )

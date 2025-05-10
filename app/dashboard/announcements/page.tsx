@@ -72,8 +72,26 @@ export default function AnnouncementsPage() {
     if (isFirstMount.current) {
       console.log("Dashboard Announcements: İlk yükleme yapılıyor - Component ID:", Math.random().toString(36).substring(7));
 
+      // Debug: Add more details about the state
+      console.log("Initial state:", {
+        announcements: useStore.getState().announcements,
+        isLoading: useStore.getState().isLoading,
+        error: useStore.getState().error
+      });
+
       // API'den verileri al
-      getAnnouncements();
+      getAnnouncements()
+        .then(() => {
+          console.log("getAnnouncements promise resolved");
+          console.log("Current state after API call:", {
+            announcements: useStore.getState().announcements,
+            isLoading: useStore.getState().isLoading,
+            error: useStore.getState().error
+          });
+        })
+        .catch(err => {
+          console.error("Error in getAnnouncements:", err);
+        });
 
       isFirstMount.current = false;
     }
@@ -85,10 +103,13 @@ export default function AnnouncementsPage() {
     // Yükleme tamamlandıysa ve veriler (boş olsa bile) geldiyse
     if (!isLoading) {
       console.log("Veri yükleme tamamlandı, announcements:", announcements);
+      console.log("Announcements type:", typeof announcements, "isArray:", Array.isArray(announcements), "length:", announcements ? announcements.length : 0);
+      
       setDataLoaded(true);
 
       // Eğer duyurular varsa ve henüz seçili duyuru yoksa otomatik olarak ilk duyuruyu seç
       if (announcements && announcements.length > 0 && !selectedAnnouncement) {
+        console.log("Setting selected announcement to first item:", announcements[0]);
         setSelectedAnnouncement(announcements[0] as ExtendedAnnouncement);
         setViewMode("preview");
       }

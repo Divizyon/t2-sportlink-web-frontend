@@ -104,7 +104,7 @@ export default function EventsPage() {
   // Etkinlikleri API'den yükle
   const fetchEvents = async () => {
     try {
-      console.log('Starting fetchEvents...');
+      console.log('Starting fetchEvents with page:', pagination.page);
       setLoading(true);
 
       const params: EventFilterParams = {
@@ -116,38 +116,55 @@ export default function EventsPage() {
         params.keyword = searchQuery;
       }
 
-      if (selectedFilters.status.length > 0) {
-        params.status = selectedFilters.status;
-      }
+      // Tüm etkinlik durumlarını içerecek şekilde parametre ayarla
+      // API'ye tüm etkinlik tiplerini dahil et
+      params.status = ['all'];
+      console.log('Status parameter set to:', params.status);
 
-      if (selectedFilters.approval_status.length > 0) {
-        // Not in the type definition but the API actually accepts this
-        (params as any).approval_status = selectedFilters.approval_status;
-      }
-
+      // Tüm onay durumlarını içerecek şekilde parametre ayarla
+      (params as any).approval_status = ['pending', 'approved', 'rejected', 'cancelled'];
+      
       if (selectedFilters.category.length > 0 && selectedFilters.category[0]) {
         params.sportId = selectedFilters.category[0];
       }
 
       console.log('Calling eventService.listEvents with params:', params);
       const response = await eventService.listEvents(params);
-      console.log('EventService response:', response);
-
+      
       if (response.success && response.data) {
-        console.log('Setting events data:', response.data.data);
+        const eventsData = response.data.data || [];
+        const paginationData = response.data.pagination || {
+          total: eventsData.length,
+          page: pagination.page,
+          limit: pagination.limit,
+          totalPages: Math.ceil(eventsData.length / pagination.limit)
+        };
+        
+        // Dönen etkinliklerin durumlarını kontrol et ve logla
+        const statusCounts: Record<string, number> = {};
+        eventsData.forEach(event => {
+          statusCounts[event.status] = (statusCounts[event.status] || 0) + 1;
+        });
+        console.log('API returned events by status:', statusCounts);
+        
+        console.log('API returned:', {
+          total: paginationData.total || eventsData.length,
+          page: paginationData.page || 1, 
+          limit: paginationData.limit || 10,
+          events: eventsData.length
+        });
 
-        // Now we can directly use the standardized data from the service
-        setEvents(response.data.data as any);
+        // Update events state
+        setEvents(eventsData);
 
         // Handle pagination data safely
-        const paginationInfo = response.data.pagination;
-        if (paginationInfo) {
-          setPagination(prev => ({
-            ...prev,
-            total: paginationInfo.total || 0,
-            pages: paginationInfo.totalPages || 1
-          }));
-        }
+        setPagination(prev => ({
+          ...prev,
+          total: paginationData.total || eventsData.length,
+          pages: paginationData.totalPages || Math.ceil(eventsData.length / prev.limit),
+          page: paginationData.page || prev.page,
+          limit: paginationData.limit || prev.limit
+        }));
       } else {
         console.error('Error in fetchEvents:', response.message);
         toast({
@@ -568,6 +585,30 @@ export default function EventsPage() {
     }
   };
 
+  // Sayfa değişikliği için handler
+  const handlePageChange = (page: number) => {
+    // Yeni sayfaya geçerken yükleme gösterecek şekilde state'i güncelle
+    setPagination(prev => ({
+      ...prev,
+      page
+    }));
+    
+    // Yeni sayfanın verilerini yükle
+    console.log(`Navigating to page: ${page}`);
+    // fetchEvents fonksiyonu, pagination state değişikliğini algılayıp çalışacak
+  };
+
+  // Debug pagination data
+  useEffect(() => {
+    console.log('Current pagination state:', {
+      total: pagination.total,
+      page: pagination.page,
+      limit: pagination.limit,
+      pages: pagination.pages,
+      shouldShowPagination: pagination.total > pagination.limit
+    });
+  }, [pagination]);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 h-[calc(100vh-4rem)]">
       {/* Sol taraf (3/5) - İki parçaya bölünmüş */}
@@ -585,8 +626,11 @@ export default function EventsPage() {
           handleAddEvent={handleAddEvent}
           formatDate={formatDate}
           getStatusBadge={getStatusBadge}
-          getApprovalBadge={getApprovalBadge}
           loading={loading}
+          totalEvents={pagination.total}
+          currentPage={pagination.page}
+          pageSize={pagination.limit}
+          onPageChange={handlePageChange}
         />
 
         <ApprovalCenter

@@ -216,11 +216,18 @@ const createUserProfileSlice: StateCreator<UserProfileState, [], [], UserProfile
         });
 
         if (response.success && response.data) {
+          console.log('Store bileşeni sayfalama verileri:', {
+            users: response.data.users.length,
+            total: response.data.total,
+            page: response.data.page,
+            limit: response.data.limit
+          });
+          
           set({
-            users: response.data.users as any[],
-            totalUsers: response.data.total,
-            currentPage: response.data.page,
-            pageSize: response.data.limit,
+            users: response.data.users as unknown as UserType[],
+            totalUsers: response.data.total || 0,
+            currentPage: response.data.page || 1,
+            pageSize: response.data.limit || 10,
             isLoading: false
           });
         } else {

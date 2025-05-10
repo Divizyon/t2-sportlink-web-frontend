@@ -11,7 +11,7 @@ export interface Event {
   location_latitude: number;
   location_longitude: number;
   max_participants: number;
-  status: 'active' | 'canceled' | 'completed' | 'draft' | string;
+  status: 'active' | 'inactive' | 'canceled' | 'completed' | 'draft' | string;
   approval_status: "pending" | "approved" | "rejected" | "cancelled";
   created_at: string;
   updated_at: string;

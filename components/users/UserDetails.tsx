@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserIcon, Phone, Shield, Pencil, Save, X } from "lucide-react";
+import { UserIcon, Phone, Mail, Calendar, MapPin, Trophy, Users, Shield, Star, CalendarCheck, Loader2 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -13,242 +14,417 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from "@/components/ui/dialog";
 import type { UserType } from "@/interfaces/user";
+import { useStore } from "@/lib/store";
+import userService from "@/lib/services/userService";
 
 interface UserDetailsProps {
   user: UserType | null;
   onUpdateUser: (updatedUser: UserType) => void;
 }
 
+interface EventInfo {
+  id: string;
+  title: string;
+  date?: string;
+  location?: string;
+  status?: string;
+  sport_type?: string;
+}
+
 export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedUser, setEditedUser] = useState<UserType | null>(null);
+  // Get current user info from store to check if they are a superadmin
+  const currentUser = useStore(state => state.user);
+  const isSuperAdmin = currentUser?.role === 'superadmin';
+  
+  // Etkinlik istatistikleri için state
+  const [createdEventsCount, setCreatedEventsCount] = useState<number>(0);
+  const [participatedEventsCount, setParticipatedEventsCount] = useState<number>(0);
+  const [isLoadingStats, setIsLoadingStats] = useState<boolean>(false);
+  
+  // Diyalog control state
+  const [createdEventsOpen, setCreatedEventsOpen] = useState<boolean>(false);
+  const [participatedEventsOpen, setParticipatedEventsOpen] = useState<boolean>(false);
+  
+  // Etkinlik listeleri state
+  const [createdEvents, setCreatedEvents] = useState<EventInfo[]>([]);
+  const [participatedEvents, setParticipatedEvents] = useState<EventInfo[]>([]);
+  const [isLoadingEventList, setIsLoadingEventList] = useState<boolean>(false);
+
+  // Kullanıcı değiştiğinde etkinlik sayılarını yükle
+  useEffect(() => {
+    if (user?.id) {
+      setIsLoadingStats(true);
+      
+      // Oluşturulan etkinlikleri getir
+      userService.getUserCreatedEvents(user.id)
+        .then(response => {
+          if (response.success && response.data) {
+            // Veri kontrol ediliyor ve dizi olması sağlanıyor
+            const eventsData = Array.isArray(response.data) ? response.data : 
+              (response.data.events ? response.data.events : []);
+            setCreatedEventsCount(eventsData.length || 0);
+            setCreatedEvents(eventsData);
+            console.log("Oluşturulan etkinlikler:", eventsData);
+          }
+        })
+        .catch(error => {
+          console.error("Oluşturulan etkinlikler alınırken hata:", error);
+          setCreatedEvents([]);
+        });
+      
+      // Katılınan etkinlikleri getir
+      userService.getUserParticipatedEvents(user.id)
+        .then(response => {
+          if (response.success && response.data) {
+            console.log("API katılınan etkinlik yanıtı:", response.data);
+            
+            // Veri kontrol ediliyor ve dizi olması sağlanıyor
+            const eventsData = Array.isArray(response.data) ? response.data : 
+              (response.data.events ? response.data.events : []);
+            setParticipatedEventsCount(eventsData.length || 0);
+            setParticipatedEvents(eventsData);
+            console.log("Katılınan etkinlikler:", eventsData);
+          }
+        })
+        .catch(error => {
+          console.error("Katılınan etkinlikler alınırken hata:", error);
+          setParticipatedEvents([]);
+        })
+        .finally(() => {
+          setIsLoadingStats(false);
+        });
+    }
+  }, [user?.id]);
+
+  // Format date
+  const formatDate = (dateString?: string): string => {
+    if (!dateString) return 'Bilinmiyor';
+
+    try {
+      const date = new Date(dateString);
+      return new Intl.DateTimeFormat('tr-TR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }).format(date);
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  // Format date in DD.MM.YYYY format
+  const formatShortDate = (dateString?: string): string => {
+    if (!dateString) return 'Bilinmiyor';
+
+    try {
+      const date = new Date(dateString);
+      return new Intl.DateTimeFormat('tr-TR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).format(date).replace(/\//g, '.');
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  // Get initials for avatar
+  const getInitials = (firstName?: string, lastName?: string): string => {
+    const first = firstName ? firstName.charAt(0) : '';
+    const last = lastName ? lastName.charAt(0) : '';
+    return (first + last).toUpperCase();
+  };
 
   if (!user) {
     return (
-      <div className="w-full p-6 flex items-center justify-center bg-muted/20 rounded-lg h-[300px]">
-        <div className="text-center py-10">
-          <UserIcon className="mx-auto h-12 w-12 text-muted-foreground/60" />
-          <h3 className="mt-4 text-lg font-medium text-gray-700">Kullanıcı Seçilmedi</h3>
-          <p className="mt-2 text-sm text-muted-foreground">Lütfen detaylarını görüntülemek için bir kullanıcı seçin</p>
-        </div>
-      </div>
+      <Card className="w-full max-w-md mx-auto h-full">
+        <CardContent className="p-6 flex items-center justify-center h-full">
+          <div className="text-center py-10">
+            <UserIcon className="mx-auto h-12 w-12 text-muted-foreground/60" />
+            <h3 className="mt-4 text-lg font-medium text-gray-700">Kullanıcı Seçilmedi</h3>
+            <p className="mt-2 text-sm text-muted-foreground">Lütfen detaylarını görüntülemek için bir kullanıcı seçin</p>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
-  const handleEdit = () => {
-    setEditedUser({ ...user });
-    setIsEditing(true);
-  };
-
-  const handleCancel = () => {
-    setEditedUser(null);
-    setIsEditing(false);
-  };
-
-  const handleSave = () => {
-    if (editedUser) {
-      onUpdateUser(editedUser);
-      setIsEditing(false);
-    }
-  };
-
-  const handleChange = (field: keyof UserType, value: string) => {
-    if (editedUser) {
-      setEditedUser({ ...editedUser, [field]: value });
-    }
-  };
-
-  const currentUser = isEditing ? editedUser : user;
-
   return (
-    <div className="w-full h-full overflow-auto">
-      <Card className="shadow-sm border-muted h-full">
-        <CardHeader className="px-6 pt-6 pb-4 bg-gradient-to-br from-primary/5 to-secondary/5 border-b sticky top-0 z-10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16 border-2 border-background shadow-md">
-                <AvatarImage src={currentUser?.profile_picture || undefined} />
-                <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
-                  {currentUser?.first_name?.charAt(0)}{currentUser?.last_name?.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <CardTitle className="text-xl">{currentUser?.first_name} {currentUser?.last_name}</CardTitle>
-                <CardDescription className="flex items-center gap-2 mt-1 text-sm">
-                  <span>@{currentUser?.username}</span>
-                  <Badge className={
-                    currentUser?.role === "superadmin"
-                      ? "bg-red-500 hover:bg-red-600"
-                      : currentUser?.role === "admin"
-                        ? "bg-blue-500 hover:bg-blue-600"
-                        : "bg-green-500 hover:bg-green-600"
-                  }>
-                    {currentUser?.role === "superadmin" ? "Süper Admin" : currentUser?.role === "admin" ? "Admin" : "Üye"}
-                  </Badge>
-                </CardDescription>
-              </div>
-            </div>
-            {!isEditing ? (
-              <Button variant="outline" size="icon" className="rounded-full h-9 w-9" onClick={handleEdit}>
-                <Pencil className="h-4 w-4" />
-              </Button>
-            ) : (
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="rounded-full h-9 w-9 p-0" onClick={handleCancel}>
-                  <X className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm" className="rounded-full h-9 w-9 p-0" onClick={handleSave}>
-                  <Save className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          </div>
+    <>
+      <Card className="w-full max-w-md mx-auto relative shadow-sm border-gray-200 h-full">
+        <CardHeader className="pt-4 pb-0 px-4">
+          <CardTitle className="text-xl font-bold text-center">Profil Bilgileri</CardTitle>
         </CardHeader>
 
-        <CardContent className="p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto">
-          <div className="grid grid-cols-1 gap-6">
-            <div className="bg-muted/30 rounded-lg p-5 transition-all duration-200 hover:bg-muted/40">
-              <h3 className="text-sm font-semibold text-muted-foreground mb-4 flex items-center gap-2">
-                <UserIcon className="h-4 w-4" />
-                Kişisel Bilgiler
-              </h3>
-              <div className="space-y-5">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Ad Soyad</p>
-                    <p className="text-sm font-medium">{currentUser?.first_name} {currentUser?.last_name}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Kullanıcı Adı</p>
-                    <p className="text-sm font-medium">@{currentUser?.username}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">E-posta</p>
-                  {isEditing ? (
-                    <div className="mt-1">
-                      <Input
-                        id="email"
-                        type="email"
-                        value={currentUser?.email}
-                        onChange={(e) => handleChange('email', e.target.value)}
-                        className="h-9"
-                      />
-                    </div>
-                  ) : (
-                    <p className="text-sm font-medium">{currentUser?.email}</p>
-                  )}
-                </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Telefon</p>
-                  {isEditing ? (
-                    <div className="mt-1">
-                      <Input
-                        id="phone"
-                        value={currentUser?.phone || ''}
-                        onChange={(e) => handleChange('phone', e.target.value)}
-                        className="h-9"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <p className="text-sm font-medium">
-                        {currentUser && currentUser.phone !== null
-                          ? currentUser.phone
-                          : 'Belirtilmemiş'}
-                      </p>
-                    </div>
-                  )}
-                </div>
+        <CardContent className="p-4">
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-4 mb-4">
+            <div className="flex flex-col items-center">
+              <Avatar className="h-20 w-20 border-2 border-white shadow-md mb-3">
+                <AvatarImage src={user?.profile_picture || undefined} alt={user?.username} />
+                <AvatarFallback className="bg-black text-white text-xl font-semibold">
+                  {getInitials(user?.first_name, user?.last_name)}
+                </AvatarFallback>
+              </Avatar>
+              <h2 className="text-lg font-bold mb-1">{user?.first_name} {user?.last_name}</h2>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-gray-600 text-xs">@{user?.username}</span>
+                <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-0.5">
+                  {user?.role === "superadmin" ? "Süper Admin" :
+                    user?.role === "admin" ? "Admin" : "Kullanıcı"}
+                </Badge>
               </div>
             </div>
+          </div>
 
-            <div className="bg-muted/30 rounded-lg p-5 transition-all duration-200 hover:bg-muted/40">
-              <h3 className="text-sm font-semibold text-muted-foreground mb-4 flex items-center gap-2">
-                <Shield className="h-4 w-4" />
-                Rol ve Yetki Bilgileri
-              </h3>
-
-              <div className="space-y-4">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold mb-3">Kişisel Bilgiler</h3>
+            
+            <div className="space-y-3">
+              {/* Email */}
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 flex items-center justify-center text-blue-500">
+                  <Mail className="h-4 w-4" />
+                </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Kullanıcı Rolü</p>
-                  <div className="flex items-center justify-between mt-1">
-                    {isEditing ? (
-                      <Select
-                        value={currentUser?.role || "user"}
-                        onValueChange={(value) => handleChange('role', value)}
+                  <p className="text-gray-500 text-xs">E-posta</p>
+                  <p className="font-medium text-sm">{user?.email}</p>
+                </div>
+              </div>
+
+              {/* Phone */}
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 flex items-center justify-center text-green-500">
+                  <Phone className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Telefon</p>
+                  <p className="font-medium text-sm">
+                    {user.phone ? user.phone : 'Belirtilmemiş'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Registration Date */}
+              {user?.created_at && (
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 flex items-center justify-center text-purple-500">
+                    <Calendar className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-xs">Kayıt</p>
+                    <p className="font-medium text-sm">{formatShortDate(user.created_at)}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Location if available */}
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 flex items-center justify-center text-red-500">
+                  <MapPin className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Konum</p>
+                  <p className="font-medium text-sm">
+                    {user?.default_location_latitude && user?.default_location_longitude
+                      ? `${user.default_location_latitude.toFixed(6)}, ${user.default_location_longitude.toFixed(6)}`
+                      : 'Konum Bilgisi Belirtilmemiş'
+                    }
+                  </p>
+                </div>
+              </div>
+              
+              {/* Role selection - only visible to superadmins */}
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 flex items-center justify-center text-amber-500">
+                  <Shield className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-gray-500 text-xs">Rol</p>
+                  {isSuperAdmin ? (
+                    <div className="flex items-center gap-2">
+                      <Select 
+                        value={user.role} 
+                        onValueChange={(value) => {
+                          if (value !== user.role) {
+                            onUpdateUser({ ...user, role: value });
+                          }
+                        }}
                       >
-                        <SelectTrigger className="w-full h-9">
+                        <SelectTrigger className="h-7 text-xs min-w-[120px]">
                           <SelectValue placeholder="Rol seçin" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="user">Kullanıcı</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="superadmin">Süper Admin</SelectItem>
+                          <SelectItem value="user" className="text-xs">Kullanıcı</SelectItem>
+                          <SelectItem value="admin" className="text-xs">Admin</SelectItem>
+                          <SelectItem value="superadmin" className="text-xs">Süper Admin</SelectItem>
                         </SelectContent>
                       </Select>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <Badge className={
-                          currentUser?.role === "superadmin" ? "bg-red-500" :
-                            currentUser?.role === "admin" ? "bg-blue-500" : "bg-green-500"
-                        }>
-                          {currentUser?.role === "superadmin" ? "Süper Admin" :
-                            currentUser?.role === "admin" ? "Admin" : "Kullanıcı"}
-                        </Badge>
+                    </div>
+                  ) : (
+                    <p className="font-medium text-sm">
+                      {user?.role === "superadmin" ? "Süper Admin" :
+                        user?.role === "admin" ? "Admin" : "Kullanıcı"}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
 
-                        <span className="text-xs text-muted-foreground">
-                          {currentUser?.role === "superadmin"
-                            ? "(Tüm yetkilere sahip)"
-                            : currentUser?.role === "admin"
-                              ? "(Sınırlı yönetim yetkileri)"
-                              : "(Standart kullanıcı izinleri)"}
-                        </span>
+          <div>
+            <h3 className="text-sm font-semibold mb-3">İstatistikler</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                className="border rounded-lg p-3 flex flex-col items-center hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => setCreatedEventsOpen(true)}
+              >
+                <div className="w-6 h-6 flex items-center justify-center text-amber-500 mb-1">
+                  <Star className="h-4 w-4" />
+                </div>
+                <p className="text-lg font-bold">{isLoadingStats ? "..." : createdEventsCount}</p>
+                <p className="text-gray-500 text-xs text-center">Oluşturduğum<br/>Etkinlikler</p>
+              </button>
+              <button 
+                className="border rounded-lg p-3 flex flex-col items-center hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => setParticipatedEventsOpen(true)}
+              >
+                <div className="w-6 h-6 flex items-center justify-center text-blue-500 mb-1">
+                  <CalendarCheck className="h-4 w-4" />
+                </div>
+                <p className="text-lg font-bold">{isLoadingStats ? "..." : participatedEventsCount}</p>
+                <p className="text-gray-500 text-xs text-center">Katıldığım<br/>Etkinlikler</p>
+              </button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Oluşturulan Etkinlikler Diyalogu */}
+      <Dialog open={createdEventsOpen} onOpenChange={setCreatedEventsOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Oluşturulan Etkinlikler</DialogTitle>
+            <DialogDescription>
+              {user.first_name} {user.last_name} tarafından oluşturulan etkinlikler
+            </DialogDescription>
+          </DialogHeader>
+
+          {!Array.isArray(createdEvents) || createdEvents.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              <p>Oluşturulan etkinlik bulunamadı</p>
+            </div>
+          ) : (
+            <div className="space-y-3 mt-2">
+              {createdEvents.map(event => (
+                <div key={event.id} className="border rounded-md p-3 bg-gray-50">
+                  <h4 className="font-medium text-sm">{event.title}</h4>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                    {event.date && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>{formatShortDate(event.date)}</span>
+                      </div>
+                    )}
+                    {event.location && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-3.5 w-3.5" />
+                        <span>{event.location}</span>
+                      </div>
+                    )}
+                    {event.sport_type && (
+                      <div className="flex items-center gap-2">
+                        <Trophy className="h-3.5 w-3.5" />
+                        <span>{event.sport_type}</span>
+                      </div>
+                    )}
+                    {event.status && (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="h-5 px-1.5 text-xs">
+                          {event.status}
+                        </Badge>
                       </div>
                     )}
                   </div>
                 </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Hesap Oluşturma Tarihi</p>
-                  <p className="text-sm font-medium">
-                    {currentUser?.created_at
-                      ? new Date(currentUser.created_at).toLocaleDateString('tr-TR', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
-                      })
-                      : '-'}
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
-
-            {currentUser?.default_location_latitude && currentUser?.default_location_longitude && (
-              <div className="bg-muted/30 rounded-lg p-5 transition-all duration-200 hover:bg-muted/40">
-                <h3 className="text-sm font-semibold text-muted-foreground mb-4 flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                  Konum Bilgileri
-                </h3>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Varsayılan Konum</p>
-                  <p className="text-sm font-medium">
-                    {currentUser.default_location_latitude.toFixed(6)}, {currentUser.default_location_longitude.toFixed(6)}
-                  </p>
-                </div>
-              </div>
-            )}
+          )}
+          
+          <div className="mt-4 flex justify-end">
+            <DialogClose asChild>
+              <Button variant="outline">Kapat</Button>
+            </DialogClose>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Katılınan Etkinlikler Diyalogu */}
+      <Dialog open={participatedEventsOpen} onOpenChange={setParticipatedEventsOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Katılınan Etkinlikler</DialogTitle>
+            <DialogDescription>
+              {user.first_name} {user.last_name} tarafından katılınan etkinlikler
+            </DialogDescription>
+          </DialogHeader>
+
+          {!Array.isArray(participatedEvents) || participatedEvents.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              <p>Katılınan etkinlik bulunamadı</p>
+            </div>
+          ) : (
+            <div className="space-y-3 mt-2">
+              {participatedEvents.map(event => (
+                <div key={event.id} className="border rounded-md p-3 bg-gray-50">
+                  <h4 className="font-medium text-sm">{event.title}</h4>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                    {event.date && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>{formatShortDate(event.date)}</span>
+                      </div>
+                    )}
+                    {event.location && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-3.5 w-3.5" />
+                        <span>{event.location}</span>
+                      </div>
+                    )}
+                    {event.sport_type && (
+                      <div className="flex items-center gap-2">
+                        <Trophy className="h-3.5 w-3.5" />
+                        <span>{event.sport_type}</span>
+                      </div>
+                    )}
+                    {event.status && (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="h-5 px-1.5 text-xs">
+                          {event.status}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <div className="mt-4 flex justify-end">
+            <DialogClose asChild>
+              <Button variant="outline">Kapat</Button>
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
-} 
+}

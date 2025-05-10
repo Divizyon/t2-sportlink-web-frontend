@@ -58,60 +58,12 @@ const createAnnouncementSlice: StateCreator<AnnouncementState> = (set, get) => {
       }
 
       set({ lastRequestId: requestId, isLoading: true, error: null });
-      console.log(`getAnnouncements başlatıldı [${requestId}]: page=${page}, limit=${limit}`);
-
-      // Timeout ile maksimum yükleme süresini sınırla
-      const timeoutId = setTimeout(() => {
-        const currentState = get();
-        if (currentState.isLoading && currentState.lastRequestId === requestId) {
-          console.warn("Duyuru yükleme zaman aşımına uğradı, geliştirme modunda varsayılan veriler kullanılacak");
-
-          // Geliştirme ortamında test verilerini kullan
-          if (process.env.NODE_ENV === 'development') {
-            const testData: Announcement[] = [
-              {
-                id: "test-timeout-1",
-                title: "Test Duyuru (Timeout)",
-                content: "API yanıt vermedi, bu test verisidir",
-                created_at: new Date().toISOString(),
-                status: "published" as AnnouncementStatus,
-                published: true
-              },
-              {
-                id: "test-timeout-2",
-                title: "Test Duyuru 2 (Timeout)",
-                content: "API yanıt vermedi, bu test verisidir",
-                created_at: new Date().toISOString(),
-                status: "draft" as AnnouncementStatus,
-                published: false
-              }
-            ];
-
-            set({
-              announcements: testData,
-              pagination: {
-                total: testData.length,
-                page: 1,
-                limit: 10,
-                totalPages: 1
-              },
-              isLoading: false
-            });
-          } else {
-            // Üretim ortamında hata mesajı göster
-            set({
-              error: "Duyurular yüklenirken zaman aşımı oluştu. Lütfen daha sonra tekrar deneyin.",
-              isLoading: false
-            });
-          }
-        }
-      }, 10000); // 10 saniye timeout
+      console.log(`getAnnouncements başlatıldı [${requestId}]: page=${page}, limit=${limit}, includeUnpublished=${includeUnpublished}`);
 
       try {
+        console.log("announcementService.getAnnouncements çağrılıyor...");
         const response = await announcementService.getAnnouncements(page, limit, includeUnpublished);
-
-        // Timeout'u temizle
-        clearTimeout(timeoutId);
+        console.log("announcementService.getAnnouncements yanıtı:", response);
 
         // Eğer bu istek iptal edilmiş veya başka bir istek başlamışsa yanıtı işleme
         if (get().lastRequestId !== requestId) {
@@ -129,9 +81,26 @@ const createAnnouncementSlice: StateCreator<AnnouncementState> = (set, get) => {
           // Veya direkt olarak data bir dizi olabilir
           let announcements: Announcement[] = [];
           if (Array.isArray(response.data)) {
+            console.log("Yanıt doğrudan bir dizi");
             announcements = response.data;
           } else if (response.data && typeof response.data === 'object') {
-            announcements = (response.data as any).announcements || (response.data as any).data || [];
+            console.log("Yanıt bir nesne, içindeki veriyi arıyorum");
+            
+            // response.data içindeki olası veri alanlarını kontrol et
+            if (Array.isArray((response.data as any).announcements)) {
+              console.log("'announcements' alanı bir dizi");
+              announcements = (response.data as any).announcements;
+            } else if (Array.isArray((response.data as any).data)) {
+              console.log("'data' alanı bir dizi");
+              announcements = (response.data as any).data;
+            } else if ((response.data as any).results && Array.isArray((response.data as any).results)) {
+              console.log("'results' alanı bir dizi");
+              announcements = (response.data as any).results;
+            } else {
+              console.warn("Yanıt nesnesinde beklenen dizi alanı bulunamadı", response.data);
+              // Boş dizi kullan
+              announcements = [];
+            }
           }
 
           console.log("İşlenmiş duyurular:", announcements);
@@ -151,12 +120,14 @@ const createAnnouncementSlice: StateCreator<AnnouncementState> = (set, get) => {
             isLoading: false
           });
         } else {
+          console.error("API başarısız yanıt verdi:", response.message);
           set({
             error: response.message || 'Duyurular alınırken hata oluştu',
             isLoading: false
           });
         }
       } catch (error) {
+        console.error("getAnnouncements exception:", error);
         const apiError = error as ApiError;
         set({
           error: apiError.message || 'Duyurular alınırken beklenmeyen bir hata oluştu',

@@ -52,11 +52,10 @@ export default function UserFilter({ onFilterChange, onReset }: UserFilterProps)
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full sm:w-auto flex items-center gap-2">
+        <Button variant="outline" className="h-9 w-9 p-0 relative">
           <Filter className="h-4 w-4" />
-          <span>Filtrele</span>
           {role !== "all" || !isActive ? (
-            <span className="ml-1 flex h-2 w-2 rounded-full bg-primary"></span>
+            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary"></span>
           ) : null}
         </Button>
       </DialogTrigger>

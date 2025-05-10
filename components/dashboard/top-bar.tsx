@@ -2,12 +2,11 @@
 
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import { LogOut, ChevronRight, Mail, Phone, Calendar, User, MapPin, Trophy, Pencil, X } from "lucide-react"
+import { ChevronRight, Mail, Phone, Calendar, User, MapPin, Trophy, Pencil, X, LogOut, Star, CalendarCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
-import { logout } from "@/lib/auth"
 import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
@@ -21,6 +20,8 @@ import ProfileForm from "@/components/profile/ProfileForm"
 import type { ProfileFormData } from "@/components/profile/ProfileForm"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { useUserProfile } from "@/lib/hooks"
+import { LogoutButton } from "@/components/auth/logout-button"
+import userService from "@/lib/services/userService"
 
 interface TopBarProps {
   onProfilePanelChange?: (open: boolean) => void;
@@ -31,6 +32,13 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
   const [profileOpen, setProfileOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [showEventsDetails, setShowEventsDetails] = useState(false)
+  
+  // Oluşturduğum ve katıldığım etkinlikler için state'ler
+  const [createdEventsOpen, setCreatedEventsOpen] = useState(false)
+  const [participatedEventsOpen, setParticipatedEventsOpen] = useState(false)
+  const [createdEvents, setCreatedEvents] = useState<any[]>([])
+  const [participatedEvents, setParticipatedEvents] = useState<any[]>([])
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false)
 
   // useUserProfile hook'unu kullanarak profil bilgilerini al
   const { profile, loading, loadProfile, updateProfile } = useUserProfile();
@@ -39,6 +47,48 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  // Profil yüklendiğinde etkinlikleri getir
+  useEffect(() => {
+    if (profile?.id) {
+      setIsLoadingEvents(true);
+      
+      // Oluşturulan etkinlikleri getir
+      userService.getUserCreatedEvents(profile.id)
+        .then(response => {
+          if (response.success && response.data) {
+            // Veri kontrol ediliyor ve dizi olması sağlanıyor
+            const eventsData = Array.isArray(response.data) ? response.data : 
+              (response.data.events ? response.data.events : []);
+            setCreatedEvents(eventsData);
+            console.log("Profil: Oluşturulan etkinlikler yüklendi:", eventsData);
+          }
+        })
+        .catch(error => {
+          console.error("Oluşturulan etkinlikler alınırken hata:", error);
+          setCreatedEvents([]);
+        });
+      
+      // Katılınan etkinlikleri getir
+      userService.getUserParticipatedEvents(profile.id)
+        .then(response => {
+          if (response.success && response.data) {
+            // Veri kontrol ediliyor ve dizi olması sağlanıyor  
+            const eventsData = Array.isArray(response.data) ? response.data : 
+              (response.data.events ? response.data.events : []);
+            setParticipatedEvents(eventsData);
+            console.log("Profil: Katılınan etkinlikler yüklendi:", eventsData);
+          }
+        })
+        .catch(error => {
+          console.error("Katılınan etkinlikler alınırken hata:", error);
+          setParticipatedEvents([]);
+        })
+        .finally(() => {
+          setIsLoadingEvents(false);
+        });
+    }
+  }, [profile?.id]);
 
   // Profil paneli durumu değiştiğinde ana bileşene bildir
   useEffect(() => {
@@ -60,16 +110,22 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
     }
   };
 
-  const handleLogout = () => {
-    // Artık kendi logout kodumuz yerine auth.ts'deki logout fonksiyonunu çağırıyoruz
-    logout();
-    // Not: Logout fonksiyonu zaten kullanıcıyı login sayfasına yönlendirdiği için
-    // router.push() çağrısına burada ihtiyacımız yok
-  }
-
   const handleEditProfile = () => {
     setIsEditing(true);
     setProfileOpen(false); // Close profile sheet when opening edit dialog
+  }
+
+  // Tarihi kısa formatta biçimlendir
+  const formatShortDate = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('tr-TR', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   }
 
   const getTitle = () => {
@@ -228,7 +284,7 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
                         <span className="text-sm font-medium text-gray-700">Kayıt</span>
                       </div>
                       <span className="text-sm bg-white px-2 py-1 rounded border">
-                        {registerDate}
+                        {formatShortDate(registerDate)}
                       </span>
                     </div>
 
@@ -248,19 +304,26 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="text-sm font-semibold text-gray-700 mb-3">İstatistikler</h3>
                   <div className="grid grid-cols-2 gap-3">
-                    <div
+                    <button 
                       className="flex flex-col items-center justify-center p-3 bg-white rounded-md border cursor-pointer hover:bg-gray-50 transition-colors"
-                      onClick={() => setShowEventsDetails(true)}
+                      onClick={() => setCreatedEventsOpen(true)}
                     >
-                      <Trophy className="h-5 w-5 text-amber-500 mb-1" />
-                      <span className="text-sm font-medium">{eventCount}</span>
-                      <span className="text-xs text-gray-500">Etkinlik</span>
-                    </div>
-                    <div className="flex flex-col items-center justify-center p-3 bg-white rounded-md border">
-                      <User className="h-5 w-5 text-blue-500 mb-1" />
-                      <span className="text-sm font-medium">{friendCount}</span>
-                      <span className="text-xs text-gray-500">Arkadaş</span>
-                    </div>
+                      <div className="w-6 h-6 flex items-center justify-center text-amber-500 mb-1">
+                        <Star className="h-4 w-4" />
+                      </div>
+                      <p className="text-sm font-medium">{isLoadingEvents ? "..." : createdEvents.length}</p>
+                      <p className="text-xs text-gray-500 text-center">Oluşturduğum<br/>Etkinlikler</p>
+                    </button>
+                    <button 
+                      className="flex flex-col items-center justify-center p-3 bg-white rounded-md border cursor-pointer hover:bg-gray-50 transition-colors"
+                      onClick={() => setParticipatedEventsOpen(true)}
+                    >
+                      <div className="w-6 h-6 flex items-center justify-center text-blue-500 mb-1">
+                        <CalendarCheck className="h-4 w-4" />
+                      </div>
+                      <p className="text-sm font-medium">{isLoadingEvents ? "..." : participatedEvents.length}</p>
+                      <p className="text-xs text-gray-500 text-center">Katıldığım<br/>Etkinlikler</p>
+                    </button>
                   </div>
                 </div>
 
@@ -276,10 +339,12 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
 
                 <Separator />
 
-                <Button variant="destructive" className="w-full" onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Çıkış Yap
-                </Button>
+                <LogoutButton 
+                  variant="destructive" 
+                  className="w-full"
+                  showIcon={true}
+                  text="Çıkış Yap"
+                />
               </div>
             </SheetContent>
           </Sheet>
@@ -316,6 +381,134 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
         </DialogContent>
       </Dialog>
 
+      {/* Oluşturulan Etkinlikler Diyalogu */}
+      <Dialog open={createdEventsOpen} onOpenChange={setCreatedEventsOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Oluşturulan Etkinlikler</DialogTitle>
+            <DialogDescription>
+              {profile.first_name} {profile.last_name} tarafından oluşturulan etkinlikler
+            </DialogDescription>
+          </DialogHeader>
+
+          {isLoadingEvents ? (
+            <div className="py-8 text-center">
+              <div className="inline-block w-8 h-8 border-t-2 border-primary rounded-full animate-spin mb-4"></div>
+              <p className="text-muted-foreground">Etkinlikler yükleniyor...</p>
+            </div>
+          ) : !Array.isArray(createdEvents) || createdEvents.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              <p>Oluşturulan etkinlik bulunamadı</p>
+            </div>
+          ) : (
+            <div className="space-y-3 mt-2">
+              {createdEvents.map((event) => (
+                <div key={event.id} className="border rounded-md p-3 bg-gray-50">
+                  <h4 className="font-medium text-sm">{event.title}</h4>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                    {event.event_date && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>{formatShortDate(event.event_date)}</span>
+                      </div>
+                    )}
+                    {event.location && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-3.5 w-3.5" />
+                        <span>{event.location}</span>
+                      </div>
+                    )}
+                    {event.sport?.name && (
+                      <div className="flex items-center gap-2">
+                        <Trophy className="h-3.5 w-3.5" />
+                        <span>{event.sport.name}</span>
+                      </div>
+                    )}
+                    {event.status && (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="h-5 px-1.5 text-xs">
+                          {event.status}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <div className="mt-4 flex justify-end">
+            <DialogClose asChild>
+              <Button variant="outline">Kapat</Button>
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Katılınan Etkinlikler Diyalogu */}
+      <Dialog open={participatedEventsOpen} onOpenChange={setParticipatedEventsOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Katılınan Etkinlikler</DialogTitle>
+            <DialogDescription>
+              {profile.first_name} {profile.last_name} tarafından katılınan etkinlikler
+            </DialogDescription>
+          </DialogHeader>
+
+          {isLoadingEvents ? (
+            <div className="py-8 text-center">
+              <div className="inline-block w-8 h-8 border-t-2 border-primary rounded-full animate-spin mb-4"></div>
+              <p className="text-muted-foreground">Etkinlikler yükleniyor...</p>
+            </div>
+          ) : !Array.isArray(participatedEvents) || participatedEvents.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              <p>Katılınan etkinlik bulunamadı</p>
+            </div>
+          ) : (
+            <div className="space-y-3 mt-2">
+              {participatedEvents.map((event) => (
+                <div key={event.id} className="border rounded-md p-3 bg-gray-50">
+                  <h4 className="font-medium text-sm">{event.title}</h4>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                    {event.event_date && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>{formatShortDate(event.event_date)}</span>
+                      </div>
+                    )}
+                    {event.location && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-3.5 w-3.5" />
+                        <span>{event.location}</span>
+                      </div>
+                    )}
+                    {event.sport?.name && (
+                      <div className="flex items-center gap-2">
+                        <Trophy className="h-3.5 w-3.5" />
+                        <span>{event.sport.name}</span>
+                      </div>
+                    )}
+                    {event.status && (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="h-5 px-1.5 text-xs">
+                          {event.status}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <div className="mt-4 flex justify-end">
+            <DialogClose asChild>
+              <Button variant="outline">Kapat</Button>
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
       {/* Edit Profile Dialog */}
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
         <DialogContent className="sm:max-w-[600px] h-[90vh] overflow-y-auto">

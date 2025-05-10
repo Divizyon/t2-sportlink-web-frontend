@@ -75,16 +75,40 @@ class EventService {
       if (params?.page) queryParams.append('page', params.page.toString());
       queryParams.append('limit', '10');
       if (params?.sportId) queryParams.append('sportId', params.sportId);
-      if (params?.status) params.status.forEach(s => queryParams.append('status', s));
+      
+      // Status parametresini API'ye gönderme
+      console.log('Original status params:', params?.status);
+      if (params?.status && params.status.length > 0) {
+        // 'all' parametresi veya özel durumlar
+        if (params.status.includes('all')) {
+          queryParams.append('status', 'all');
+        } else {
+          params.status.forEach(s => queryParams.append('status', s));
+        }
+      } else {
+        // Default olarak 'all' gönder
+        queryParams.append('status', 'all');
+      }
+      console.log('Final status params:', queryParams.getAll('status'));
+      
+      // Approval Status parametrelerini API'ye gönder
+      if ((params as any)?.approval_status && (params as any).approval_status.length > 0) {
+        (params as any).approval_status.forEach((s: string) => queryParams.append('approval_status', s));
+      }
+      
       if (params?.keyword) queryParams.append('keyword', params.keyword);
       if (params?.startDate) queryParams.append('startDate', params.startDate);
       if (params?.endDate) queryParams.append('endDate', params.endDate);
 
-      const response = await api.get(`/events?${queryParams.toString()}`);
+      const apiUrl = `/events?${queryParams.toString()}`;
+      console.log('API request:', apiUrl);
+      const response = await api.get(apiUrl);
 
-      console.log('Raw API response:', response.data);
-
+      // API yanıtını kontrol et
+      console.log('API response status:', response.status);
+      
       const rawData = response.data;
+      console.log('Raw API response structure:', Object.keys(rawData));
 
       let events: Event[] = [];
 
@@ -100,6 +124,20 @@ class EventService {
         events = [];
         console.error('Could not find events array in API response:', rawData);
       }
+
+      // Etkinliklerin status ve approval_status dağılımlarını logla
+      const statusCounts = events.reduce((acc, event) => {
+        acc[event.status] = (acc[event.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const approvalStatusCounts = events.reduce((acc, event) => {
+        acc[event.approval_status] = (acc[event.approval_status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      console.log('Events by status:', statusCounts);
+      console.log('Events by approval status:', approvalStatusCounts);
 
       let pagination = {
         total: 0,
@@ -132,7 +170,7 @@ class EventService {
         pagination: pagination
       };
 
-      console.log('Standardized response data:', standardizedData);
+      console.log('Returning events count:', events.length);
 
       return {
         success: true,

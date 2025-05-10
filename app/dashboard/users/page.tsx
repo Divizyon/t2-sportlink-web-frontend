@@ -17,6 +17,9 @@ export default function UsersPage() {
     updateUser,
     deleteUser,
     selectUser,
+    totalUsers,
+    currentPage,
+    pageSize,
   } = useUsers();
 
   // Local state for filtering and column visibility
@@ -110,7 +113,10 @@ export default function UsersPage() {
       role?: string;
       searchQuery?: string;
       isActive?: boolean;
-    } = {};
+      page?: number;
+    } = {
+      page: 1, // Filtre değiştiğinde ilk sayfaya dön
+    };
 
     if (filters.searchQuery) {
       queryParams.searchQuery = filters.searchQuery;
@@ -132,7 +138,16 @@ export default function UsersPage() {
   // Handle filter reset
   const handleFilterReset = () => {
     setSearchQuery("");
-    getUsers();
+    getUsers({ page: 1 });
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    // Mevcut filtreleri de koruyarak sayfa değiştir
+    getUsers({
+      page,
+      searchQuery,
+    });
   };
 
   return (
@@ -164,6 +179,10 @@ export default function UsersPage() {
             onUpdateUser={handleUpdateUser}
             onFilterChange={handleFilterChange}
             onFilterReset={handleFilterReset}
+            totalUsers={totalUsers}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
           />
         </div>
 

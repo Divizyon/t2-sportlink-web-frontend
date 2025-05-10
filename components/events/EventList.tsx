@@ -4,7 +4,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Trash, Filter, ListFilter, CheckCircle2 } from "lucide-react";
+import { Search, Plus, Trash, Filter, ListFilter, CheckCircle2, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 import { Select, SelectContent, SelectTrigger } from "@/components/ui/select";
 import {
   Table,
@@ -34,8 +34,12 @@ interface EventListProps {
   handleAddEvent: () => Promise<void>;
   formatDate: (dateString: string) => string;
   getStatusBadge: (status: string) => React.ReactElement;
-  getApprovalBadge: (status: string) => React.ReactElement;
   loading: boolean;
+  // Pagination props
+  totalEvents?: number;
+  currentPage?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
 }
 
 const EventList: React.FC<EventListProps> = ({
@@ -51,9 +55,78 @@ const EventList: React.FC<EventListProps> = ({
   handleAddEvent,
   formatDate,
   getStatusBadge,
-  getApprovalBadge,
-  loading
+  loading,
+  // Pagination props
+  totalEvents = 0,
+  currentPage = 1,
+  pageSize = 10,
+  onPageChange = () => {},
 }) => {
+  // Toplam sayfa sayısını etkinlik sayısına göre hesapla
+  const totalPages = Math.max(1, Math.ceil((totalEvents || events.length) / Math.max(1, pageSize)));
+
+  // Debug pagination values
+  React.useEffect(() => {
+    console.log('EventList pagination:', {
+      totalEvents,
+      eventsLength: events.length,
+      currentPage,
+      pageSize,
+      calculatedTotalPages: totalPages,
+      shouldShowPagination: totalPages > 1
+    });
+  }, [totalEvents, events.length, currentPage, pageSize, totalPages]);
+
+  // Sayfa numaralarını oluştur
+  const getPageNumbers = () => {
+    // Eğer hiç etkinlik yoksa veya tek sayfa yeterliyse, sayfalama gösterme
+    if ((totalEvents || events.length) <= pageSize) {
+      return [];
+    }
+    
+    const pages = [];
+    const maxVisiblePages = 5; // Maksimum görünür sayfa sayısı
+    
+    if (totalPages <= maxVisiblePages) {
+      // Toplam sayfa sayısı az ise tümünü göster
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Başlangıç ve bitiş sayfalarını hesapla
+      let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+      let endPage = startPage + maxVisiblePages - 1;
+      
+      if (endPage > totalPages) {
+        endPage = totalPages;
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+      }
+      
+      // İlk sayfa
+      if (startPage > 1) {
+        pages.push(1);
+        if (startPage > 2) {
+          pages.push('ellipsis');
+        }
+      }
+      
+      // Sayfa numaraları
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+      
+      // Son sayfa
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          pages.push('ellipsis');
+        }
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -237,13 +310,11 @@ const EventList: React.FC<EventListProps> = ({
                 events.map((event) => (
                   <TableRow
                     key={event.id}
-                    className={`
-                      hover:bg-green-50 cursor-pointer
-                      ${selectedEvent?.id === event.id ? 'bg-green-100' : ''}
-                    `}
-                    style={{
-                      borderLeft: selectedEvent?.id === event.id ? '6px solid #059669' : 'none'
-                    }}
+                    style={selectedEvent?.id === event.id ? { 
+                      backgroundColor: '#d1fae5 !important',
+                      borderLeft: '6px solid #059669'
+                    } : {}}
+                    className={`cursor-pointer ${selectedEvent?.id === event.id ? '!bg-green-100 hover:!bg-green-200' : 'hover:bg-muted'}`}
                     onClick={() => setSelectedEvent(event)}
                   >
                     <TableCell className="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900">{event.title}</TableCell>
@@ -254,7 +325,6 @@ const EventList: React.FC<EventListProps> = ({
                     <TableCell className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex flex-col space-y-1">
                         {getStatusBadge(event.status)}
-                        {getApprovalBadge(event.approval_status)}
                       </div>
                     </TableCell>
                     <TableCell className="py-4 px-4 whitespace-nowrap text-right text-sm font-medium">
@@ -273,6 +343,64 @@ const EventList: React.FC<EventListProps> = ({
             </TableBody>
           </Table>
         </div>
+        
+        {/* Pagination - only show if there are multiple pages */}
+        {totalPages > 1 && getPageNumbers().length > 0 && (
+          <div className="border-t py-3 px-4 mt-4 rounded-md border">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 text-sm text-muted-foreground">
+                Toplam <strong>{totalEvents || events.length}</strong> etkinlik, <strong>{pageSize}</strong> kayıt/sayfa
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => onPageChange(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  className="h-7 w-7"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="sr-only">Önceki Sayfa</span>
+                </Button>
+                
+                {getPageNumbers().map((page, index) => (
+                  page === 'ellipsis' ? (
+                    <Button
+                      key={`ellipsis-${index}`}
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7 cursor-default"
+                      disabled
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="icon"
+                      onClick={() => onPageChange(page as number)}
+                      className="h-7 w-7"
+                    >
+                      {page}
+                    </Button>
+                  )
+                ))}
+                
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => onPageChange(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                  className="h-7 w-7"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                  <span className="sr-only">Sonraki Sayfa</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
