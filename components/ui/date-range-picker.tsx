@@ -37,8 +37,12 @@ export function DateRangePicker({
 
   // Başlangıç tarihini değiştir
   const handleStartDateChange = (date: Date | undefined) => {
-    setDateRange({ from: date, to: dateRange?.to });
-    // İç popover'ı kapat - timing sorunlarını önlemek için setTimeout kullanıyoruz
+    // Eğer yeni başlangıç tarihi mevcut bitiş tarihinden sonra ise, bitiş tarihini temizle
+    if (date && dateRange?.to && date > dateRange.to) {
+      setDateRange({ from: date, to: undefined });
+    } else {
+      setDateRange({ from: date, to: dateRange?.to });
+    }
     setTimeout(() => {
       setActiveCalendar(null);
     }, 100);
@@ -46,13 +50,16 @@ export function DateRangePicker({
 
   // Bitiş tarihini değiştir
   const handleEndDateChange = (date: Date | undefined) => {
+    // Eğer bitiş tarihi gelecekteyse, izin verme
+    if (date && date > new Date()) {
+      return;
+    }
     // Eğer başlangıç tarihi yoksa ve bitiş tarihi seçiliyorsa, başlangıç tarihini bugün yap
     if (!dateRange?.from && date) {
       setDateRange({ from: new Date(), to: date });
     } else {
       setDateRange({ from: dateRange?.from, to: date });
     }
-    // İç popover'ı kapat - timing sorunlarını önlemek için setTimeout kullanıyoruz
     setTimeout(() => {
       setActiveCalendar(null);
     }, 100);
@@ -109,17 +116,6 @@ export function DateRangePicker({
                 placeholder}
             </span>
           </div>
-          {(dateRange?.from || dateRange?.to) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-1.5 ml-2 hover:bg-destructive/10 rounded-full"
-              onClick={handleClear}
-            >
-              <X className="h-3 w-3 text-destructive" />
-              <span className="sr-only">Tarihi temizle</span>
-            </Button>
-          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent className={cn("w-auto p-3 min-w-[350px] rounded-md shadow", calendarContentClassName)} align="center">
@@ -149,6 +145,9 @@ export function DateRangePicker({
                   initialFocus
                   weekStartsOn={1}
                   className="rounded-md border shadow p-2"
+                  disabled={(date) =>
+                    (dateRange?.to ? date > dateRange.to : false) || date > new Date()
+                  }
                 />
               </PopoverContent>
             </Popover>
@@ -177,7 +176,7 @@ export function DateRangePicker({
                   selected={dateRange?.to}
                   onSelect={handleEndDateChange}
                   disabled={(date) =>
-                    dateRange?.from ? date < dateRange.from : false
+                    (dateRange?.from ? date < dateRange.from : false) || date > new Date()
                   }
                   initialFocus
                   weekStartsOn={1}

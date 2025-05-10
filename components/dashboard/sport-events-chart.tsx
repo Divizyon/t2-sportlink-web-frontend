@@ -351,13 +351,7 @@ export function SportEventsChart({
         <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="relative">
-              <Filter className="mr-2 h-4 w-4" />
-              <span>Filtrele</span>
-              {getVisibleSportsCount() > 0 && (
-                <Badge variant="secondary" className="ml-2 px-1 py-0 h-5 min-w-5 text-xs rounded-full">
-                  {getVisibleSportsCount()}
-                </Badge>
-              )}
+              <Filter className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">

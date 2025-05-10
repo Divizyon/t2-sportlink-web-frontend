@@ -227,6 +227,7 @@ function Calendar({
                     )}
                     data-year={year}
                     onClick={() => handleYearSelect(year)}
+                    disabled={year > new Date().getFullYear()}
                   >
                     {year}
                   </Button>
