@@ -4,8 +4,7 @@ import type {
   LoginCredentials,
   RegisterData,
   UserData,
-  AuthResponse,
-  SessionData
+  AuthResponse
 } from '@/lib/services/authService';
 import api, { type ApiError } from '@/lib/services/api';
 
@@ -27,7 +26,7 @@ export interface AuthState {
   clearError: () => void;
 }
 
-const createAuthSlice: StateCreator<AuthState> = (set, get) => {
+const createAuthSlice: StateCreator<AuthState> = (set) => {
   // LocalStorage'dan token ve kullanıcı bilgilerini al (SSR-safe)
   let initialUser: UserData | null = null;
   let initialToken: string | null = null;

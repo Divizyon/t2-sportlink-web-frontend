@@ -1,6 +1,5 @@
 import { type StateCreator } from 'zustand';
-import eventService from '@/lib/services/eventService';
-import type { Event, EventFilterParams } from '@/interfaces/event';
+import eventService, { type Event, type EventFilterParams } from '@/lib/services/eventService';
 import type { ApiError } from '@/lib/services/api';
 
 export interface EventState {
@@ -75,12 +74,12 @@ const createEventSlice: StateCreator<EventState, [], [], EventState> = (set, get
 
         if (response.success && response.data) {
           set({
-            events: response.data,
-            pagination: response.pagination || {
-              total: response.data.length,
+            events: response.data.data || [],
+            pagination: response.data.pagination || {
+              total: 0,
               page: 1,
               limit: 10,
-              totalPages: Math.ceil(response.data.length / 10)
+              totalPages: 0
             },
             isLoading: false
           });
@@ -162,7 +161,7 @@ const createEventSlice: StateCreator<EventState, [], [], EventState> = (set, get
 
         if (response.success && response.data) {
           set({
-            userEvents: response.data.events,
+            userEvents: response.data.data || [],
             isLoading: false
           });
         } else {
@@ -189,7 +188,7 @@ const createEventSlice: StateCreator<EventState, [], [], EventState> = (set, get
 
         if (response.success && response.data) {
           set({
-            userCreatedEvents: response.data.events,
+            userCreatedEvents: response.data.data || [],
             isLoading: false
           });
         } else {
@@ -365,7 +364,9 @@ const createEventSlice: StateCreator<EventState, [], [], EventState> = (set, get
               return {
                 currentEvent: {
                   ...state.currentEvent,
-                  participantCount: (state.currentEvent.participantCount || 0) + 1
+                  participants: state.currentEvent.participants ?
+                    [...state.currentEvent.participants, { user_id: 'tempUserID', joined_at: new Date().toISOString() }] :
+                    [{ user_id: 'tempUserID', joined_at: new Date().toISOString() }]
                 },
                 userEvents: [...state.userEvents, state.currentEvent]
               };
@@ -418,7 +419,9 @@ const createEventSlice: StateCreator<EventState, [], [], EventState> = (set, get
               return {
                 currentEvent: {
                   ...state.currentEvent,
-                  participantCount: Math.max(0, (state.currentEvent.participantCount || 0) - 1)
+                  participants: state.currentEvent.participants ?
+                    state.currentEvent.participants.filter(p => p.user_id !== 'tempUserID') :
+                    []
                 },
                 userEvents: state.userEvents.filter(e => e.id !== eventId)
               };

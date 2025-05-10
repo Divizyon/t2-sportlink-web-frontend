@@ -1,7 +1,7 @@
 import { type StateCreator } from 'zustand';
-import announcementService, { 
-  type CreateAnnouncementDTO, 
-  type UpdateAnnouncementDTO 
+import announcementService, {
+  type CreateAnnouncementDTO,
+  type UpdateAnnouncementDTO
 } from '@/lib/services/announcementService';
 import type { Announcement, AnnouncementListParams, AnnouncementStatus } from '@/interfaces/announcement';
 import { type ApiError } from '@/lib/services/api';
@@ -38,7 +38,7 @@ const createAnnouncementSlice: StateCreator<AnnouncementState> = (set, get) => {
     currentAnnouncement: null,
     isLoading: false,
     error: null,
-    lastRequestId: undefined,
+    lastRequestId: '',
     pagination: {
       total: 0,
       page: 1,
@@ -50,22 +50,22 @@ const createAnnouncementSlice: StateCreator<AnnouncementState> = (set, get) => {
     getAnnouncements: async (page = 1, limit = 10, includeUnpublished) => {
       // İstekleri throttle etmek için istek ID kullan
       const requestId = Date.now().toString();
-      
+
       // Eğer yükleme zaten devam ediyorsa, yeni isteği atla
       if (get().isLoading) {
         console.log(`getAnnouncements: Yükleme zaten devam ediyor, istek atlanıyor - page: ${page}, limit: ${limit}`);
         return;
       }
-      
+
       set({ lastRequestId: requestId, isLoading: true, error: null });
       console.log(`getAnnouncements başlatıldı [${requestId}]: page=${page}, limit=${limit}`);
-      
+
       // Timeout ile maksimum yükleme süresini sınırla
       const timeoutId = setTimeout(() => {
         const currentState = get();
         if (currentState.isLoading && currentState.lastRequestId === requestId) {
           console.warn("Duyuru yükleme zaman aşımına uğradı, geliştirme modunda varsayılan veriler kullanılacak");
-          
+
           // Geliştirme ortamında test verilerini kullan
           if (process.env.NODE_ENV === 'development') {
             const testData: Announcement[] = [
@@ -86,7 +86,7 @@ const createAnnouncementSlice: StateCreator<AnnouncementState> = (set, get) => {
                 published: false
               }
             ];
-            
+
             set({
               announcements: testData,
               pagination: {
@@ -106,44 +106,47 @@ const createAnnouncementSlice: StateCreator<AnnouncementState> = (set, get) => {
           }
         }
       }, 10000); // 10 saniye timeout
-      
+
       try {
         const response = await announcementService.getAnnouncements(page, limit, includeUnpublished);
-        
+
         // Timeout'u temizle
         clearTimeout(timeoutId);
-        
+
         // Eğer bu istek iptal edilmiş veya başka bir istek başlamışsa yanıtı işleme
         if (get().lastRequestId !== requestId) {
           console.log("Bu istek artık güncel değil, yanıt atlanıyor");
           return;
         }
-        
+
         console.log("API yanıtı:", response);
-        
+
         if (response.success) {
           // API yanıtını incele
           console.log("API başarılı yanıt verdi", response.data);
-          
+
           // API response.data içinde bir 'announcements' alanı olabilir
           // Veya direkt olarak data bir dizi olabilir
-          const announcements = Array.isArray(response.data) 
-            ? response.data 
-            : response.data.announcements || response.data.data || [];
-          
+          let announcements: Announcement[] = [];
+          if (Array.isArray(response.data)) {
+            announcements = response.data;
+          } else if (response.data && typeof response.data === 'object') {
+            announcements = (response.data as any).announcements || (response.data as any).data || [];
+          }
+
           console.log("İşlenmiş duyurular:", announcements);
-          
+
           // API pagination değerlerini al
           // İki farklı formatta pagination yapısını destekle
-          const pagination = response.pagination || response.data?.pagination || {};
-          
+          const pagination = response.pagination || (response.data && typeof response.data === 'object' ? (response.data as any).pagination : {});
+
           set({
             announcements: announcements,
             pagination: {
-              total: pagination.total || pagination.totalCount || 0,
-              page: pagination.page || 1,
-              limit: pagination.limit || pagination.pageSize || 10,
-              totalPages: pagination.totalPages || 0
+              total: (pagination as any).total || (pagination as any).totalCount || 0,
+              page: (pagination as any).page || 1,
+              limit: (pagination as any).limit || (pagination as any).pageSize || 10,
+              totalPages: (pagination as any).totalPages || 0
             },
             isLoading: false
           });
@@ -164,10 +167,10 @@ const createAnnouncementSlice: StateCreator<AnnouncementState> = (set, get) => {
 
     searchAnnouncements: async (params) => {
       set({ isLoading: true, error: null });
-      
+
       try {
         const response = await announcementService.searchAnnouncements(params);
-        
+
         if (response.success) {
           set({
             announcements: response.data,
@@ -196,10 +199,10 @@ const createAnnouncementSlice: StateCreator<AnnouncementState> = (set, get) => {
 
     getAnnouncementById: async (id) => {
       set({ isLoading: true, error: null });
-      
+
       try {
         const response = await announcementService.getAnnouncementById(id);
-        
+
         if (response.success) {
           set({
             currentAnnouncement: response.data,
@@ -222,13 +225,13 @@ const createAnnouncementSlice: StateCreator<AnnouncementState> = (set, get) => {
 
     createAnnouncement: async (data) => {
       set({ isLoading: true, error: null });
-      
+
       try {
         const response = await announcementService.createAnnouncement(data);
-        
+
         if (response.success) {
           // Başarılı oluşturma durumunu set et, listeyi otomatik güncelleme
-          set({ 
+          set({
             isLoading: false,
             // Gerçek uygulamada, ID ile belirlenen bir duyuruyu ekleme işlemi yapılabilir
             // Ancak bu örnek için başarılı işlemden sonra sayfa yeniden yüklenecek
@@ -253,18 +256,18 @@ const createAnnouncementSlice: StateCreator<AnnouncementState> = (set, get) => {
 
     updateAnnouncement: async (id, data) => {
       set({ isLoading: true, error: null });
-      
+
       try {
         const response = await announcementService.updateAnnouncement(id, data);
-        
+
         if (response.success) {
           // Başarılı güncelleme durumunu set et
-          
+
           // Eğer aktif bir duyuru varsa, onu da güncelle
           if (get().currentAnnouncement?.id === id) {
             set({ currentAnnouncement: response.data });
           }
-          
+
           set({ isLoading: false });
           return true;
         } else {
@@ -286,24 +289,24 @@ const createAnnouncementSlice: StateCreator<AnnouncementState> = (set, get) => {
 
     deleteAnnouncement: async (id) => {
       set({ isLoading: true, error: null });
-      
+
       try {
         const response = await announcementService.deleteAnnouncement(id);
-        
+
         if (response.success) {
           // Başarılı silme durumunu set et
-          
+
           // Eğer aktif duyuru silinmişse, null'a çek
           if (get().currentAnnouncement?.id === id) {
             set({ currentAnnouncement: null });
           }
-          
+
           // Mevcut duyuru listesinden silinen öğeyi çıkar
-          set(state => ({ 
+          set(state => ({
             announcements: state.announcements.filter(item => item.id !== id),
-            isLoading: false 
+            isLoading: false
           }));
-          
+
           return true;
         } else {
           set({
@@ -323,7 +326,7 @@ const createAnnouncementSlice: StateCreator<AnnouncementState> = (set, get) => {
     },
 
     clearError: () => set({ error: null }),
-    
+
     setCurrentAnnouncement: (announcement) => {
       set({ currentAnnouncement: announcement });
     }

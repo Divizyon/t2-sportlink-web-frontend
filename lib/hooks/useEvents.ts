@@ -7,12 +7,12 @@ import type { Event, EventFilterParams } from '@/interfaces/event';
  */
 const useEvents = () => {
   const store = useStore();
-  
+
   // Etkinlikleri farklı filtreleme seçenekleriyle getirme fonksiyonu
   const getFilteredEvents = useCallback((params?: EventFilterParams) => {
     store.getEvents(params);
   }, [store]);
-  
+
   // Yaklaşan etkinlikleri getir
   const getUpcomingEvents = useCallback(() => {
     const params: EventFilterParams = {
@@ -21,35 +21,35 @@ const useEvents = () => {
     };
     store.getEvents(params);
   }, [store]);
-  
+
   // Arama sonuçlarını getir
   const searchEvents = useCallback((keyword: string) => {
     const params: EventFilterParams = {
-      search: keyword
+      keyword: keyword
     };
     store.getEvents(params);
   }, [store]);
-  
+
   // Etkinlik detayı getir
   const getEventDetails = useCallback((eventId: string) => {
     store.getEventById(eventId);
   }, [store]);
-  
+
   // Etkinlik detayı slug ile getir
   const getEventBySlug = useCallback((slug: string) => {
     store.getEventBySlug(slug);
   }, [store]);
-  
+
   // Kullanıcının etkinliklerini getir
   const getUserEvents = useCallback(() => {
     store.getUserEvents();
   }, [store]);
-  
+
   // Kullanıcının oluşturduğu etkinlikleri getir
   const getUserCreatedEvents = useCallback(() => {
     store.getUserCreatedEvents();
   }, [store]);
-  
+
   return {
     // State
     events: store.events,
@@ -59,7 +59,7 @@ const useEvents = () => {
     pagination: store.pagination,
     isLoading: store.isLoading,
     error: store.error,
-    
+
     // Actions
     getFilteredEvents,
     getUpcomingEvents,

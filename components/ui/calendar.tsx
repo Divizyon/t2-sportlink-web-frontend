@@ -1,15 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { DayPicker } from "react-day-picker"
-import type { DayPickerProps, DayPickerSingleProps, DayPickerMultipleProps, DayPickerRangeProps } from "react-day-picker"
 import { tr } from 'date-fns/locale'
 import { format } from "date-fns"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 
 type CalendarProps = React.ComponentProps<typeof DayPicker>
 
@@ -24,16 +22,16 @@ function Calendar({
   const [currentMonth, setCurrentMonth] = React.useState<Date>(
     props.defaultMonth || new Date()
   )
-  
+
   const [yearRange, setYearRange] = React.useState<number[]>(() => {
     const currentYear = new Date().getFullYear()
     // 21 yıl - 10 geçmiş, 10 gelecek + şu anki yıl
     return Array.from({ length: 21 }, (_, i) => currentYear - 10 + i)
   })
-  
+
   const months = React.useMemo(() => {
     return [
-      "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", 
+      "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
       "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
     ]
   }, [])
@@ -104,7 +102,7 @@ function Calendar({
       setYearRange(newYearRange)
     }
   }
-  
+
   // Sonraki 10 yıla git
   const handleNextYearGroup = () => {
     if (yearRange.length > 0) {
@@ -122,7 +120,7 @@ function Calendar({
   // Custom weekday header component
   const CustomWeekHeader = React.useCallback(() => {
     const days = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
-    
+
     return (
       <div className="flex w-full justify-between mb-1 px-1">
         {days.map((day, i) => (
@@ -148,7 +146,7 @@ function Calendar({
           {formatMonthYear}
         </Button>
       </div>
-      
+
       {showDatePicker && (
         <div className="absolute top-10 left-0 z-10 w-full bg-popover border rounded-md shadow-md">
           <div className="flex items-center justify-between px-3 py-2 bg-muted/30 border-b">
@@ -158,7 +156,7 @@ function Calendar({
                 className="h-7 px-2 text-xs font-medium w-full"
                 onClick={() => setSelectedPickerMode("month")}
               >
-                <span className="text-xs">{yearRange[0]} - {yearRange[yearRange.length-1]}</span>
+                <span className="text-xs">{yearRange[0]} - {yearRange[yearRange.length - 1]}</span>
               </Button>
             ) : (
               <Button
@@ -170,11 +168,11 @@ function Calendar({
               </Button>
             )}
           </div>
-          
+
           {selectedPickerMode === "month" ? (
             <div className="p-2">
-              <div 
-                className="grid grid-cols-3 gap-1 max-h-48 overflow-auto" 
+              <div
+                className="grid grid-cols-3 gap-1 max-h-48 overflow-auto"
                 ref={monthScrollRef}
               >
                 {months.map((month, index) => (
@@ -215,8 +213,8 @@ function Calendar({
                   <span className="sr-only">Sonraki 10 yıl</span>
                 </Button>
               </div>
-              <div 
-                className="grid grid-cols-3 gap-1 max-h-48 overflow-auto" 
+              <div
+                className="grid grid-cols-3 gap-1 max-h-48 overflow-auto"
                 ref={yearScrollRef}
               >
                 {yearRange.map(year => (
@@ -238,12 +236,12 @@ function Calendar({
           )}
         </div>
       )}
-      
+
       <div className="relative mx-auto">
         <div className="p-2 px-9">
           {/* Custom weekday header */}
           <CustomWeekHeader />
-          
+
           <div className="relative">
             {!showDatePicker && (
               <div className="absolute -left-7 top-1/2 transform -translate-y-1/2 z-10">
@@ -257,7 +255,7 @@ function Calendar({
                 </Button>
               </div>
             )}
-            
+
             <style jsx global>{`
               /* Temel takvim hücreleri */
               .rdp-cell {
@@ -402,7 +400,7 @@ function Calendar({
                 }
               }
             `}</style>
-            
+
             <DayPicker
               defaultMonth={currentMonth}
               month={currentMonth}
@@ -450,7 +448,7 @@ function Calendar({
               }}
               {...props}
             />
-            
+
             {!showDatePicker && (
               <div className="absolute -right-7 top-1/2 transform -translate-y-1/2 z-10">
                 <Button

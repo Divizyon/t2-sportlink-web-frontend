@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { userService } from '@/lib/services/userService';
+import authService from '@/lib/services/authService';
 import type { ApiError } from '@/lib/services/api';
 import { loginSchema, type LoginFormData } from '@/lib/utils/validations/schemas';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -26,7 +26,7 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
-      const { user } = await userService.login(data);
+      const { user } = await authService.login(data);
       console.log('user', user);
       router.push('/dashboard');
     } catch (err) {

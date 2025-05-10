@@ -1,6 +1,7 @@
 import { type StateCreator } from 'zustand';
 import userService from '@/lib/services/userService';
-import type { User, UserType } from '@/interfaces/user';
+import type { UserType } from '@/interfaces/user';
+import type { User } from '@/interfaces/user';
 import type { ApiError } from '@/lib/services/api';
 
 export interface UserProfileState {
@@ -36,11 +37,11 @@ export interface UserProfileState {
 
   // User management
   getUsers: (params?: {
-    page?: number | undefined;
-    limit?: number | undefined;
-    role?: string | undefined;
-    isActive?: boolean | undefined;
-    searchQuery?: string | undefined;
+    page?: number;
+    limit?: number;
+    role?: string;
+    isActive?: boolean;
+    searchQuery?: string;
   }) => Promise<void>;
   getUserById: (userId: string) => Promise<void>;
   createUser: (userData: Partial<UserType>) => Promise<{
@@ -216,7 +217,7 @@ const createUserProfileSlice: StateCreator<UserProfileState, [], [], UserProfile
 
         if (response.success && response.data) {
           set({
-            users: response.data.users,
+            users: response.data.users as any[],
             totalUsers: response.data.total,
             currentPage: response.data.page,
             pageSize: response.data.limit,
@@ -246,7 +247,7 @@ const createUserProfileSlice: StateCreator<UserProfileState, [], [], UserProfile
 
         if (response.success && response.data) {
           set({
-            selectedUser: response.data,
+            selectedUser: response.data as any,
             isLoading: false
           });
         } else {
@@ -306,12 +307,12 @@ const createUserProfileSlice: StateCreator<UserProfileState, [], [], UserProfile
           // Kullanıcı ve seçili kullanıcı bilgilerini güncelle
           set((state) => {
             const updatedUsers = state.users.map(user =>
-              user.id === userId ? response.data! : user
+              user.id === userId ? response.data! as any : user
             );
 
             return {
               users: updatedUsers,
-              selectedUser: state.selectedUser?.id === userId ? response.data : state.selectedUser,
+              selectedUser: state.selectedUser?.id === userId ? response.data as any : state.selectedUser,
               isLoading: false,
               error: null // Ekstra olarak hata durumunu da temizleyelim
             };

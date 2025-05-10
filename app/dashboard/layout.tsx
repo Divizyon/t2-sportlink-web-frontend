@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { TopBar } from "@/components/dashboard/top-bar"
-import { AuthGuard } from "@/components/auth/auth-guard"
 
 export default function DashboardLayout({
   children,
@@ -28,10 +27,9 @@ export default function DashboardLayout({
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar onProfilePanelChange={setProfilePanelOpen} />
-        <main 
-          className={`flex-1 overflow-y-auto p-6 transition-all duration-200 ease-in-out flex flex-col ${
-            profilePanelOpen ? "filter blur-sm pointer-events-none" : ""
-          }`}
+        <main
+          className={`flex-1 overflow-y-auto p-6 transition-all duration-200 ease-in-out flex flex-col ${profilePanelOpen ? "filter blur-sm pointer-events-none" : ""
+            }`}
         >
           {children}
         </main>

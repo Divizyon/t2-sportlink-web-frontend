@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserIcon, Mail, Phone, Shield, Pencil, Save, X } from "lucide-react";
+import { UserIcon, Phone, Shield, Pencil, Save, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -14,7 +14,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { UserType } from "@/interfaces/user";
 
 interface UserDetailsProps {

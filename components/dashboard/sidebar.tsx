@@ -22,7 +22,6 @@ import {
   UserCog,
   UserPlus
 } from "lucide-react";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import adminService from "@/lib/services/adminService";
 
@@ -112,7 +111,6 @@ const superAdminRoutes = [
 export function Sidebar() {
   const pathname = usePathname();
   const [routes, setRoutes] = useState(baseRoutes);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   // SuperAdmin durumunu kontrol et ve rotaları güncelle
   useEffect(() => {
@@ -125,7 +123,6 @@ export function Sidebar() {
         const response = await adminService.checkSuperAdminStatus();
 
         if (response.success && response.data.isSuperAdmin) {
-          setIsSuperAdmin(true);
           setRoutes([...baseRoutes, ...superAdminRoutes]);
         }
       } catch (error) {

@@ -14,14 +14,13 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { User } from "lucide-react";
 import type { ReportDetail } from "./types";
 import { UserProfileCard } from "./UserProfileCard";
 
 // Helper function to format date 
 const formatDate = (dateString: string): string => {
   if (!dateString) return 'Bilinmiyor';
-  
+
   try {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('tr-TR', {
@@ -69,12 +68,12 @@ export function ReportSheet({
   };
 
   const openUserProfile = (
-    userId: string, 
-    username: string, 
+    userId: string,
+    username: string,
     fullName?: string
   ) => {
     if (!userId || !username) return;
-    
+
     setProfileUser({
       id: userId,
       username: username,
@@ -99,20 +98,20 @@ export function ReportSheet({
             </span>
           </SheetDescription>
         </SheetHeader>
-        
+
         <div className="py-4">
           <div className="space-y-4">
             <div>
               <h3 className="text-sm font-medium">Raporlayan</h3>
-              <Popover 
-                open={profileUser?.id === selectedReport.reporter_id} 
+              <Popover
+                open={profileUser?.id === selectedReport.reporter_id}
                 onOpenChange={(open) => !open && closeUserProfile()}
               >
                 <PopoverTrigger asChild>
-                  <div 
+                  <div
                     className="text-primary hover:underline cursor-pointer"
                     onClick={() => openUserProfile(
-                      selectedReport.reporter_id, 
+                      selectedReport.reporter_id,
                       displayUsername(selectedReport.reporter_username || selectedReport.reporterName),
                       selectedReport.reporter_name
                     )}
@@ -132,18 +131,18 @@ export function ReportSheet({
                 )}
               </Popover>
             </div>
-            
+
             <div>
               <h3 className="text-sm font-medium">Raporlanan</h3>
-              <Popover 
-                open={profileUser?.id === selectedReport.reported_id} 
+              <Popover
+                open={profileUser?.id === selectedReport.reported_id}
                 onOpenChange={(open) => !open && closeUserProfile()}
               >
                 <PopoverTrigger asChild>
-                  <div 
+                  <div
                     className="text-primary hover:underline cursor-pointer"
                     onClick={() => openUserProfile(
-                      selectedReport.reported_id, 
+                      selectedReport.reported_id,
                       displayUsername(selectedReport.reported_username || selectedReport.reportedName),
                       selectedReport.reported_name
                     )}
@@ -163,18 +162,18 @@ export function ReportSheet({
                 )}
               </Popover>
             </div>
-            
+
             <div>
               <h3 className="text-sm font-medium">Rapor Tarihi</h3>
               <p>{formatDate(selectedReport.report_date || selectedReport.reportDate || "")}</p>
             </div>
-            
+
             <div>
               <h3 className="text-sm font-medium">Neden</h3>
               <Badge variant="secondary">{selectedReport.report_reason || selectedReport.reason}</Badge>
             </div>
             <Separator />
-            
+
             <div>
               <h3 className="text-sm font-medium mb-2">Admin Notu</h3>
               <Textarea
@@ -186,11 +185,11 @@ export function ReportSheet({
             </div>
           </div>
         </div>
-        
+
         <SheetFooter>
-          <Button 
-            type="submit" 
-            className="w-full" 
+          <Button
+            type="submit"
+            className="w-full"
             onClick={handleSaveAdminMessage}
           >
             {adminMessage.trim() ? 'Notu Kaydet ve İncelendi Olarak İşaretle' : 'Notu Temizle ve İncelenmedi Olarak İşaretle'}

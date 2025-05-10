@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const headersList = await headers();
     const authHeader = headersList.get('authorization');

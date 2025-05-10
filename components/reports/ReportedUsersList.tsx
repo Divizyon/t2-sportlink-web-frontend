@@ -3,10 +3,8 @@
 import React, { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Shield, X, Trash, ChevronLeft, ChevronRight } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import { Shield, Trash, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ReportedUser } from "./types";
 import { UserProfileCard } from "./UserProfileCard";
 
@@ -183,8 +181,8 @@ export function ReportedUsersList({
               <TableCell>
                 <span
                   className={`px-2 py-1 rounded-full text-xs ${user.status === 'blocked'
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-green-100 text-green-800'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-green-100 text-green-800'
                     }`}
                 >
                   {user.status === 'blocked' ? 'Engellendi' : 'Aktif'}

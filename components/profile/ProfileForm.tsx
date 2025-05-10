@@ -5,7 +5,6 @@ import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -19,16 +18,16 @@ const profileSchema = yup.object().shape({
   phone: yup.string().matches(/^[0-9]+$/, 'Geçerli bir telefon numarası giriniz'),
   role: yup.string().required('Rol seçimi zorunludur'),
   password: yup.string()
-    .test('password-validation', 'Şifre en az 6 karakter olmalıdır', function(value) {
+    .test('password-validation', 'Şifre en az 6 karakter olmalıdır', function (value) {
       // Şifre alanı boşsa validasyon geçer, değilse en az 6 karakter kontrolü yapar
       return !value || value.length >= 6;
     })
-    .test('password-letter', 'Şifre en az bir harf içermelidir', function(value) {
+    .test('password-letter', 'Şifre en az bir harf içermelidir', function (value) {
       // Şifre alanı boşsa validasyon geçer, değilse en az bir harf kontrolü yapar
       return !value || /[a-zA-Z]/.test(value);
     }),
   confirmPassword: yup.string()
-    .test('passwords-match', 'Şifreler eşleşmiyor', function(value) {
+    .test('passwords-match', 'Şifreler eşleşmiyor', function (value) {
       // Şifre veya şifre onayı boşsa validasyon geçer, değilse eşleşme kontrolü yapar
       const { password } = this.parent;
       return !password || !value || password === value;

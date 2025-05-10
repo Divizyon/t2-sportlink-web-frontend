@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,11 +21,11 @@ interface FilterBarProps {
   onFilterChange: (type: 'category' | 'status', value: string) => void;
 }
 
-export function FilterBar({ 
-  searchQuery, 
-  onSearch, 
-  selectedFilters, 
-  onFilterChange 
+export function FilterBar({
+  searchQuery,
+  onSearch,
+  selectedFilters,
+  onFilterChange
 }: FilterBarProps) {
   const getTotalSelectedFilters = () => {
     return Object.values(selectedFilters).reduce((total, filters) => total + filters.length, 0);

@@ -1,32 +1,46 @@
 import api, { handleApiError } from './api';
 import type { AxiosError } from 'axios';
-import type { News as ApiNews, NewsListParams, NewsListResponse, NewsDetailResponse } from '@/interfaces/news';
+import type { News as ApiNews, NewsListParams, NewsListResponse } from '@/interfaces/news';
 import type { News as UINews, NewsStatus } from '@/types/news';
 
 /**
  * Maps API news data to UI news format
  */
 const mapApiNewsToUiNews = (apiNews: ApiNews): UINews => {
-  return {
-    id: parseInt(apiNews.id) || apiNews.id,
-    title: apiNews.title,
-    content: apiNews.content,
+  const news: UINews = {
+    id: typeof apiNews.id === 'string' ? parseInt(apiNews.id) || apiNews.id : apiNews.id,
+    title: apiNews.title || '',
+    content: apiNews.content || '',
     status: mapNewsStatus(apiNews),
     category: apiNews.sport?.name || 'Genel',
-    date: apiNews.published_at || apiNews.created_at,
+    date: apiNews.published_at || apiNews.created_at || '',
     author: apiNews.author || 'Anonim',
     views: apiNews.views || 0,
     image: apiNews.image_url || '',
-    sourceUrl: apiNews.source || '',
-    
-    // Yeni alanlar
-    source_url: apiNews.source || undefined,
-    image_url: apiNews.image_url || undefined,
-    sport_id: apiNews.sport_id || undefined,
-    published_date: apiNews.published_at ? new Date(apiNews.published_at) : undefined,
-    created_at: apiNews.created_at || undefined,
-    updated_at: apiNews.updated_at || undefined
+    sourceUrl: apiNews.source || ''
   };
+
+  // Optional alanları koşullu olarak ekle
+  if (apiNews.source) {
+    news.source_url = apiNews.source;
+  }
+  if (apiNews.image_url) {
+    news.image_url = apiNews.image_url;
+  }
+  if (apiNews.sport_id) {
+    news.sport_id = apiNews.sport_id;
+  }
+  if (apiNews.published_at) {
+    news.published_date = new Date(apiNews.published_at);
+  }
+  if (apiNews.created_at) {
+    news.created_at = apiNews.created_at;
+  }
+  if (apiNews.updated_at) {
+    news.updated_at = apiNews.updated_at;
+  }
+
+  return news;
 };
 
 /**
@@ -40,12 +54,12 @@ const mapNewsStatus = (apiNews: ApiNews): NewsStatus => {
     if (apiNews.status === 'active') return "Aktif";
     if (apiNews.status === 'inactive') return "Pasif";
   }
-  
+
   // Fallback logic based on published_at field
   if (!apiNews.published_at) {
     return "Taslak"; // No published date means it's a draft
   }
-  
+
   return "Aktif"; // Default for published news
 };
 
@@ -61,45 +75,45 @@ class NewsService {
   async listNews(params?: NewsListParams): Promise<{ success: boolean, data: UINews[], pagination: any, message?: string }> {
     try {
       const queryParams = new URLSearchParams();
-      
+
       // Sayfalama
       if (params?.page) {
         queryParams.append('page', params.page.toString());
       }
-      
+
       if (params?.limit) {
         queryParams.append('limit', params.limit.toString());
       }
-      
+
       // Spor dalı filtresi
       if (params?.sportId) {
         queryParams.append('sportId', params.sportId);
       }
-      
+
       // Arama kelimesi
       if (params?.keyword) {
         queryParams.append('keyword', params.keyword);
       }
-      
+
       // Tarih aralığı
       if (params?.startDate) {
         queryParams.append('startDate', params.startDate);
       }
-      
+
       if (params?.endDate) {
         queryParams.append('endDate', params.endDate);
       }
-      
+
       console.log(`Fetching news with URL: ${this.BASE_PATH}?${queryParams.toString()}`);
       const response = await api.get(`${this.BASE_PATH}?${queryParams.toString()}`);
-      
+
       console.log('News API response:', response.data);
-      
+
       // API yanıtını UI formatına dönüştür
-      const uiNews = Array.isArray(response.data.data) 
+      const uiNews = Array.isArray(response.data.data)
         ? response.data.data.map(mapApiNewsToUiNews)
         : [];
-      
+
       return {
         success: true,
         data: uiNews,
@@ -133,10 +147,10 @@ class NewsService {
   async getNewsById(newsId: string): Promise<{ success: boolean, data: UINews, message?: string }> {
     try {
       const response = await api.get(`${this.BASE_PATH}/${newsId}`);
-      
+
       // API yanıtını UI formatına dönüştür
       const uiNews = mapApiNewsToUiNews(response.data);
-      
+
       return {
         success: true,
         data: uiNews
@@ -158,23 +172,23 @@ class NewsService {
   async getNewsBySport(sportId: string, params?: NewsListParams): Promise<{ success: boolean, data: UINews[], pagination: any, message?: string }> {
     try {
       const queryParams = new URLSearchParams();
-      
+
       // Sayfalama
       if (params?.page) {
         queryParams.append('page', params.page.toString());
       }
-      
+
       if (params?.limit) {
         queryParams.append('limit', params.limit.toString());
       }
-      
+
       const response = await api.get(`${this.BASE_PATH}/sport/${sportId}?${queryParams.toString()}`);
-      
+
       // API yanıtını UI formatına dönüştür
-      const uiNews = Array.isArray(response.data.data) 
+      const uiNews = Array.isArray(response.data.data)
         ? response.data.data.map(mapApiNewsToUiNews)
         : [];
-      
+
       return {
         success: true,
         data: uiNews,
@@ -208,18 +222,18 @@ class NewsService {
   async getNewsByCategory(categoryId: string, params?: NewsListParams): Promise<NewsListResponse> {
     try {
       const queryParams = new URLSearchParams();
-      
+
       // Sayfalama
       if (params?.page) {
         queryParams.append('page', params.page.toString());
       }
-      
+
       if (params?.limit) {
         queryParams.append('limit', params.limit.toString());
       }
-      
+
       const response = await api.get(`${this.BASE_PATH}/category/${categoryId}?${queryParams.toString()}`);
-      
+
       return {
         success: true,
         data: response.data.data,
@@ -248,12 +262,12 @@ class NewsService {
   async getFeaturedNews(limit: number = 5): Promise<{ success: boolean, data: UINews[], pagination: any, message?: string }> {
     try {
       const response = await api.get(`${this.BASE_PATH}/featured?limit=${limit}`);
-      
+
       // API yanıtını UI formatına dönüştür
-      const uiNews = Array.isArray(response.data.data) 
+      const uiNews = Array.isArray(response.data.data)
         ? response.data.data.map(mapApiNewsToUiNews)
         : [];
-      
+
       return {
         success: true,
         data: uiNews,
@@ -286,7 +300,7 @@ class NewsService {
    */
   async approveNews(newsId: number): Promise<{ success: boolean, message?: string }> {
     try {
-      const response = await api.put(`${this.BASE_PATH}/${newsId}/approve`);
+      await api.put(`${this.BASE_PATH}/${newsId}/approve`);
       return {
         success: true,
         message: 'Haber başarıyla onaylandı'
@@ -306,7 +320,7 @@ class NewsService {
    */
   async rejectNews(newsId: number): Promise<{ success: boolean, message?: string }> {
     try {
-      const response = await api.put(`${this.BASE_PATH}/${newsId}/reject`);
+      await api.put(`${this.BASE_PATH}/${newsId}/reject`);
       return {
         success: true,
         message: 'Haber başarıyla reddedildi'
@@ -326,7 +340,7 @@ class NewsService {
    */
   async submitForApproval(newsId: number): Promise<{ success: boolean, message?: string }> {
     try {
-      const response = await api.put(`${this.BASE_PATH}/${newsId}/submit-for-approval`);
+      await api.put(`${this.BASE_PATH}/${newsId}/submit-for-approval`);
       return {
         success: true,
         message: 'Haber başarıyla onaya gönderildi'
@@ -354,18 +368,18 @@ class NewsService {
   }): Promise<{ success: boolean, data?: UINews, message?: string }> {
     try {
       const response = await api.post(`${this.BASE_PATH}`, newsData);
-      
+
       if (response.data && response.data.data) {
         // API yanıtını UI formatına dönüştür
         const uiNews = mapApiNewsToUiNews(response.data.data);
-        
+
         return {
           success: true,
           data: uiNews,
           message: 'Haber başarıyla eklendi'
         };
       }
-      
+
       return {
         success: true,
         message: 'Haber başarıyla eklendi'

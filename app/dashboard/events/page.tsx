@@ -1,38 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import type { ChangeEvent } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Search, Plus, Calendar, Users, MapPin, Pencil, Clock, Trophy, Tag, Trash, Eye, Check, Ban, X, Mail, Phone, Shield, Award, ChevronRight, AlertCircle, Info } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import Image from "next/image";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/use-toast";
 import useAuth from "@/lib/hooks/useAuth";
 import eventService from "@/lib/services/eventService";
-import type { Event, Participant } from "@/interfaces/event";
+import type { Event } from "@/interfaces/event";
+import type { EventFilterParams } from "@/lib/services/eventService";
 import EventList from "@/components/events/EventList";
 import ApprovalCenter from "@/components/events/ApprovalCenter";
 import EventPreview from "@/components/events/EventPreview";
@@ -41,7 +17,7 @@ export default function EventsPage() {
   const { toast } = useToast();
   // Use the role check again now that we've added default role
   const { user, isLoading: authLoading, isAuthenticated, hasRequiredRole } = useAuth('admin');
-  
+
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -78,8 +54,6 @@ export default function EventsPage() {
     status: [],
     approval_status: []
   });
-  
-  const [detailLoading, setDetailLoading] = useState(false);
 
   // Kullanıcı doğrulamasını kontrol et
   useEffect(() => {
@@ -132,26 +106,39 @@ export default function EventsPage() {
     try {
       console.log('Starting fetchEvents...');
       setLoading(true);
-      
-      const params = {
+
+      const params: EventFilterParams = {
         page: pagination.page,
-        limit: pagination.limit,
-        keyword: searchQuery,
-        status: selectedFilters.status.length > 0 ? selectedFilters.status : undefined,
-        approval_status: selectedFilters.approval_status.length > 0 ? selectedFilters.approval_status : undefined,
-        sportId: selectedFilters.category.length > 0 ? selectedFilters.category[0] : undefined
+        limit: pagination.limit
       };
-      
+
+      if (searchQuery) {
+        params.keyword = searchQuery;
+      }
+
+      if (selectedFilters.status.length > 0) {
+        params.status = selectedFilters.status;
+      }
+
+      if (selectedFilters.approval_status.length > 0) {
+        // Not in the type definition but the API actually accepts this
+        (params as any).approval_status = selectedFilters.approval_status;
+      }
+
+      if (selectedFilters.category.length > 0 && selectedFilters.category[0]) {
+        params.sportId = selectedFilters.category[0];
+      }
+
       console.log('Calling eventService.listEvents with params:', params);
       const response = await eventService.listEvents(params);
       console.log('EventService response:', response);
 
       if (response.success && response.data) {
         console.log('Setting events data:', response.data.data);
-        
+
         // Now we can directly use the standardized data from the service
         setEvents(response.data.data as any);
-        
+
         // Handle pagination data safely
         const paginationInfo = response.data.pagination;
         if (paginationInfo) {
@@ -184,9 +171,9 @@ export default function EventsPage() {
   const handleAddEvent = async () => {
     try {
       // Check if required fields are filled
-      if (!newEvent.title || !newEvent.description || !newEvent.event_date || 
-          !newEvent.start_time || !newEvent.end_time || !newEvent.location_name || 
-          !newEvent.sport_id) {
+      if (!newEvent.title || !newEvent.description || !newEvent.event_date ||
+        !newEvent.start_time || !newEvent.end_time || !newEvent.location_name ||
+        !newEvent.sport_id) {
         toast({
           title: "Eksik Bilgi",
           description: "Lütfen tüm zorunlu alanları doldurun",
@@ -203,15 +190,15 @@ export default function EventsPage() {
         end_time: new Date(`${newEvent.event_date}T${newEvent.end_time}`).toISOString(),
         status: newEvent.status as 'active' | 'canceled' | 'completed' | 'draft'
       };
-      
+
       const response = await eventService.createEvent(formattedEvent);
-      
+
       if (response.success && response.data) {
         toast({
           title: "Başarılı",
           description: response.message || "Etkinlik başarıyla oluşturuldu",
         });
-        
+
         // Etkinlik listesini güncelle
         fetchEvents();
         resetEvent();
@@ -234,34 +221,34 @@ export default function EventsPage() {
 
   const handleEditEvent = async () => {
     if (!editingEvent) return;
-    
+
     try {
       // Use selectedEvent for update payload if editingEvent is not the source of truth for the form
       const updatePayload = viewMode === 'edit' && selectedEvent ? selectedEvent : editingEvent;
-      
+
       // Ensure the status is one of the expected types
       const typedPayload = {
         ...updatePayload,
         status: updatePayload.status as 'active' | 'canceled' | 'completed' | 'draft',
         approval_status: updatePayload.approval_status as 'pending' | 'approved' | 'rejected'
       };
-      
+
       const response = await eventService.updateEvent(typedPayload.id, typedPayload);
-      
+
       if (response.success) {
         toast({
           title: "Başarılı",
           description: response.message || "Etkinlik başarıyla güncellendi",
         });
-        
+
         // Etkinlik listesini güncelle
         fetchEvents();
-        
+
         // Seçili etkinliği güncelle (no longer need fetchEventDetails if list update is sufficient)
         // if (selectedEvent && selectedEvent.id === updatePayload.id) {
-          // The list update should handle this implicitly
+        // The list update should handle this implicitly
         // }
-        
+
         setEditingEvent(null); // Reset editing state if used
         setViewMode("preview"); // Switch back to preview after successful edit
       } else {
@@ -284,19 +271,19 @@ export default function EventsPage() {
   const handleDeleteEvent = async (id: string) => {
     try {
       const response = await eventService.deleteEvent(id);
-      
+
       if (response.success) {
         toast({
           title: "Başarılı",
           description: response.message || "Etkinlik başarıyla silindi",
         });
-        
+
         // Etkinlik listesini güncelle
         fetchEvents();
-        
+
         // Eğer silinen etkinlik seçili ise, seçimi kaldır veya ilkini seç
         if (selectedEvent && selectedEvent.id === id) {
-           setSelectedEvent(null); // Clear selection after delete
+          setSelectedEvent(null); // Clear selection after delete
         }
       } else {
         toast({
@@ -318,19 +305,19 @@ export default function EventsPage() {
   const handleApproveEvent = async (id: string) => {
     try {
       const response = await eventService.approveEvent(id);
-      
+
       if (response.success) {
         toast({
           title: "Başarılı",
           description: response.message || "Etkinlik başarıyla onaylandı",
         });
-        
+
         // Etkinlik listesini güncelle
         fetchEvents();
-        
+
         // Seçili etkinliği güncelle (list update should handle this)
         // if (selectedEvent && selectedEvent.id === id) {
-          // Fetch updated list instead of single detail
+        // Fetch updated list instead of single detail
         // }
       } else {
         toast({
@@ -352,19 +339,19 @@ export default function EventsPage() {
   const handleRejectEvent = async (id: string) => {
     try {
       const response = await eventService.rejectEvent(id);
-      
+
       if (response.success) {
         toast({
           title: "Başarılı",
           description: response.message || "Etkinlik başarıyla reddedildi",
         });
-        
+
         // Etkinlik listesini güncelle
         fetchEvents();
-        
+
         // Seçili etkinliği güncelle (list update should handle this)
         // if (selectedEvent && selectedEvent.id === id) {
-          // Fetch updated list instead of single detail
+        // Fetch updated list instead of single detail
         // }
       } else {
         toast({
@@ -386,7 +373,7 @@ export default function EventsPage() {
   const handleFilterChange = (type: 'category' | 'status' | 'approval_status', value: string) => {
     setSelectedFilters(prev => {
       const currentFilters = prev[type];
-      
+
       // Eğer "all" seçildiyse, tüm filtreleri temizle
       if (value === 'all') {
         return {
@@ -394,14 +381,14 @@ export default function EventsPage() {
           [type]: []
         };
       }
-      
+
       // Eğer zaten seçiliyse, kaldır
       if (currentFilters.includes(value)) {
         return {
           ...prev,
           [type]: currentFilters.filter(item => item !== value)
         };
-      } 
+      }
       // Değilse ekle
       else {
         return {
@@ -435,15 +422,15 @@ export default function EventsPage() {
   // Tarih formatını düzenleyen yardımcı fonksiyon
   const formatDate = (dateString: string): string => {
     if (!dateString) return '-';
-    
+
     try {
       const date = new Date(dateString);
-      
+
       // Tarih geçerli mi kontrol et
       if (isNaN(date.getTime())) {
         return '-';
       }
-      
+
       // Sabit bir formatta tarih döndür (hydration hatalarını önlemek için)
       return new Intl.DateTimeFormat('tr-TR', {
         year: 'numeric',
@@ -460,21 +447,19 @@ export default function EventsPage() {
   };
 
   // Dosya yükleme için yardımcı fonksiyon
-  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>, isNewEvent: boolean) => {
+  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    
+
     if (!file) return;
-    
+
     // Yalnızca PNG, JPG ve JPEG formatlarını kabul et
     if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
       alert('Lütfen sadece PNG, JPG veya JPEG formatında dosya yükleyiniz.');
       return;
     }
-    
+
     const reader = new FileReader();
     reader.onloadend = () => {
-      const base64String = reader.result as string;
-      
       console.log("Dosya yüklendi, ancak işleme alınmadı. Backend API bu özelliği desteklemiyor.");
       toast({
         title: "Bilgi",
@@ -519,7 +504,7 @@ export default function EventsPage() {
 
   // Durum etiketleri için yardımcı fonksiyon
   const getStatusBadge = (status: string) => {
-    switch(status) {
+    switch (status) {
       case 'active':
         return (
           <Badge variant="default" className="bg-green-500">
@@ -549,7 +534,7 @@ export default function EventsPage() {
 
   // Onay durumu için yardımcı fonksiyon
   const getApprovalBadge = (status: string) => {
-    switch(status) {
+    switch (status) {
       case 'approved':
         return (
           <Badge variant="outline" className="border-blue-500 text-blue-600 bg-blue-50">
@@ -592,13 +577,11 @@ export default function EventsPage() {
           selectedEvent={selectedEvent}
           searchQuery={searchQuery}
           selectedFilters={selectedFilters}
-          newEvent={newEvent}
           setSelectedEvent={setSelectedEvent}
           handleDeleteEvent={handleDeleteEvent}
           setSearchQuery={setSearchQuery}
           handleFilterChange={handleFilterChange}
           getTotalSelectedFilters={getTotalSelectedFilters}
-          setNewEvent={setNewEvent}
           handleAddEvent={handleAddEvent}
           formatDate={formatDate}
           getStatusBadge={getStatusBadge}
@@ -621,11 +604,10 @@ export default function EventsPage() {
           selectedEvent={selectedEvent}
           viewMode={viewMode}
           handleChange={handleChange}
-          handleImageUpload={handleImageUpload}
+          handleImageUpload={(e) => handleImageUpload(e)}
           getStatusBadge={getStatusBadge}
           formatDate={formatDate}
           defaultImage={defaultImage}
-          setSelectedEvent={setSelectedEvent}
           setViewMode={setViewMode}
           renderSelectWithFallback={renderSelectWithFallback}
           handleEditEvent={handleEditEvent}

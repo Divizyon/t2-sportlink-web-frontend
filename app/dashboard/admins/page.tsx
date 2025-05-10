@@ -10,13 +10,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Pagination } from "@/components/ui/pagination"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
-import { Loader2, Search, UserPlus, Shield, ShieldAlert, ShieldCheck } from "lucide-react"
+import { Loader2, Search, UserPlus, ShieldAlert } from "lucide-react"
 import useAuth from "@/lib/hooks/useAuth"
 import adminService from "@/lib/services/adminService"
 import type { AdminUser, AdminCreateData } from "@/lib/services/adminService"
 
 export default function AdminsPage() {
-    const { user, isAuthenticated } = useAuth()
+    const { isAuthenticated } = useAuth()
     const { toast } = useToast()
     const router = useRouter()
 

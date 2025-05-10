@@ -7,7 +7,6 @@ import { Check, Ban } from "lucide-react";
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
@@ -55,7 +54,7 @@ const ApprovalCenter: React.FC<ApprovalCenterProps> = ({
               </TableHeader>
               <TableBody className="bg-white divide-y divide-gray-200">
                 {pendingEvents.map((event) => (
-                  <tr 
+                  <tr
                     key={event.id}
                     className="hover:bg-orange-50 cursor-pointer"
                     onClick={() => {
@@ -72,8 +71,8 @@ const ApprovalCenter: React.FC<ApprovalCenterProps> = ({
                     </td>
                     <td className="py-4 px-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           className="border-green-500 text-green-600 hover:bg-green-50"
                           onClick={(e) => {
@@ -84,8 +83,8 @@ const ApprovalCenter: React.FC<ApprovalCenterProps> = ({
                           <Check className="h-4 w-4 mr-1" />
                           Onayla
                         </Button>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           className="border-red-500 text-red-600 hover:bg-red-50"
                           onClick={(e) => {

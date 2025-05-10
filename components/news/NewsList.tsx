@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Trash, Eye, Pencil, Filter, ListFilter, CheckCircle2 } from "lucide-react";
+import { Search, Plus, Trash, Filter, ListFilter, CheckCircle2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useStore } from "@/lib/store";
-import type { News, NewsStatus } from "@/types/news";
+import type { NewsStatus } from "@/types/news";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -24,18 +24,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface NewsListProps {
-  onEdit?: (news: News) => void;
   onDelete?: (id: number) => void;
-  onView?: (news: News) => void;
   showActions?: boolean;
   showSearchAndCreate?: boolean;
   sportId?: string;
 }
 
 const NewsList: React.FC<NewsListProps> = ({
-  onEdit,
   onDelete,
-  onView,
   showActions = true,
   showSearchAndCreate = true,
   sportId
@@ -53,7 +49,7 @@ const NewsList: React.FC<NewsListProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
-  
+
   useEffect(() => {
     const fetchNews = async () => {
       if (sportId) {
@@ -62,10 +58,10 @@ const NewsList: React.FC<NewsListProps> = ({
         await getAllNews();
       }
     };
-    
+
     fetchNews();
   }, [sportId, getAllNews, getNewsByCategory]);
-  
+
   const getStatusBadge = (status: NewsStatus) => {
     const statusColors = {
       "Aktif": "bg-green-100 text-green-800",
@@ -80,15 +76,6 @@ const NewsList: React.FC<NewsListProps> = ({
       </Badge>
     );
   };
-  
-  // Varsayılan işlem fonksiyonları
-  const defaultOnView = (item: News) => {
-    setSelectedNews(item);
-  };
-  
-  const handleEdit = onEdit || defaultOnView;
-  const handleView = onView || defaultOnView;
-  const handleDelete = onDelete || ((id: number | string) => console.log(`Silme işlemi: ${id}`));
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -110,16 +97,16 @@ const NewsList: React.FC<NewsListProps> = ({
     }
 
     setIsSubmitting(true);
-    
+
     try {
       const response = await createNews(newNews);
-      
+
       if (response.success) {
         toast({
           title: "Başarılı",
           description: "Haber başarıyla eklendi"
         });
-        
+
         // Formu temizle ve modalı kapat
         setNewNews({
           title: '',
@@ -129,7 +116,7 @@ const NewsList: React.FC<NewsListProps> = ({
           sport_id: '',
           published_date: new Date()
         });
-        
+
         setIsAddNewsDialogOpen(false);
       } else {
         toast({
@@ -167,14 +154,14 @@ const NewsList: React.FC<NewsListProps> = ({
       // Eğer zaten seçiliyse, kaldır
       if (prev.includes(status)) {
         return prev.filter(s => s !== status);
-      } 
+      }
       // Değilse ekle
       else {
         return [...prev, status];
       }
     });
   };
-  
+
   // Filtreleri temizle
   const clearFilters = () => {
     setSearchTerm("");
@@ -184,27 +171,27 @@ const NewsList: React.FC<NewsListProps> = ({
       description: "Tüm filtreler temizlendi."
     });
   };
-  
+
   // Filtrelenmiş haberler
   const filteredNews = React.useMemo(() => {
     if (!news || !Array.isArray(news)) {
       return [];
     }
-    
+
     return news.filter(item => {
       // Arama terimine göre filtrele
-      const matchesSearch = !searchTerm || 
+      const matchesSearch = !searchTerm ||
         item.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.content?.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       // Eğer durum filtresi seçilmemişse veya boşsa
       if (selectedStatuses.length === 0) {
         return matchesSearch;
       }
-      
+
       // Seçili durumlara göre filtrele
       const matchesStatus = selectedStatuses.includes(item.status);
-      
+
       return matchesSearch && matchesStatus;
     });
   }, [news, searchTerm, selectedStatuses]);
@@ -213,7 +200,7 @@ const NewsList: React.FC<NewsListProps> = ({
   const extractUrlFromContent = (content: string): { content: string, url: string | null } => {
     const urlRegex = /\[(https?:\/\/[^\s\]]+)\]/;
     const match = content.match(urlRegex);
-    
+
     if (match && match[1]) {
       // Return the content without the bracketed URL and the extracted URL
       return {
@@ -221,7 +208,7 @@ const NewsList: React.FC<NewsListProps> = ({
         url: match[1]
       };
     }
-    
+
     return { content, url: null };
   };
 
@@ -239,8 +226,8 @@ const NewsList: React.FC<NewsListProps> = ({
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full rounded-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="rounded-none h-9 px-3 border-0 bg-background hover:bg-muted"
                   onClick={() => {
                     console.log("Arama yapılıyor:", searchTerm);
@@ -249,7 +236,7 @@ const NewsList: React.FC<NewsListProps> = ({
                   <Search className="h-4 w-4" />
                 </Button>
               </div>
-              
+
               <Select>
                 <SelectTrigger className="w-10 h-10 p-0 [&>svg]:hidden">
                   <div className="flex items-center justify-center w-full h-full relative">
@@ -263,8 +250,8 @@ const NewsList: React.FC<NewsListProps> = ({
                   <div className="mb-2 px-2 font-semibold text-sm">Duruma Göre Filtrele</div>
                   <div className="flex flex-col gap-2 p-2">
                     <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="filter-all" 
+                      <Checkbox
+                        id="filter-all"
                         checked={selectedStatuses.length === 0}
                         onCheckedChange={(checked) => {
                           if (checked) {
@@ -278,8 +265,8 @@ const NewsList: React.FC<NewsListProps> = ({
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="filter-active" 
+                      <Checkbox
+                        id="filter-active"
                         checked={selectedStatuses.includes("Aktif")}
                         onCheckedChange={() => toggleStatus("Aktif")}
                       />
@@ -289,8 +276,8 @@ const NewsList: React.FC<NewsListProps> = ({
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="filter-passive" 
+                      <Checkbox
+                        id="filter-passive"
                         checked={selectedStatuses.includes("Pasif")}
                         onCheckedChange={() => toggleStatus("Pasif")}
                       />
@@ -300,8 +287,8 @@ const NewsList: React.FC<NewsListProps> = ({
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="filter-draft" 
+                      <Checkbox
+                        id="filter-draft"
                         checked={selectedStatuses.includes("Taslak")}
                         onCheckedChange={() => toggleStatus("Taslak")}
                       />
@@ -311,8 +298,8 @@ const NewsList: React.FC<NewsListProps> = ({
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="filter-pending" 
+                      <Checkbox
+                        id="filter-pending"
                         checked={selectedStatuses.includes("Onay Bekliyor")}
                         onCheckedChange={() => toggleStatus("Onay Bekliyor")}
                       />
@@ -322,7 +309,7 @@ const NewsList: React.FC<NewsListProps> = ({
                       </div>
                     </div>
                   </div>
-                  
+
                   {selectedStatuses.length > 0 && (
                     <div className="flex justify-center p-2 pt-3 border-t">
                       <Button variant="outline" size="sm" onClick={clearFilters}>
@@ -333,7 +320,7 @@ const NewsList: React.FC<NewsListProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            
+
             <Button size="sm" className="gap-1" onClick={() => setIsAddNewsDialogOpen(true)}>
               <Plus className="h-4 w-4" /> Yeni Haber Ekle
             </Button>
@@ -387,9 +374,9 @@ const NewsList: React.FC<NewsListProps> = ({
                 ) : (
                   filteredNews.map((item, index) => {
                     const isSelected = isSameNews(selectedNews?.id, item.id);
-                    
+
                     return (
-                      <TableRow 
+                      <TableRow
                         key={item.id}
                         style={isSelected ? { backgroundColor: '#d1fae5 !important' } : {}}
                         className={`cursor-pointer ${isSelected ? '!bg-green-100 hover:!bg-green-200' : 'hover:bg-muted'}`}

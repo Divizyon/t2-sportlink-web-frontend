@@ -46,10 +46,10 @@ export interface User {
 }
 
 export interface Participant {
-  event_id: string;
+  event_id?: string;
   user_id: string;
   joined_at: string;
-  role: string;
+  role?: string;
   user?: User;
   id?: string;
   name?: string;

@@ -1,8 +1,7 @@
 import api, { handleApiError } from './api';
 import type { AxiosError } from 'axios';
-import type { 
-  FriendRequest, 
-  FriendRequestListParams, 
+import type {
+  FriendRequestListParams,
   FriendListParams,
   FriendRequestResponse,
   FriendListResponse,
@@ -24,7 +23,7 @@ class FriendService {
   }> {
     try {
       const response = await api.post(`${this.BASE_PATH}/request/${userId}`);
-      
+
       return {
         success: true,
         message: response.data.message || 'Arkadaşlık isteği gönderildi'
@@ -48,7 +47,7 @@ class FriendService {
   }> {
     try {
       const response = await api.put(`${this.BASE_PATH}/accept/${requestId}`);
-      
+
       return {
         success: true,
         message: response.data.message || 'Arkadaşlık isteği kabul edildi'
@@ -72,7 +71,7 @@ class FriendService {
   }> {
     try {
       const response = await api.put(`${this.BASE_PATH}/reject/${requestId}`);
-      
+
       return {
         success: true,
         message: response.data.message || 'Arkadaşlık isteği reddedildi'
@@ -96,7 +95,7 @@ class FriendService {
   }> {
     try {
       const response = await api.delete(`${this.BASE_PATH}/${userId}`);
-      
+
       return {
         success: true,
         message: response.data.message || 'Arkadaşlıktan çıkarıldı'
@@ -117,23 +116,23 @@ class FriendService {
   async listFriendRequests(params?: FriendRequestListParams): Promise<FriendRequestResponse> {
     try {
       const queryParams = new URLSearchParams();
-      
+
       // Sayfalama
       if (params?.page) {
         queryParams.append('page', params.page.toString());
       }
-      
+
       if (params?.limit) {
         queryParams.append('limit', params.limit.toString());
       }
-      
+
       // Durum filtresi
       if (params?.status) {
         queryParams.append('status', params.status);
       }
-      
+
       const response = await api.get(`${this.BASE_PATH}/requests?${queryParams.toString()}`);
-      
+
       return {
         success: true,
         data: response.data.data,
@@ -162,18 +161,18 @@ class FriendService {
   async listFriends(params?: FriendListParams): Promise<FriendListResponse> {
     try {
       const queryParams = new URLSearchParams();
-      
+
       // Sayfalama
       if (params?.page) {
         queryParams.append('page', params.page.toString());
       }
-      
+
       if (params?.limit) {
         queryParams.append('limit', params.limit.toString());
       }
-      
+
       const response = await api.get(`${this.BASE_PATH}?${queryParams.toString()}`);
-      
+
       return {
         success: true,
         data: response.data.data,
@@ -202,7 +201,7 @@ class FriendService {
   async getFriendshipStatus(userId: string): Promise<FriendStatusResponse> {
     try {
       const response = await api.get(`${this.BASE_PATH}/status/${userId}`);
-      
+
       return {
         success: true,
         data: response.data

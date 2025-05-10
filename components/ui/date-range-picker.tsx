@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { format, isValid } from "date-fns"
+import { format } from "date-fns"
 import { tr } from 'date-fns/locale'
 import { Calendar as CalendarIcon, X } from "lucide-react"
 import type { DateRange } from "react-day-picker"
@@ -15,13 +15,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-export function DateRangePicker({ 
-  dateRange, 
-  setDateRange, 
+export function DateRangePicker({
+  dateRange,
+  setDateRange,
   className,
   calendarContentClassName,
   placeholder = "Tarih Aralığı Seç",
-}: { 
+}: {
   dateRange: DateRange | undefined
   setDateRange: (dateRange: DateRange | undefined) => void
   className?: string
@@ -69,19 +69,19 @@ export function DateRangePicker({
     e.stopPropagation();
     setDateRange(undefined);
   };
-  
+
   // Takvim butonlarına tıklayınca bir sonraki render için
   // event loop'u bırak, böylece olası timing sorunları çözülür
   const handleCalendarButtonClick = (calendarType: 'start' | 'end', e: React.MouseEvent) => {
     // Olay yayılmasını durdur, böylece ana popover'ın toggle işlemi tetiklenmez
     e.stopPropagation();
-    
+
     // Mevcut aktif takvim tıklanan ile aynıysa, aktif takvimi temizle
     if (activeCalendar === calendarType) {
       setActiveCalendar(null);
       return;
     }
-    
+
     // Aktif takvimi ayarla
     setTimeout(() => {
       setActiveCalendar(calendarType);
@@ -104,8 +104,8 @@ export function DateRangePicker({
           <div className="flex items-center">
             <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
             <span>
-              {dateRange?.from || dateRange?.to ? 
-                `${formattedStartDate} - ${formattedEndDate}` : 
+              {dateRange?.from || dateRange?.to ?
+                `${formattedStartDate} - ${formattedEndDate}` :
                 placeholder}
             </span>
           </div>
@@ -159,8 +159,8 @@ export function DateRangePicker({
             <p className="text-xs font-medium mb-2 text-primary">Bitiş</p>
             <Popover open={activeCalendar === 'end'} onOpenChange={(open) => !open && setActiveCalendar(null)}>
               <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className={cn(
                     "w-full justify-start text-left font-normal h-9 p-2 rounded-md",
                     !dateRange?.to && "text-muted-foreground",
@@ -176,7 +176,7 @@ export function DateRangePicker({
                   mode="single"
                   selected={dateRange?.to}
                   onSelect={handleEndDateChange}
-                  disabled={(date) => 
+                  disabled={(date) =>
                     dateRange?.from ? date < dateRange.from : false
                   }
                   initialFocus

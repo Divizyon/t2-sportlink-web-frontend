@@ -19,7 +19,7 @@ export interface SportState {
   clearSportError: () => void;
 }
 
-const createSportSlice: StateCreator<SportState, [], [], SportState> = (set, get) => {
+const createSportSlice: StateCreator<SportState, [], [], SportState> = (set) => {
   return {
     // Initial state
     sports: [],
@@ -31,108 +31,108 @@ const createSportSlice: StateCreator<SportState, [], [], SportState> = (set, get
     // Actions
     getAllSports: async () => {
       set({ isLoading: true, error: null });
-      
+
       try {
         const response = await sportService.listSports();
-        
+
         if (response.success) {
-          set({ 
-            sports: response.data, 
-            isLoading: false 
+          set({
+            sports: response.data,
+            isLoading: false
           });
         } else {
-          set({ 
-            error: response.message || 'Spor dalları yüklenirken bir hata oluştu', 
-            isLoading: false 
+          set({
+            error: response.message || 'Spor dalları yüklenirken bir hata oluştu',
+            isLoading: false
           });
         }
       } catch (error) {
         console.error('Spor dalları yüklenirken hata:', error);
         const apiError = error as ApiError;
-        set({ 
-          error: apiError.message || 'Spor dalları yüklenirken bir sorun oluştu', 
-          isLoading: false 
+        set({
+          error: apiError.message || 'Spor dalları yüklenirken bir sorun oluştu',
+          isLoading: false
         });
       }
     },
 
     getSportById: async (sportId: string) => {
       set({ isLoading: true, error: null });
-      
+
       try {
         const response = await sportService.getSportById(sportId);
-        
+
         if (response.success) {
-          set({ 
-            currentSport: response.data, 
-            isLoading: false 
+          set({
+            currentSport: response.data,
+            isLoading: false
           });
         } else {
-          set({ 
-            error: response.message || 'Spor dalı detayları yüklenirken bir hata oluştu', 
-            isLoading: false 
+          set({
+            error: response.message || 'Spor dalı detayları yüklenirken bir hata oluştu',
+            isLoading: false
           });
         }
       } catch (error) {
         console.error('Spor dalı detayları yüklenirken hata:', error);
         const apiError = error as ApiError;
-        set({ 
-          error: apiError.message || 'Spor dalı detayları yüklenirken bir sorun oluştu', 
-          isLoading: false 
+        set({
+          error: apiError.message || 'Spor dalı detayları yüklenirken bir sorun oluştu',
+          isLoading: false
         });
       }
     },
 
     getPopularSports: async (limit = 5) => {
       set({ isLoading: true, error: null });
-      
+
       try {
         const response = await sportService.getPopularSports(limit);
-        
+
         if (response.success) {
-          set({ 
-            popularSports: response.data, 
-            isLoading: false 
+          set({
+            popularSports: response.data,
+            isLoading: false
           });
         } else {
-          set({ 
-            error: response.message || 'Popüler spor dalları yüklenirken bir hata oluştu', 
-            isLoading: false 
+          set({
+            error: response.message || 'Popüler spor dalları yüklenirken bir hata oluştu',
+            isLoading: false
           });
         }
       } catch (error) {
         console.error('Popüler spor dalları yüklenirken hata:', error);
         const apiError = error as ApiError;
-        set({ 
-          error: apiError.message || 'Popüler spor dalları yüklenirken bir sorun oluştu', 
-          isLoading: false 
+        set({
+          error: apiError.message || 'Popüler spor dalları yüklenirken bir sorun oluştu',
+          isLoading: false
         });
       }
     },
 
     getSportsByCategory: async (category: string) => {
       set({ isLoading: true, error: null });
-      
+
       try {
         const response = await sportService.getSportsByCategory(category);
-        
+
         if (response.success) {
-          set({ 
-            sports: response.data, 
-            isLoading: false 
+          set({
+            sports: response.data,
+            isLoading: false
           });
         } else {
-          set({ 
-            error: response.message || 'Kategoriye göre spor dalları yüklenirken bir hata oluştu', 
-            isLoading: false 
+          set({
+            error: response.message || 'Kategoriye göre spor dalları yüklenirken bir hata oluştu',
+            isLoading: false
           });
         }
       } catch (error) {
         console.error('Kategoriye göre spor dalları yüklenirken hata:', error);
         const apiError = error as ApiError;
-        set({ 
-          error: apiError.message || 'Kategoriye göre spor dalları yüklenirken bir sorun oluştu', 
-          isLoading: false 
+        set({
+          error: apiError.message || 'Kategoriye göre spor dalları yüklenirken bir sorun oluştu',
+          isLoading: false
         });
       }
     },

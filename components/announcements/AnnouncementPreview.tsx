@@ -5,10 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Pencil, Eye, Calendar, User, Tag, ClockIcon, AlarmClockIcon, Eye as EyeIcon } from "lucide-react";
+import { Pencil, Calendar, User, Tag, ClockIcon, AlarmClockIcon, Eye as EyeIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import type { Announcement, AnnouncementStatus } from "@/interfaces/announcement";
 
@@ -42,22 +41,22 @@ const AnnouncementPreview: React.FC<AnnouncementPreviewProps> = ({
   handleEditAnnouncement
 }) => {
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Kaydetme fonksiyonu
   const saveAnnouncement = async () => {
     if (!announcement) {
       console.error("Duyuru verisi eksik, kaydetme işlemi iptal edildi.");
       return;
     }
-    
+
     setIsSaving(true);
     console.log("%c Kaydetme işlemi başlatıldı", "background: #e0f7fa; color: #00695c; font-weight: bold;");
     console.log("Güncellenecek duyuru:", JSON.stringify(announcement, null, 2));
-    
+
     try {
       // API için veri hazırlama - bazı alanlar undefined olabilir veya farklı tiplerde olabilir
       // Burada veriyi temizleyelim
-      
+
       // Kaydetme işlemini çağır
       console.log("%c handleEditAnnouncement fonksiyonu çağrılıyor...", "color: blue;");
       await handleEditAnnouncement();
@@ -69,7 +68,7 @@ const AnnouncementPreview: React.FC<AnnouncementPreviewProps> = ({
       setIsSaving(false);
     }
   };
-  
+
   if (!announcement) {
     return (
       <Card className="h-full">
@@ -90,18 +89,18 @@ const AnnouncementPreview: React.FC<AnnouncementPreviewProps> = ({
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>{viewMode === "edit" ? "Duyuru Düzenle" : "Duyuru Önizleme"}</CardTitle>
         <div className="flex space-x-2">
-          <Button 
-            variant={viewMode === "preview" ? "default" : "outline"} 
-            size="icon" 
+          <Button
+            variant={viewMode === "preview" ? "default" : "outline"}
+            size="icon"
             className="h-8 w-8"
             onClick={() => setViewMode("preview")}
           >
             <EyeIcon className="h-4 w-4" />
           </Button>
-          <Button 
-            variant={viewMode === "edit" ? "default" : "outline"} 
-            size="icon" 
-            className="h-8 w-8" 
+          <Button
+            variant={viewMode === "edit" ? "default" : "outline"}
+            size="icon"
+            className="h-8 w-8"
             onClick={() => setViewMode("edit")}
           >
             <Pencil className="h-4 w-4" />
@@ -168,9 +167,9 @@ const AnnouncementPreview: React.FC<AnnouncementPreviewProps> = ({
               {announcement.sourceUrl && (
                 <div className="pt-4">
                   <h4 className="font-medium mb-2">Kaynak</h4>
-                  <a 
-                    href={announcement.sourceUrl} 
-                    target="_blank" 
+                  <a
+                    href={announcement.sourceUrl}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-blue-600 hover:underline"
                   >
@@ -226,8 +225,8 @@ const AnnouncementPreview: React.FC<AnnouncementPreviewProps> = ({
             <div className="grid gap-2">
               <Label htmlFor="status">Durum</Label>
               <Select
-                value={(announcement.published !== undefined 
-                  ? (announcement.published ? "published" : "draft") 
+                value={(announcement.published !== undefined
+                  ? (announcement.published ? "published" : "draft")
                   : (announcement.status || "draft")) as string}
                 onValueChange={(value) => {
                   if (value === "published" || value === "draft") {
@@ -278,14 +277,14 @@ const AnnouncementPreview: React.FC<AnnouncementPreviewProps> = ({
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setViewMode("preview")}
                 disabled={isSaving}
               >
                 İptal
               </Button>
-              <Button 
+              <Button
                 onClick={saveAnnouncement}
                 disabled={isSaving}
                 className="bg-blue-600 hover:bg-blue-700 font-semibold"

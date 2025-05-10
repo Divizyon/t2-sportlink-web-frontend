@@ -1,8 +1,8 @@
 "use client"
 
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import { LogOut, UserCircle, ChevronRight, Mail, Phone, Calendar, User, MapPin, Shield, Trophy, Pencil, X } from "lucide-react"
+import { LogOut, ChevronRight, Mail, Phone, Calendar, User, MapPin, Trophy, Pencil, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -28,14 +28,13 @@ interface TopBarProps {
 
 export function TopBar({ onProfilePanelChange }: TopBarProps) {
   const pathname = usePathname()
-  const router = useRouter()
   const [profileOpen, setProfileOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [showEventsDetails, setShowEventsDetails] = useState(false)
-  
+
   // useUserProfile hook'unu kullanarak profil bilgilerini al
-  const { profile, loading, error, loadProfile, updateProfile, updateProfilePicture } = useUserProfile();
-  
+  const { profile, loading, loadProfile, updateProfile } = useUserProfile();
+
   // İlk render'da profil bilgilerini yükle
   useEffect(() => {
     loadProfile();
@@ -55,7 +54,7 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
       last_name: data.lastName,
       phone: data.phone || "",
     });
-    
+
     if (result.success) {
       setIsEditing(false); // After submit, close the dialog
     }
@@ -106,15 +105,15 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
           <div className="flex-1">
             {/* Sol taraf boş bırakılıyor */}
           </div>
-          
+
           <div className="flex justify-center items-center">
             {title ? (
               <h1 className="text-2xl font-bold uppercase text-center">{title}</h1>
             ) : (
               <div className="h-12 flex justify-center items-center">
-                <img 
-                  src="/sportLink.svg" 
-                  alt="SportLink Logo" 
+                <img
+                  src="/sportLink.svg"
+                  alt="SportLink Logo"
                   className="h-12 w-auto"
                 />
               </div>
@@ -148,15 +147,15 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
         <div className="flex-1">
           {/* Sol taraf boş bırakılıyor */}
         </div>
-        
+
         <div className="flex justify-center items-center">
           {title ? (
             <h1 className="text-2xl font-bold uppercase text-center">{title}</h1>
           ) : (
             <div className="h-12 flex justify-center items-center">
-              <img 
-                src="/sportLink.svg" 
-                alt="SportLink Logo" 
+              <img
+                src="/sportLink.svg"
+                alt="SportLink Logo"
                 className="h-12 w-auto"
               />
             </div>
@@ -195,14 +194,14 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
                     <div className="flex items-center justify-center gap-2 mt-1">
                       <span className="text-sm text-gray-600">@{profile.username}</span>
                       <Badge className="bg-green-500 hover:bg-green-600">
-                        {profile.role === 'superadmin' ? 'Süper Admin' : 
-                          profile.role === 'admin' ? 'Admin' : 
-                          profile.role === 'manager' ? 'Yönetici' : 'Kullanıcı'}
+                        {profile.role === 'superadmin' ? 'Süper Admin' :
+                          profile.role === 'admin' ? 'Admin' :
+                            profile.role === 'manager' ? 'Yönetici' : 'Kullanıcı'}
                       </Badge>
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Kişisel Bilgiler */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="text-sm font-semibold text-gray-700 mb-3">Kişisel Bilgiler</h3>
@@ -214,7 +213,7 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
                       </div>
                       <span className="text-sm bg-white px-2 py-1 rounded border">{profile.email}</span>
                     </div>
-                    
+
                     <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-2">
                         <Phone className="h-4 w-4 text-green-500" />
@@ -222,7 +221,7 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
                       </div>
                       <span className="text-sm bg-white px-2 py-1 rounded border">{profile.phone || 'Belirtilmemiş'}</span>
                     </div>
-                    
+
                     <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-purple-500" />
@@ -232,7 +231,7 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
                         {registerDate}
                       </span>
                     </div>
-                    
+
                     <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-red-500" />
@@ -249,7 +248,7 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="text-sm font-semibold text-gray-700 mb-3">İstatistikler</h3>
                   <div className="grid grid-cols-2 gap-3">
-                    <div 
+                    <div
                       className="flex flex-col items-center justify-center p-3 bg-white rounded-md border cursor-pointer hover:bg-gray-50 transition-colors"
                       onClick={() => setShowEventsDetails(true)}
                     >
@@ -336,7 +335,7 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
             </div>
           </DialogHeader>
           <div className="p-6">
-            <ProfileForm 
+            <ProfileForm
               initialData={{
                 firstName: profile.first_name || '',
                 lastName: profile.last_name || '',
@@ -344,8 +343,8 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
                 email: profile.email || '',
                 phone: profile.phone || '',
                 role: profile.role || '',
-              }} 
-              onSubmit={handleSubmit} 
+              }}
+              onSubmit={handleSubmit}
             />
           </div>
         </DialogContent>

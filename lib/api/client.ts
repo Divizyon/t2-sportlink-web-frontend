@@ -15,7 +15,7 @@ export const apiClient = {
     isAuthenticated: authService.isAuthenticated.bind(authService),
     getCurrentUser: authService.getCurrentUser.bind(authService)
   },
-  
+
   // Kullanıcı profili işlemleri
   user: {
     getProfile: userService.getProfile.bind(userService),
@@ -23,12 +23,11 @@ export const apiClient = {
     changePassword: userService.changePassword.bind(userService),
     updateProfilePicture: userService.updateProfilePicture.bind(userService)
   },
-  
+
   // Etkinlik işlemleri
   events: {
     listEvents: eventService.listEvents.bind(eventService),
     getEvent: eventService.getEventById.bind(eventService),
-    getEventBySlug: eventService.getEventBySlug.bind(eventService),
     createEvent: eventService.createEvent.bind(eventService),
     updateEvent: eventService.updateEvent.bind(eventService),
     deleteEvent: eventService.deleteEvent.bind(eventService),
@@ -37,7 +36,7 @@ export const apiClient = {
     getUserEvents: eventService.getUserEvents.bind(eventService),
     getUserCreatedEvents: eventService.getUserCreatedEvents.bind(eventService)
   },
-  
+
   // Spor dalları işlemleri
   sports: {
     listSports: sportService.listSports.bind(sportService),
@@ -45,7 +44,7 @@ export const apiClient = {
     getPopularSports: sportService.getPopularSports.bind(sportService),
     getSportsByCategory: sportService.getSportsByCategory.bind(sportService)
   },
-  
+
   // Haber işlemleri
   news: {
     listNews: newsService.listNews.bind(newsService),
@@ -53,7 +52,7 @@ export const apiClient = {
     getNewsBySport: newsService.getNewsBySport.bind(newsService),
     getFeaturedNews: newsService.getFeaturedNews.bind(newsService)
   },
-  
+
   // Arkadaşlık işlemleri
   friends: {
     sendFriendRequest: friendService.sendFriendRequest.bind(friendService),

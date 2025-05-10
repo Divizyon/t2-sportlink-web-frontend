@@ -2,11 +2,8 @@
 
 import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import useAuth from "@/lib/hooks/useAuth"
-import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
-import { useRouter } from "next/navigation"
 import { ReportFilterBar } from "@/components/reports/ReportFilterBar"
 import { ReportedUsersList } from "@/components/reports/ReportedUsersList"
 import { ReportDetails } from "@/components/reports/ReportDetails"
@@ -16,21 +13,18 @@ import { useStore } from "@/lib/store"
 
 export default function ReportsPage() {
   const auth = useAuth("admin")
-  const router = useRouter()
-  
+
   // Zustand store
-  const { 
-    reportedUsers, 
+  const {
+    reportedUsers,
     reportSelectedUser,
-    reportDetails, 
+    reportDetails,
     reportIsLoading,
     reportError,
     reportCurrentPage,
     totalReportedUsers,
     getReportedUsers,
     getReportDetailsForUser,
-    getAllReports,
-    getEventReports,
     setReportSelectedUser,
     setReportSelectedReport,
     updateReport,
@@ -38,7 +32,7 @@ export default function ReportsPage() {
     blockUserFromReports,
     searchReportedUsers
   } = useStore()
-  
+
   // Local state
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "blocked">("all")
@@ -61,13 +55,13 @@ export default function ReportsPage() {
   const handleBlockUser = async (userId: string, username: string) => {
     try {
       const success = await blockUserFromReports(userId, "Rapor nedeniyle engellendi")
-      
+
       if (success) {
         toast({
           title: "Kullanıcı engellendi",
           description: `${username} başarıyla engellendi ve güvenlik listesine eklendi.`,
         })
-        
+
         // Refresh the list of reported users
         getReportedUsers(currentPage, limit)
       } else {
@@ -84,13 +78,10 @@ export default function ReportsPage() {
         description: "Kullanıcı engelleme API'si henüz implemente edilmemiş olabilir.",
         variant: "destructive",
       })
-      
+
       // Update UI optimistically assuming the action worked
       // This is a temporary solution until the API is implemented
-      const updatedUsers = reportedUsers.map(user => 
-        user.id === userId ? { ...user, status: "blocked" as const } : user
-      )
-      
+
       // We're simulating a successful block operation on the frontend
       // This should be removed once the backend API is working
       toast({
@@ -103,18 +94,18 @@ export default function ReportsPage() {
   const handleRemoveReport = async (reportId: string, username: string) => {
     try {
       const success = await removeReport(reportId)
-      
+
       if (success) {
         toast({
           title: "Rapor kaldırıldı",
           description: `${username} için rapor kaldırıldı.`,
         })
-        
+
         // If the user was selected, clear selection
         if (reportSelectedUser && reportDetails.length <= 1) {
           setReportSelectedUser(null)
         }
-        
+
         // Refresh report list
         if (reportSelectedUser) {
           getReportDetailsForUser(reportSelectedUser.id)
@@ -133,18 +124,18 @@ export default function ReportsPage() {
         description: "Rapor kaldırma API'si henüz implemente edilmemiş olabilir.",
         variant: "destructive",
       })
-      
+
       // Update UI optimistically assuming the action worked
       toast({
         title: "Simule Edildi",
         description: `${username} için rapor kaldırıldı (yalnızca UI güncellemesi).`,
       })
-      
+
       // If current user is selected, refresh details optimistically
       if (reportSelectedUser) {
         // Filter out the removed report from the details
         const updatedDetails = reportDetails.filter(report => report.id !== reportId)
-        
+
         // If this was the last report for the user, clear selection
         if (updatedDetails.length === 0) {
           setReportSelectedUser(null)
@@ -184,26 +175,25 @@ export default function ReportsPage() {
     try {
       // Update report via API using updateReport
       await updateReport(selectedReport.id, {
-        adminMessage: isEmptyMessage ? '' : adminMessage,
-        reviewed: !isEmptyMessage,
-        reviewerAdmin: isEmptyMessage ? undefined : (auth.user?.username || "Admin")
+        admin_notes: isEmptyMessage ? '' : adminMessage,
+        status: !isEmptyMessage ? "reviewed" : "pending"
       })
-      
+
       setIsReportSheetOpen(false)
       toast({
         title: isEmptyMessage ? "Admin notu temizlendi" : "Admin notu kaydedildi",
-        description: isEmptyMessage 
-          ? "Rapor incelenmedi olarak işaretlendi." 
+        description: isEmptyMessage
+          ? "Rapor incelenmedi olarak işaretlendi."
           : "Rapor incelendi olarak işaretlendi.",
       })
-      
+
       // Refresh report details if a user is selected
       if (reportSelectedUser) {
         getReportDetailsForUser(reportSelectedUser.id)
       }
     } catch (error) {
       console.error("Update report error:", error)
-      
+
       // Check if this is an API error (404 or other)
       if (error instanceof Error && error.message.includes("404")) {
         toast({
@@ -211,7 +201,7 @@ export default function ReportsPage() {
           description: "Rapor güncelleme API'si henüz implemente edilmemiş olabilir.",
           variant: "destructive",
         })
-        
+
         // Update UI optimistically
         setIsReportSheetOpen(false)
         toast({
@@ -249,14 +239,14 @@ export default function ReportsPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Raporlar</h1>
-      
+
       <div className="flex flex-col md:flex-row gap-4">
         {/* Sol panel (2/3) - Raporlanan kullanıcılar listesi */}
         <div className="w-full md:w-2/3">
           <Card>
             <CardHeader>
               <CardTitle>Raporlanan Kullanıcılar</CardTitle>
-              
+
               {/* Arama ve filtreleme bileşeni */}
               <ReportFilterBar
                 searchTerm={searchTerm}
@@ -282,7 +272,7 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
         </div>
-        
+
         {/* Sağ panel (1/3) - Rapor detayları */}
         <div className="w-full md:w-1/3">
           <ReportDetails
@@ -292,7 +282,7 @@ export default function ReportsPage() {
           />
         </div>
       </div>
-      
+
       {/* Rapor detay sayfası */}
       <ReportSheet
         isOpen={isReportSheetOpen}

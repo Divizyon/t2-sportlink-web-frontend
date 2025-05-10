@@ -23,7 +23,6 @@ import { Badge } from "@/components/ui/badge";
 import UserFilter from "./UserFilter";
 import UserForm from "./UserForm";
 import type { UserType } from "@/interfaces/user";
-import type { DateRange } from "react-day-picker";
 import { useState } from "react";
 
 interface UserListProps {
@@ -38,7 +37,6 @@ interface UserListProps {
   };
   searchQuery: string;
   onSearchChange: (value: string) => void;
-  onColumnToggle: (column: keyof UserListProps['selectedColumns']) => void;
   onUserClick: (user: UserType) => void;
   onDeleteUser: (id: string) => void;
   onUpdateUser: (userData: Partial<UserType>) => void;
@@ -56,7 +54,6 @@ export default function UserList({
   selectedColumns,
   searchQuery,
   onSearchChange,
-  onColumnToggle,
   onUserClick,
   onDeleteUser,
   onUpdateUser,

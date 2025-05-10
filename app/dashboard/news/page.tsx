@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { useStore } from "@/lib/store";
 import type { NewsStatus, News } from "@/types/news";
 import { toast } from "@/components/ui/use-toast";
-import { Plus } from "lucide-react";
 import NewsList from "@/components/news/NewsList";
 import NewsPreview from "@/components/news/NewsPreview";
 
@@ -29,11 +28,10 @@ type NewsItemSource = {
 
 export default function NewsPage() {
   const { news, getAllNews, setSelectedNews } = useStore();
-  
+
   const [sourceUrl, setSourceUrl] = useState("");
   const [isUrlDialogOpen, setIsUrlDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [editMode, setEditMode] = useState(false);
 
   // Fetch news when the component mounts
   useEffect(() => {
@@ -74,20 +72,20 @@ export default function NewsPage() {
       const siteUrl = new URL(url).origin;
       const numberOfNews = Math.floor(Math.random() * 3) + 2;
       const newsItems: NewsItemSource[] = [];
-      
+
       // Generate demo news items
       for (let i = 0; i < numberOfNews; i++) {
-        const newsTitle = `Spor haberi #${i+1} - ${new Date().toLocaleDateString()}`;
-        
+        const newsTitle = `Spor haberi #${i + 1} - ${new Date().toLocaleDateString()}`;
+
         newsItems.push({
           title: newsTitle,
           image: "/placeholder-image.jpg",
           content: `Bu spor haberinin içeriği. Kaynak: ${siteUrl}`,
-          sourceUrl: `${siteUrl}/haber-${i+1}`,
+          sourceUrl: `${siteUrl}/haber-${i + 1}`,
           author: "Otomatik Çekilen"
         });
       }
-      
+
       return newsItems;
     } catch (error) {
       console.error("Haber çekme hatası:", error);
@@ -100,7 +98,7 @@ export default function NewsPage() {
   const handleAddSource = async () => {
     if (sourceUrl.trim()) {
       const fetchedItems = await fetchNewsFromUrl(sourceUrl);
-      
+
       if (fetchedItems.length === 0) {
         toast({
           title: "Hata",
@@ -109,10 +107,10 @@ export default function NewsPage() {
         });
         return;
       }
-      
+
       // Çekilen haberleri News formatına dönüştür
       const currentDate = new Date().toISOString().split('T')[0];
-      
+
       const newPendingNews: News[] = fetchedItems.map((item, index) => {
         return {
           id: news.length + index + 1,
@@ -127,30 +125,15 @@ export default function NewsPage() {
           author: item.author
         };
       });
-      
+
       // State'i güncelle - we no longer need to update draftNews
       setSourceUrl("");
       setIsUrlDialogOpen(false);
-      
+
       toast({
         title: "Başarılı",
         description: `${sourceUrl} sitesinden ${newPendingNews.length} haber başarıyla çekildi!`
       });
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return new Intl.DateTimeFormat('tr-TR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(date);
-    } catch (e) {
-      return dateString;
     }
   };
 
@@ -162,15 +145,15 @@ export default function NewsPage() {
         <div className="lg:col-span-2 flex flex-col">
           {/* Haber Listesi - stretching to full height */}
           <div className="h-full">
-            <NewsList 
+            <NewsList
               showActions={true}
               showSearchAndCreate={true}
             />
           </div>
-          
+
           {/* Taslak Haberler section removed */}
         </div>
-        
+
         {/* Sağ kolon: Haber önizleme */}
         <div className="lg:col-span-1 h-full">
           <NewsPreview
@@ -183,7 +166,6 @@ export default function NewsPage() {
               });
             }}
             showEditButton={true}
-            onEditModeChange={setEditMode}
           />
         </div>
       </div>

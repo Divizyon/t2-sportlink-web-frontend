@@ -30,7 +30,6 @@ interface EventPreviewProps {
   getStatusBadge: (status: string) => React.ReactNode;
   formatDate: (dateString: string) => string;
   defaultImage: string;
-  setSelectedEvent: React.Dispatch<React.SetStateAction<Event | null>>;
   setViewMode: React.Dispatch<React.SetStateAction<"preview" | "edit">>;
   renderSelectWithFallback: (value: string | undefined, onChange: (value: string) => void, placeholder: string, options: { value: string, label: string }[]) => React.ReactNode;
   handleEditEvent: () => Promise<void>;
@@ -44,7 +43,6 @@ const EventPreview: React.FC<EventPreviewProps> = ({
   getStatusBadge,
   formatDate,
   defaultImage,
-  setSelectedEvent,
   setViewMode,
   renderSelectWithFallback,
   handleEditEvent
@@ -79,25 +77,36 @@ const EventPreview: React.FC<EventPreviewProps> = ({
             {participants.map((participant) => {
               const user = participant.user;
               if (!user) return null;
-              
+
               return (
-                <tr 
-                  key={participant.user_id} 
+                <tr
+                  key={participant.user_id}
                   className="hover:bg-gray-100 cursor-pointer"
                   onClick={() => {
-                    const participantInfo: Participant = {
-                      event_id: participant.event_id,
+                    // Participant nesnesi oluştururken kesin tip kontrolü için
+                    const participantData: {
+                      user_id: string;
+                      joined_at: string;
+                      event_id?: string;
+                      role?: string;
+                      name?: string;
+                      email?: string;
+                      phone?: string;
+                      registration_date?: string;
+                    } = {
                       user_id: participant.user_id,
-                      joined_at: participant.joined_at,
-                      role: participant.role,
-                      // Opsiyonel alanlar
-                      name: `${user.first_name} ${user.last_name}`,
-                      email: user.email,
-                      phone: user.phone,
-                      registration_date: participant.joined_at
+                      joined_at: participant.joined_at
                     };
-                    
-                    setSelectedParticipant(participantInfo);
+
+                    // Opsiyonel alanları sadece değerleri varsa ekle
+                    if (participant.event_id) participantData.event_id = participant.event_id;
+                    if (participant.role) participantData.role = participant.role;
+                    participantData.name = `${user.first_name} ${user.last_name}`;
+                    participantData.email = user.email;
+                    if (user.phone) participantData.phone = user.phone;
+                    participantData.registration_date = participant.joined_at;
+
+                    setSelectedParticipant(participantData);
                   }}
                 >
                   <td className="py-2 px-3">{`${user.first_name} ${user.last_name}`}</td>
@@ -119,18 +128,18 @@ const EventPreview: React.FC<EventPreviewProps> = ({
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{viewMode === "edit" ? "Etkinlik Düzenle" : "Etkinlik Önizleme"}</CardTitle>
           <div className="flex space-x-2">
-            <Button 
-              variant={viewMode === "preview" ? "default" : "outline"} 
-              size="icon" 
+            <Button
+              variant={viewMode === "preview" ? "default" : "outline"}
+              size="icon"
               className="h-8 w-8"
               onClick={() => setViewMode("preview")}
             >
               <Eye className="h-4 w-4" />
             </Button>
-            <Button 
-              variant={viewMode === "edit" ? "default" : "outline"} 
-              size="icon" 
-              className="h-8 w-8" 
+            <Button
+              variant={viewMode === "edit" ? "default" : "outline"}
+              size="icon"
+              className="h-8 w-8"
               disabled={!selectedEvent}
               onClick={() => setViewMode("edit")}
             >
@@ -185,29 +194,29 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                     <h4 className="font-medium mb-2">Etkinlik Detayları</h4>
                     <p className="text-sm text-gray-600 whitespace-pre-line">{selectedEvent.description}</p>
                   </div>
-                  
+
                   {/* Katılımcılar bölümünü tüm etkinlikler için göster */}
                   <div className="pt-4 border-t border-gray-200">
                     <h4 className="font-medium mb-2 flex items-center">
                       <Users className="h-4 w-4 mr-1 text-blue-500" />
                       <span>Katılımcılar ({selectedEvent.participants?.length || 0} / {selectedEvent.max_participants || 0})</span>
-                      </h4>
-                    
+                    </h4>
+
                     {/* Katılımcı listesi */}
-                      {renderParticipants(selectedEvent.participants)}
-                    
+                    {renderParticipants(selectedEvent.participants)}
+
                     {/* Katılımcıları dışa aktarma butonu */}
-                      <div className="mt-2 text-right">
-                        <Button 
-                        variant="outline" 
-                          size="sm" 
-                          className="text-sm"
-                        >
+                    <div className="mt-2 text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-sm"
+                      >
                         <Mail className="h-4 w-4 mr-1" />
-                          Katılımcıları Dışa Aktar
-                        </Button>
+                        Katılımcıları Dışa Aktar
+                      </Button>
                     </div>
-                    
+
                     {/* Eğer katılımcı yoksa bilgi mesajı */}
                     {(!selectedEvent.participants?.length) && (
                       <div className="p-4 bg-gray-50 rounded-md text-center flex items-center justify-center">
@@ -215,8 +224,8 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                         <span className="text-gray-600">
                           Henüz katılımcı bulunmamaktadır.
                         </span>
-                    </div>
-                  )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -279,34 +288,34 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                       type="time"
                       // Güvenli bir şekilde saati formatla
                       value={
-                        selectedEvent.start_time ? 
+                        selectedEvent.start_time ?
                           (() => {
                             try {
                               return new Date(selectedEvent.start_time).toTimeString().substring(0, 5);
-                            } catch(e) {
+                            } catch (e) {
                               return '';
                             }
-                          })() : 
+                          })() :
                           ''
                       }
                       onChange={(e) => handleChange('start_time', e.target.value)}
                     />
                   </div>
-                   <div className="grid gap-2">
+                  <div className="grid gap-2">
                     <Label htmlFor="edit-end-time">Bitiş Saati</Label>
                     <Input
                       id="edit-end-time"
                       type="time"
                       // Güvenli bir şekilde saati formatla
                       value={
-                        selectedEvent.end_time ? 
+                        selectedEvent.end_time ?
                           (() => {
                             try {
                               return new Date(selectedEvent.end_time).toTimeString().substring(0, 5);
-                            } catch(e) {
+                            } catch (e) {
                               return '';
                             }
-                          })() : 
+                          })() :
                           ''
                       }
                       onChange={(e) => handleChange('end_time', e.target.value)}
@@ -346,7 +355,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                       onChange={(e) => handleChange('max_participants', parseInt(e.target.value))}
                     />
                   </div>
-                   {/* Price and Organizer seem removed in original code? Let's assume they are not needed for now 
+                  {/* Price and Organizer seem removed in original code? Let's assume they are not needed for now 
                   <div className="grid gap-2">
                     <Label htmlFor="edit-price">Ücret (TL)</Label>
                     <Input
@@ -366,18 +375,18 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                   </div>
                    */}
                   <div className="grid gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="edit-status">Durum</Label>
-                        {renderSelectWithFallback(
-                           selectedEvent.status,
-                           (value) => handleChange('status', value),
-                           "Durum seçin",
-                           [
-                             { value: "pending", label: "Beklemede" },
-                             { value: "active", label: "Aktif" },
-                             { value: "cancelled", label: "İptal Edildi" },
-                           ]
-                         )}
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-status">Durum</Label>
+                      {renderSelectWithFallback(
+                        selectedEvent.status,
+                        (value) => handleChange('status', value),
+                        "Durum seçin",
+                        [
+                          { value: "pending", label: "Beklemede" },
+                          { value: "active", label: "Aktif" },
+                          { value: "cancelled", label: "İptal Edildi" },
+                        ]
+                      )}
                     </div>
                   </div>
                   <div className="flex justify-end pt-4">
@@ -449,7 +458,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                       </div>
                       <span className="text-sm bg-white px-2 py-1 rounded border">{selectedParticipant?.email}</span>
                     </div>
-                    
+
                     <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-2">
                         <Phone className="h-4 w-4 text-green-500" />
@@ -479,7 +488,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                         <span className="text-sm font-medium text-gray-700">Etkinlik</span>
                       </div>
                       <span className="text-sm bg-white px-2 py-1 rounded border">
-                        {selectedEvent?.title} 
+                        {selectedEvent?.title}
                       </span>
                     </div>
                   </div>
@@ -495,7 +504,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                     <div className="flex items-center gap-2">
                       <Select
                         value="user" // Static value, needs logic if editable
-                        onValueChange={() => {}} // No action defined
+                        onValueChange={() => { }} // No action defined
                       >
                         <SelectTrigger id="edit-role" className="w-[120px] h-7 text-xs">
                           <SelectValue />
@@ -507,7 +516,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                       </Select>
                     </div>
                   </div>
-                  <Button onClick={() => {}} className="w-full bg-green-600 hover:bg-green-700 text-sm h-9">
+                  <Button onClick={() => { }} className="w-full bg-green-600 hover:bg-green-700 text-sm h-9">
                     Kaydet
                   </Button>
                 </div>
@@ -515,7 +524,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="text-sm font-semibold text-gray-700 mb-3">Katılımcı İstatistikleri</h3>
                   <div className="space-y-3">
-                    <div 
+                    <div
                       onClick={() => setShowAttendedEvents(true)}
                       className="flex items-center justify-between cursor-pointer bg-white hover:bg-gray-100 p-3 rounded border mb-2"
                     >
@@ -524,12 +533,12 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                         <span className="text-sm font-medium">Katıldığı Etkinlikler</span>
                       </div>
                       <div className="flex items-center">
-                        <Badge variant="outline" className="text-xs mr-1">1</Badge> {/* Static count */} 
+                        <Badge variant="outline" className="text-xs mr-1">1</Badge> {/* Static count */}
                         <ChevronRight className="h-4 w-4 text-gray-400" />
                       </div>
                     </div>
-                    
-                    <div 
+
+                    <div
                       onClick={() => setShowSportsList(true)}
                       className="flex items-center justify-between cursor-pointer bg-white hover:bg-gray-100 p-3 rounded border mb-2"
                     >
@@ -545,7 +554,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                       </div>
                     </div>
 
-                    <div 
+                    <div
                       onClick={() => setShowReportsList(true)}
                       className="flex items-center justify-between cursor-pointer bg-white hover:bg-gray-100 p-3 rounded border mb-2"
                     >
@@ -577,7 +586,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
           </DialogHeader>
           <div className="py-4">
             <div className="space-y-3">
-              {/* Static content, needs dynamic data */} 
+              {/* Static content, needs dynamic data */}
               <div className="p-3 border rounded-md hover:bg-gray-50">
                 <div className="flex justify-between items-center">
                   <h4 className="font-medium text-sm">{selectedEvent?.title}</h4>
@@ -597,8 +606,8 @@ const EventPreview: React.FC<EventPreviewProps> = ({
           </div>
         </DialogContent>
       </Dialog>
-      
-      {/* Spor Dalları Popup */} 
+
+      {/* Spor Dalları Popup */}
       <Dialog open={showSportsList} onOpenChange={setShowSportsList}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -609,15 +618,15 @@ const EventPreview: React.FC<EventPreviewProps> = ({
           </DialogHeader>
           <div className="py-4">
             <div className="space-y-3">
-              {/* Static content, needs dynamic data */} 
+              {/* Static content, needs dynamic data */}
               <div className="p-3 border rounded-md hover:bg-gray-50">
                 <div className="flex items-center">
                   <Badge className="mr-2">{selectedEvent?.sport?.name ?? "Genel"}</Badge>
                   <span className="text-sm text-gray-700">
-                    {selectedEvent?.sport?.name === "Futbol" ? "11 kişilik takım sporu" : 
-                     selectedEvent?.sport?.name === "Basketbol" ? "5 kişilik takım sporu" : 
-                     selectedEvent?.sport?.name === "Voleybol" ? "6 kişilik takım sporu" : 
-                     "Spor dalı hakkında bilgi bulunmuyor"}
+                    {selectedEvent?.sport?.name === "Futbol" ? "11 kişilik takım sporu" :
+                      selectedEvent?.sport?.name === "Basketbol" ? "5 kişilik takım sporu" :
+                        selectedEvent?.sport?.name === "Voleybol" ? "6 kişilik takım sporu" :
+                          "Spor dalı hakkında bilgi bulunmuyor"}
                   </span>
                 </div>
               </div>
@@ -630,7 +639,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
           </div>
         </DialogContent>
       </Dialog>
-      
+
       {/* Hakkında Raporlar Popup */}
       <Dialog open={showReportsList} onOpenChange={setShowReportsList}>
         <DialogContent className="sm:max-w-[500px]">
@@ -642,7 +651,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
           </DialogHeader>
           <div className="py-4">
             <div className="space-y-3">
-              {/* Static content, needs dynamic data */} 
+              {/* Static content, needs dynamic data */}
               <div className="p-3 border rounded-md hover:bg-gray-50">
                 <div className="flex justify-between items-center mb-1">
                   <div className="flex items-center">
@@ -664,7 +673,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                   </Badge>
                 </div>
               </div>
-              
+
               <div className="p-3 border rounded-md hover:bg-gray-50">
                 <div className="flex justify-between items-center mb-1">
                   <div className="flex items-center">

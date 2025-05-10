@@ -5,7 +5,7 @@ import type { ProfileFormData } from "@/components/profile/ProfileForm";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Phone, Calendar, User, MapPin, BookOpen, Trophy, Award } from "lucide-react";
+import { Mail, Phone, Calendar, User, MapPin, Trophy } from "lucide-react";
 
 export default function ProfilePage() {
   const handleSubmit = async (data: ProfileFormData) => {
@@ -32,7 +32,7 @@ export default function ProfilePage() {
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-2xl font-bold mb-6">Profil Yönetimi</h1>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sol taraf - Profil bilgileri (1/3) */}
         <div className="col-span-1">
@@ -69,7 +69,7 @@ export default function ProfilePage() {
                         </div>
                         <span className="text-sm bg-white px-2 py-1 rounded border">{userData.email}</span>
                       </div>
-                      
+
                       <div className="flex items-center justify-between px-1">
                         <div className="flex items-center gap-2">
                           <Phone className="h-4 w-4 text-green-500" />
@@ -77,7 +77,7 @@ export default function ProfilePage() {
                         </div>
                         <span className="text-sm bg-white px-2 py-1 rounded border">{userData.phone}</span>
                       </div>
-                      
+
                       <div className="flex items-center justify-between px-1">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-purple-500" />
@@ -87,7 +87,7 @@ export default function ProfilePage() {
                           {new Date(userData.registrationDate).toLocaleDateString("tr-TR")}
                         </span>
                       </div>
-                      
+
                       <div className="flex items-center justify-between px-1">
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-red-500" />
@@ -131,7 +131,7 @@ export default function ProfilePage() {
             </Card>
           </div>
         </div>
-        
+
         {/* Sağ taraf - Profil düzenleme formu (2/3) */}
         <div className="col-span-2">
           <Card>

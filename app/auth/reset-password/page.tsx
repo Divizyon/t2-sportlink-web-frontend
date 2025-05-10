@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,15 +12,16 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import api from "@/lib/services/api";
 
-export default function ResetPasswordPage() {
+// Ana içerik bileşeni
+function ResetPasswordContent() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [isValidatingToken, setIsValidatingToken] = useState(true);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState("");
-  
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [token, setToken] = useState("");
@@ -28,20 +29,20 @@ export default function ResetPasswordPage() {
   // URL'den token'ı al ve doğrula
   useEffect(() => {
     const tokenFromUrl = searchParams.get("token");
-    
+
     if (!tokenFromUrl) {
       setError("Geçerli bir şifre sıfırlama token'ı bulunamadı.");
       setIsValidatingToken(false);
       return;
     }
-    
+
     // Token'ı doğrula
     const validateToken = async () => {
       try {
         // Not: Bu endpoint backend'de varsa kullanın
         // Eğer yoksa, bu kontrol adımını atlayabilirsiniz
         // await api.get(`/auth/validate-reset-token?token=${tokenFromUrl}`);
-        
+
         // Token geçerli
         setToken(tokenFromUrl);
         setIsValidatingToken(false);
@@ -51,34 +52,34 @@ export default function ResetPasswordPage() {
         setIsValidatingToken(false);
       }
     };
-    
+
     validateToken();
   }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
+
     // Form doğrulama
     if (password.length < 6) {
       setError("Şifre en az 6 karakter uzunluğunda olmalıdır.");
       return;
     }
-    
+
     if (password !== confirmPassword) {
       setError("Şifreler eşleşmiyor.");
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       // Şifre sıfırlama isteği
       await api.post("/auth/reset-password", {
         token,
         password
       });
-      
+
       setIsSuccess(true);
       toast({
         title: "Şifre Güncellendi",
@@ -94,37 +95,21 @@ export default function ResetPasswordPage() {
 
   if (isValidatingToken) {
     return (
-      <div className="space-y-6">
-        <div className="space-y-2 text-center">
-          <h2 className="text-3xl font-bold">Şifre Sıfırlama</h2>
-          <p className="text-muted-foreground">Token doğrulanıyor...</p>
-        </div>
-        
-        <div className="flex justify-center pt-4">
-          <div className="w-8 h-8 border-t-2 border-primary rounded-full animate-spin"></div>
-        </div>
+      <div className="flex justify-center pt-4">
+        <div className="w-8 h-8 border-t-2 border-primary rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2 text-center">
-        <h2 className="text-3xl font-bold">Şifre Sıfırlama</h2>
-        <p className="text-muted-foreground">
-          Yeni şifrenizi belirleyin
-        </p>
-      </div>
-      
-      <Separator />
-      
+    <>
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      
+
       {isSuccess ? (
         <div className="space-y-4">
           <Alert variant="default" className="border-green-500 bg-green-50 text-green-800">
@@ -133,7 +118,7 @@ export default function ResetPasswordPage() {
               Şifreniz başarıyla güncellenmiştir. Artık yeni şifreniz ile giriş yapabilirsiniz.
             </AlertDescription>
           </Alert>
-          
+
           <div className="text-center">
             <Link href="/auth/login">
               <Button className="mt-2">
@@ -157,7 +142,7 @@ export default function ResetPasswordPage() {
               minLength={6}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Şifre Tekrar</Label>
             <Input
@@ -170,11 +155,11 @@ export default function ResetPasswordPage() {
               required
             />
           </div>
-          
+
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "İşleniyor..." : "Şifreyi Güncelle"}
           </Button>
-          
+
           <div className="text-center text-sm">
             <Link href="/auth/login" className="text-primary hover:underline">
               <ArrowLeft className="inline mr-1 h-3 w-3" />
@@ -194,6 +179,30 @@ export default function ResetPasswordPage() {
           </Link>
         </div>
       )}
+    </>
+  );
+}
+
+// Ana sayfa bileşeni
+export default function ResetPasswordPage() {
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2 text-center">
+        <h2 className="text-3xl font-bold">Şifre Sıfırlama</h2>
+        <p className="text-muted-foreground">
+          Yeni şifrenizi belirleyin
+        </p>
+      </div>
+
+      <Separator />
+
+      <Suspense fallback={
+        <div className="flex justify-center pt-4">
+          <div className="w-8 h-8 border-t-2 border-primary rounded-full animate-spin"></div>
+        </div>
+      }>
+        <ResetPasswordContent />
+      </Suspense>
     </div>
   );
 } 

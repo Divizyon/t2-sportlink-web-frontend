@@ -1,17 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import type { ReactNode } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { checkSessionState } from "@/lib/auth";
 
 interface AuthGuardProps {
-  children: React.ReactNode;
+  children: ReactNode;
   requiredRoles?: string[];
 }
 
 export function AuthGuard({ children, requiredRoles }: AuthGuardProps) {
-  const router = useRouter();
   const { toast } = useToast();
   const [authorized, setAuthorized] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
@@ -21,11 +20,6 @@ export function AuthGuard({ children, requiredRoles }: AuthGuardProps) {
     // Yetkilendirme kontrolü yap
     authCheck();
 
-    // Sayfa değişimlerinde auth kontrolü yap
-    const handleRouteChange = () => {
-      authCheck();
-    };
-
     // Dönüş temizliği
     return () => {
       // Cleanup işlemleri (gelecekte gerekirse)
@@ -34,7 +28,7 @@ export function AuthGuard({ children, requiredRoles }: AuthGuardProps) {
 
   function authCheck() {
     setIsChecking(true);
-    
+
     try {
       // Oturum durumunu kontrol et
       const { isLoggedIn, userRole, requiresSecondAuth } = checkSessionState();
@@ -58,12 +52,12 @@ export function AuthGuard({ children, requiredRoles }: AuthGuardProps) {
           description: "Güvenlik nedeniyle lütfen bilgilerinizi tekrar doğrulayın.",
           variant: "destructive",
         });
-        
+
         // Doğrudan yönlendirme yap
         setTimeout(() => {
           window.location.href = "/auth/login";
         }, 100);
-        
+
         setIsChecking(false);
         return;
       }
@@ -72,18 +66,18 @@ export function AuthGuard({ children, requiredRoles }: AuthGuardProps) {
       if (requiredRoles && requiredRoles.length > 0) {
         if (!userRole || !requiredRoles.includes(userRole)) {
           setAuthorized(false);
-          
+
           toast({
             title: "Yetkisiz erişim",
             description: "Bu sayfayı görüntülemek için gerekli izinlere sahip değilsiniz.",
             variant: "destructive",
           });
-          
+
           // Doğrudan yönlendirme yap
           setTimeout(() => {
             window.location.href = "/dashboard";
           }, 100);
-          
+
           setIsChecking(false);
           return;
         }
@@ -95,18 +89,18 @@ export function AuthGuard({ children, requiredRoles }: AuthGuardProps) {
     } catch (error) {
       console.error("Yetkilendirme kontrolü sırasında hata:", error);
       setAuthorized(false);
-      
+
       toast({
         title: "Oturum hatası",
         description: "Oturum bilgilerinize erişilemiyor. Lütfen tekrar giriş yapın.",
         variant: "destructive",
       });
-      
+
       // Doğrudan yönlendirme yap
       setTimeout(() => {
         window.location.href = "/auth/login";
       }, 100);
-      
+
       setIsChecking(false);
     }
   }

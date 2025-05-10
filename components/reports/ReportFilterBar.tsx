@@ -4,9 +4,8 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Filter, ListFilter, CheckCircle2 } from "lucide-react";
-import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectTrigger } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "@/components/ui/use-toast";
 
 interface ReportFilterBarProps {
   searchTerm: string;
@@ -25,13 +24,13 @@ export function ReportFilterBar({
   clearFilters,
   onSearch,
 }: ReportFilterBarProps) {
-  
+
   const handleSearch = () => {
     if (onSearch) {
       onSearch();
     }
   };
-  
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && onSearch) {
       onSearch();
@@ -49,15 +48,15 @@ export function ReportFilterBar({
             onKeyDown={handleKeyDown}
             className="w-full rounded-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
           />
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="rounded-none h-9 px-3 border-0 bg-background hover:bg-muted"
             onClick={handleSearch}
           >
             <Search className="h-4 w-4" />
           </Button>
         </div>
-        
+
         <Select>
           <SelectTrigger className="w-10 h-10 p-0 [&>svg]:hidden">
             <div className="flex items-center justify-center w-full h-full relative">
@@ -71,8 +70,8 @@ export function ReportFilterBar({
             <div className="mb-2 px-2 font-semibold text-sm">Duruma Göre Filtrele</div>
             <div className="flex flex-col gap-2 p-2">
               <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="filter-all" 
+                <Checkbox
+                  id="filter-all"
                   checked={statusFilter === "all"}
                   onCheckedChange={() => setStatusFilter("all")}
                 />
@@ -82,8 +81,8 @@ export function ReportFilterBar({
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="filter-active" 
+                <Checkbox
+                  id="filter-active"
                   checked={statusFilter === "active"}
                   onCheckedChange={() => setStatusFilter("active")}
                 />
@@ -93,8 +92,8 @@ export function ReportFilterBar({
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="filter-blocked" 
+                <Checkbox
+                  id="filter-blocked"
                   checked={statusFilter === "blocked"}
                   onCheckedChange={() => setStatusFilter("blocked")}
                 />
@@ -104,7 +103,7 @@ export function ReportFilterBar({
                 </div>
               </div>
             </div>
-            
+
             {statusFilter !== "all" && (
               <div className="flex justify-center p-2 pt-3 border-t">
                 <Button variant="outline" size="sm" onClick={clearFilters}>

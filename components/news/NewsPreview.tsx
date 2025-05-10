@@ -38,7 +38,7 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
       setImageError(false);
       // Extract URL when selectedNews changes
       if (selectedNews.content) {
-        const { content, url } = extractUrlFromContent(selectedNews.content);
+        const { url } = extractUrlFromContent(selectedNews.content);
         if (url) {
           setExtractedUrl(url);
         }
@@ -56,7 +56,7 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
   const extractUrlFromContent = (content: string): { content: string, url: string | null } => {
     const urlRegex = /\[(https?:\/\/[^\s\]]+)\]/;
     const match = content.match(urlRegex);
-    
+
     if (match && match[1]) {
       // Return the content without the bracketed URL and the extracted URL
       return {
@@ -64,14 +64,14 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
         url: match[1]
       };
     }
-    
+
     return { content, url: null };
   };
 
   const handleChange = (name: string, value: string | number | string[] | boolean) => {
     if (!editedNews) return;
     setEditedNews({ ...editedNews, [name]: value });
-    
+
     // If content is being updated, check for URLs
     if (name === 'content') {
       const { url } = extractUrlFromContent(value as string);
@@ -81,23 +81,23 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0] || !editedNews) return;
-    
+
     const file = e.target.files[0];
-    
+
     // Dosya boyutu kontrolü (örn. 5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert('Dosya boyutu çok büyük! Maksimum 5MB olmalıdır.');
       return;
     }
-    
+
     // Dosya tipi kontrolü
     if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) {
       alert('Sadece JPEG, PNG, GIF ve WEBP formatları desteklenmektedir.');
       return;
     }
-    
+
     const reader = new FileReader();
-    
+
     reader.onload = (event) => {
       if (event.target && event.target.result) {
         setEditedNews({
@@ -106,12 +106,12 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
         });
       }
     };
-    
+
     reader.onerror = (error) => {
       console.error('Dosya okuma hatası:', error);
       alert('Dosya okunurken bir hata oluştu.');
     };
-    
+
     reader.readAsDataURL(file);
   };
 
@@ -147,7 +147,7 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
 
   const handleEditNews = async () => {
     if (!editedNews) return;
-    
+
     try {
       if (onSave) {
         // If we have an extracted URL and it's not already in the content with brackets
@@ -155,10 +155,10 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
           // Add the URL in brackets at the end of the content
           editedNews.content = `${editedNews.content} [${extractedUrl}]`;
         }
-        
+
         await onSave(editedNews);
       }
-      
+
       // Başarılı güncelleme sonrası preview moduna dön
       setSelectedNews(editedNews);
       setViewMode("preview");
@@ -191,18 +191,18 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
         <CardTitle>{viewMode === "preview" ? "Haber Önizleme" : "Haber Düzenle"}</CardTitle>
         {showEditButton && (
           <div className="flex space-x-2">
-            <Button 
-              variant={viewMode === "preview" ? "default" : "outline"} 
-              size="icon" 
+            <Button
+              variant={viewMode === "preview" ? "default" : "outline"}
+              size="icon"
               className="h-8 w-8"
               onClick={() => setViewMode("preview")}
             >
               <EyeIcon className="h-4 w-4" />
             </Button>
-            <Button 
-              variant={viewMode === "edit" ? "default" : "outline"} 
-              size="icon" 
-              className="h-8 w-8" 
+            <Button
+              variant={viewMode === "edit" ? "default" : "outline"}
+              size="icon"
+              className="h-8 w-8"
               onClick={() => setViewMode("edit")}
             >
               <Pencil className="h-4 w-4" />
@@ -225,7 +225,7 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
                     setImageError(true);
                   }}
                   unoptimized={editedNews.image.startsWith('data:')}
-                />  
+                />
               ) : (
                 <div className="flex items-center justify-center h-full">
                   <span className="text-gray-400">Görsel bulunamadı veya yüklenemedi</span>
@@ -262,9 +262,9 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
               {(editedNews.sourceUrl || extractedUrl) && (
                 <div className="pt-4">
                   <h4 className="font-medium mb-2">Kaynak</h4>
-                  <a 
-                    href={extractedUrl || editedNews.sourceUrl} 
-                    target="_blank" 
+                  <a
+                    href={extractedUrl || editedNews.sourceUrl}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-blue-600 hover:underline break-all"
                   >
@@ -276,26 +276,26 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
           </div>
         ) : (
           <div className="h-full overflow-y-auto overflow-x-hidden pr-2">
-          <div className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="title">Başlık</Label>
-              <Input
-                id="title"
-                value={editedNews.title}
-                onChange={(e) => handleChange("title", e.target.value)}
-                placeholder="Haber başlığı"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="content">İçerik</Label>
-              <Textarea
-                id="content"
-                value={editedNews.content}
-                onChange={(e) => handleChange("content", e.target.value)}
-                placeholder="Haber içeriği"
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="title">Başlık</Label>
+                <Input
+                  id="title"
+                  value={editedNews.title}
+                  onChange={(e) => handleChange("title", e.target.value)}
+                  placeholder="Haber başlığı"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="content">İçerik</Label>
+                <Textarea
+                  id="content"
+                  value={editedNews.content}
+                  onChange={(e) => handleChange("content", e.target.value)}
+                  placeholder="Haber içeriği"
                   className="min-h-[150px]"
-              />
-            </div>
+                />
+              </div>
               {extractedUrl && (
                 <div className="grid gap-2">
                   <Label htmlFor="extractedUrl">Çıkartılan URL</Label>
@@ -308,14 +308,14 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
                   <p className="text-xs text-gray-500">Bu URL, içerikten çıkartılmıştır ve kaynak olarak kullanılacaktır.</p>
                 </div>
               )}
-            <div className="grid gap-2">
+              <div className="grid gap-2">
                 <Label htmlFor="image">Görsel</Label>
                 <div className="space-y-2">
-              <Input
-                id="image"
-                  placeholder="Görsel URL'i"
-                  value={editedNews.image && (editedNews.image.startsWith('http') ? editedNews.image : '')}
-                onChange={(e) => handleChange("image", e.target.value)}
+                  <Input
+                    id="image"
+                    placeholder="Görsel URL'i"
+                    value={editedNews.image && (editedNews.image.startsWith('http') ? editedNews.image : '')}
+                    onChange={(e) => handleChange("image", e.target.value)}
                   />
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="imageUpload" className="text-xs text-gray-500">veya bir dosya yükle:</Label>
@@ -343,67 +343,67 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
                     </div>
                   )}
                 </div>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="sourceUrl">Kaynak URL</Label>
-              <Input
-                id="sourceUrl"
-                value={editedNews.sourceUrl}
-                onChange={(e) => handleChange("sourceUrl", e.target.value)}
-                placeholder="Kaynak URL'i"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="sport_id">Spor Dalı</Label>
-              <Select
-                value={editedNews.category}
-                onValueChange={(value) => handleChange("category", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Spor dalı seçin" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Futbol</SelectItem>
-                  <SelectItem value="2">Basketbol</SelectItem>
-                  <SelectItem value="3">Voleybol</SelectItem>
-                  <SelectItem value="4">Tenis</SelectItem>
-                  <SelectItem value="5">Yüzme</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="published_date">Yayın Tarihi</Label>
-              <Input
-                id="published_date"
-                type="date"
-                value={new Date(editedNews.date).toISOString().split('T')[0]}
-                onChange={(e) => handleChange("date", e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="status">Durum</Label>
-              <Select
-                value={editedNews.status}
-                onValueChange={(value) => handleChange("status", value as NewsStatus)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Durum seçin" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Aktif">Aktif</SelectItem>
-                  <SelectItem value="Pasif">Pasif</SelectItem>
-                  <SelectItem value="Taslak">Taslak</SelectItem>
-                  <SelectItem value="Onay Bekliyor">Onay Bekliyor</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="sourceUrl">Kaynak URL</Label>
+                <Input
+                  id="sourceUrl"
+                  value={editedNews.sourceUrl}
+                  onChange={(e) => handleChange("sourceUrl", e.target.value)}
+                  placeholder="Kaynak URL'i"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="sport_id">Spor Dalı</Label>
+                <Select
+                  value={editedNews.category}
+                  onValueChange={(value) => handleChange("category", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Spor dalı seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Futbol</SelectItem>
+                    <SelectItem value="2">Basketbol</SelectItem>
+                    <SelectItem value="3">Voleybol</SelectItem>
+                    <SelectItem value="4">Tenis</SelectItem>
+                    <SelectItem value="5">Yüzme</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="published_date">Yayın Tarihi</Label>
+                <Input
+                  id="published_date"
+                  type="date"
+                  value={new Date(editedNews.date).toISOString().split('T')[0]}
+                  onChange={(e) => handleChange("date", e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="status">Durum</Label>
+                <Select
+                  value={editedNews.status}
+                  onValueChange={(value) => handleChange("status", value as NewsStatus)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Durum seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Aktif">Aktif</SelectItem>
+                    <SelectItem value="Pasif">Pasif</SelectItem>
+                    <SelectItem value="Taslak">Taslak</SelectItem>
+                    <SelectItem value="Onay Bekliyor">Onay Bekliyor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="flex justify-end mt-4 pb-2">
-              <Button 
-                onClick={handleEditNews}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Kaydet
-              </Button>
+                <Button
+                  onClick={handleEditNews}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Kaydet
+                </Button>
               </div>
             </div>
           </div>

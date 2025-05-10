@@ -1,22 +1,11 @@
 "use client";
 
 import React from 'react';
-import type { ChangeEvent } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Search, Plus, Trash, Filter, ListFilter, CheckCircle2 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectTrigger } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -37,13 +26,11 @@ interface EventListProps {
     status: string[];
     approval_status: string[];
   };
-  newEvent: Partial<Event>;
   setSelectedEvent: (event: Event) => void;
   handleDeleteEvent: (id: string) => void;
   setSearchQuery: (query: string) => void;
   handleFilterChange: (type: 'category' | 'status' | 'approval_status', value: string) => void;
   getTotalSelectedFilters: () => number;
-  setNewEvent: React.Dispatch<React.SetStateAction<Partial<Event>>>;
   handleAddEvent: () => Promise<void>;
   formatDate: (dateString: string) => string;
   getStatusBadge: (status: string) => React.ReactElement;
@@ -56,13 +43,11 @@ const EventList: React.FC<EventListProps> = ({
   selectedEvent,
   searchQuery,
   selectedFilters,
-  newEvent,
   setSelectedEvent,
   handleDeleteEvent,
   setSearchQuery,
   handleFilterChange,
   getTotalSelectedFilters,
-  setNewEvent,
   handleAddEvent,
   formatDate,
   getStatusBadge,
@@ -82,14 +67,14 @@ const EventList: React.FC<EventListProps> = ({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full rounded-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
               />
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="rounded-none h-9 px-3 border-0 bg-background hover:bg-muted"
               >
                 <Search className="h-4 w-4" />
               </Button>
             </div>
-            
+
             <Select>
               <SelectTrigger className="w-10 h-10 p-0 [&>svg]:hidden">
                 <div className="flex items-center justify-center w-full h-full relative">
@@ -103,8 +88,8 @@ const EventList: React.FC<EventListProps> = ({
                 <div className="mb-2 px-2 font-semibold text-sm">Duruma Göre Filtrele</div>
                 <div className="flex flex-col gap-2 p-2">
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="filter-all" 
+                    <Checkbox
+                      id="filter-all"
                       checked={selectedFilters.status.length === 0}
                       onCheckedChange={(checked) => {
                         if (checked) {
@@ -118,8 +103,8 @@ const EventList: React.FC<EventListProps> = ({
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="filter-active" 
+                    <Checkbox
+                      id="filter-active"
                       checked={selectedFilters.status.includes("active")}
                       onCheckedChange={() => handleFilterChange('status', 'active')}
                     />
@@ -129,8 +114,8 @@ const EventList: React.FC<EventListProps> = ({
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="filter-draft" 
+                    <Checkbox
+                      id="filter-draft"
                       checked={selectedFilters.status.includes("draft")}
                       onCheckedChange={() => handleFilterChange('status', 'draft')}
                     />
@@ -140,8 +125,8 @@ const EventList: React.FC<EventListProps> = ({
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="filter-completed" 
+                    <Checkbox
+                      id="filter-completed"
                       checked={selectedFilters.status.includes("completed")}
                       onCheckedChange={() => handleFilterChange('status', 'completed')}
                     />
@@ -151,12 +136,12 @@ const EventList: React.FC<EventListProps> = ({
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="mb-2 px-2 font-semibold text-sm">Onay Durumuna Göre Filtrele</div>
                 <div className="flex flex-col gap-2 p-2">
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="filter-pending" 
+                    <Checkbox
+                      id="filter-pending"
                       checked={selectedFilters.approval_status.includes("pending")}
                       onCheckedChange={() => handleFilterChange('approval_status', 'pending')}
                     />
@@ -166,8 +151,8 @@ const EventList: React.FC<EventListProps> = ({
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="filter-approved" 
+                    <Checkbox
+                      id="filter-approved"
                       checked={selectedFilters.approval_status.includes("approved")}
                       onCheckedChange={() => handleFilterChange('approval_status', 'approved')}
                     />
@@ -177,8 +162,8 @@ const EventList: React.FC<EventListProps> = ({
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="filter-rejected" 
+                    <Checkbox
+                      id="filter-rejected"
                       checked={selectedFilters.approval_status.includes("rejected")}
                       onCheckedChange={() => handleFilterChange('approval_status', 'rejected')}
                     />
@@ -188,7 +173,7 @@ const EventList: React.FC<EventListProps> = ({
                     </div>
                   </div>
                 </div>
-                
+
                 {getTotalSelectedFilters() > 0 && (
                   <div className="flex justify-center p-2 pt-3 border-t">
                     <Button variant="outline" size="sm" onClick={() => {
@@ -203,7 +188,7 @@ const EventList: React.FC<EventListProps> = ({
               </SelectContent>
             </Select>
           </div>
-          
+
           <Button size="sm" className="gap-1" onClick={() => handleAddEvent()}>
             <Plus className="h-4 w-4" /> Yeni Etkinlik Ekle
           </Button>

@@ -5,7 +5,6 @@ import type { ReportedUser, ReportDetail } from '@/components/reports/types';
 
 // Debug mode for development - otomatik olarak false olacak şekilde ayarlıyoruz
 // Geliştirme sırasında true, prodüksiyonda false olmalı
-const ENV = process.env.NODE_ENV || 'development';
 const debug = false; // Mock veri kullanılsın mı? false = gerçek API kullan
 
 // API Konfigürasyonu
@@ -34,7 +33,7 @@ const mockReports: ReportDetail[] = [
     id: "report1",
     reporter_id: "user1",
     reporter_name: "Ahmet Yılmaz",
-    reported_id: "user2", 
+    reported_id: "user2",
     reported_name: "Mehmet Demir",
     event_id: undefined,
     event_name: undefined,
@@ -95,35 +94,35 @@ const preprocessReport = (report: any): ReportDetail => {
       admin_notes: null
     };
   }
-  
+
   // Raporlayan kullanıcı adı belirleme için öncelik sırası
   // 1. Doğrudan reporter_username alanı varsa kullan
   let reporterUsername = report.reporter_username;
-  
+
   // 2. Eski format reporterName alanı varsa kullan
   if (!reporterUsername && report.reporterName) {
     reporterUsername = report.reporterName;
   }
-  
+
   // 3. Reporter_name alanından kullanıcı adı çıkarmayı dene (email veya tam isim olabilir)
   if (!reporterUsername && report.reporter_name) {
     reporterUsername = extractUsernameFromEmail(report.reporter_name);
   }
-  
+
   // Raporlanan kullanıcı adı belirleme için benzer öncelik sırası
   // 1. Doğrudan reported_username alanı varsa kullan
   let reportedUsername = report.reported_username;
-  
+
   // 2. Eski format reportedName alanı varsa kullan
   if (!reportedUsername && report.reportedName) {
     reportedUsername = report.reportedName;
   }
-  
+
   // 3. Reported_name alanından kullanıcı adı çıkarmayı dene
   if (!reportedUsername && report.reported_name) {
     reportedUsername = extractUsernameFromEmail(report.reported_name);
   }
-  
+
   // Yeni format değerler varsa, onları kullanarak döndür
   if (report.reporter_id && report.reported_id) {
     // Eksik alanları doldur
@@ -144,7 +143,7 @@ const preprocessReport = (report: any): ReportDetail => {
       admin_notes: report.admin_notes !== undefined ? report.admin_notes : null
     };
   }
-  
+
   // Eski format değerler varsa, onları yeni formata çevirerek döndür
   if (report.reporterId && report.reportedId) {
     return {
@@ -174,7 +173,7 @@ const preprocessReport = (report: any): ReportDetail => {
       reviewerAdmin: report.reviewerAdmin
     };
   }
-  
+
   // Format tanınamıyorsa, tüm olası alanları kullanarak en iyi çıkarımı yap
   return {
     id: report.id || "unknown",
@@ -197,10 +196,10 @@ const preprocessReport = (report: any): ReportDetail => {
 // Helper function to extract username from email or name
 const extractUsernameFromEmail = (emailOrName?: string): string | undefined => {
   if (!emailOrName) return undefined;
-  
+
   // If it's an empty string, return undefined
   if (emailOrName.trim() === '') return undefined;
-  
+
   // If it looks like an email, extract the part before @
   if (emailOrName.includes('@')) {
     const username = emailOrName.split('@')[0];
@@ -209,7 +208,7 @@ const extractUsernameFromEmail = (emailOrName?: string): string | undefined => {
       return username.trim();
     }
   }
-  
+
   // If name contains spaces (likely a full name), return the first part
   if (emailOrName.includes(' ')) {
     const firstName = emailOrName.split(' ')[0];
@@ -217,7 +216,7 @@ const extractUsernameFromEmail = (emailOrName?: string): string | undefined => {
       return firstName.trim();
     }
   }
-  
+
   // Otherwise just return the name as username
   return emailOrName.trim();
 };
@@ -226,19 +225,19 @@ const extractUsernameFromEmail = (emailOrName?: string): string | undefined => {
 const transformReportsToUsers = (reports: ReportDetail[]): ReportedUser[] => {
   // Create a map to track unique users and their reports
   const userMap = new Map<string, ReportedUser>();
-  
+
   reports.forEach(report => {
     // Burada raporlanan kişinin ID'sini ve ismini kullanıyoruz, raporu oluşturan değil
-    const userId = report.reported_id || report.reportedId || "unknown"; 
-    
+    const userId = report.reported_id || report.reportedId || "unknown";
+
     // Kullanıcı adını belirlerken öncelik sırasını belirliyoruz
     let username: string | undefined;
-    
+
     // Öncelik sırası:
     // 1. Düz reported_username (API'den doğrudan gelen)
     if (report.reported_username) {
       username = report.reported_username;
-    } 
+    }
     // 2. Eski format reportedName (yeni API'ye uyumlu değil)
     else if (report.reportedName) {
       username = report.reportedName;
@@ -247,28 +246,28 @@ const transformReportsToUsers = (reports: ReportDetail[]): ReportedUser[] => {
     else if (report.reported_name) {
       username = extractUsernameFromEmail(report.reported_name);
     }
-    
+
     // Eğer hiçbir kullanıcı adı bulunamadıysa "Kullanıcı-ID" formatında bir ad oluştur
     if (!username || username.trim() === '') {
       username = `Kullanıcı-${userId.substring(0, 5)}`;
     }
-    
+
     if (userMap.has(userId)) {
       // Update existing user data
       const user = userMap.get(userId)!;
       user.reportCount += 1;
-      
+
       // Update last report date if this report is newer
       const reportDate = new Date(report.report_date || report.reportDate || new Date().toISOString());
       const lastReportDate = new Date(user.lastReportDate);
-      
+
       if (reportDate > lastReportDate) {
         user.lastReportDate = report.report_date || report.reportDate || new Date().toISOString();
         user.latestReportId = report.id;
-        
+
         // Update reporter info if available
         if (report.reporter_id) user.reporter_id = report.reporter_id;
-        
+
         // Raporlayanın kullanıcı adı için öncelik sıralaması
         if (report.reporter_username) {
           user.reporter_username = report.reporter_username;
@@ -281,7 +280,7 @@ const transformReportsToUsers = (reports: ReportDetail[]): ReportedUser[] => {
     } else {
       // Raporlayanın kullanıcı adını belirle - öncelik sıralaması
       let reporterUsername: string | undefined;
-      
+
       if (report.reporter_username) {
         reporterUsername = report.reporter_username;
       } else if (report.reporterName) {
@@ -289,7 +288,7 @@ const transformReportsToUsers = (reports: ReportDetail[]): ReportedUser[] => {
       } else if (report.reporter_name) {
         reporterUsername = extractUsernameFromEmail(report.reporter_name);
       }
-      
+
       // Create new user entry
       userMap.set(userId, {
         id: userId,
@@ -303,7 +302,7 @@ const transformReportsToUsers = (reports: ReportDetail[]): ReportedUser[] => {
       });
     }
   });
-  
+
   // Convert map to array
   return Array.from(userMap.values());
 };
@@ -317,7 +316,7 @@ class ReportService {
     if (!response) {
       return { data: [] as T[], total: 0, page: 1, limit: 10 };
     }
-    
+
     if (Array.isArray(response)) {
       // Doğrudan dizi
       return {
@@ -327,7 +326,7 @@ class ReportService {
         limit: response.length
       };
     }
-    
+
     if (response.data && Array.isArray(response.data)) {
       // data property içinde dizi
       return {
@@ -337,11 +336,11 @@ class ReportService {
         limit: response.limit || 10
       };
     }
-    
+
     // Hiçbiri değilse boş sonuç döndür
     return { data: [] as T[], total: 0, page: 1, limit: 10 };
   }
-  
+
   // Raporları önişler
   private preprocessReports(reports: any[]): ReportDetail[] {
     return reports.map(report => preprocessReport(report));
@@ -354,7 +353,7 @@ class ReportService {
       return response.data;
     } catch (error) {
       console.error("Create report error:", error);
-      
+
       // Debug modunda mock veri dön, değilse hatayı fırlat
       if (debug) {
         console.info("🔵 Mock veri kullanılıyor (createReport)");
@@ -375,12 +374,12 @@ class ReportService {
       const response = await api.get(this.BASE_PATH, {
         params: { page, limit }
       });
-      
+
       const extractedData = this.extractResponseData<any>(response.data);
       const processedReports = this.preprocessReports(extractedData.data);
-      
+
       console.log("🟢 API yanıtı başarıyla alındı (getAllReports)", processedReports.length);
-      
+
       return {
         data: processedReports,
         total: extractedData.total,
@@ -389,14 +388,14 @@ class ReportService {
       };
     } catch (error) {
       console.error("Get all reports error:", error);
-      
+
       // Debug modunda mock veri dön, değilse hatayı fırlat
       if (debug) {
         console.info("🔵 Mock veri kullanılıyor (getAllReports)");
         const start = (page - 1) * limit;
         const end = start + limit;
         const paginatedReports = mockReports.slice(start, end);
-        
+
         return {
           data: paginatedReports,
           total: mockReports.length,
@@ -416,7 +415,7 @@ class ReportService {
       return this.preprocessReports(extractedData.data);
     } catch (error) {
       console.error("Get event reports error:", error);
-      
+
       // Debug modunda mock veri dön, değilse hatayı fırlat
       if (debug) {
         console.info("🔵 Mock veri kullanılıyor (getEventReports)");
@@ -434,7 +433,7 @@ class ReportService {
       return this.preprocessReports(extractedData.data);
     } catch (error) {
       console.error("Get user reports error:", error);
-      
+
       // Debug modunda mock veri dön, değilse hatayı fırlat
       if (debug) {
         console.info("🔵 Mock veri kullanılıyor (getUserReports)");
@@ -452,7 +451,7 @@ class ReportService {
       return this.preprocessReports(extractedData.data);
     } catch (error) {
       console.error("Get my reports error:", error);
-      
+
       // Debug modunda mock veri dön, değilse hatayı fırlat
       if (debug) {
         console.info("🔵 Mock veri kullanılıyor (getMyReports)");
@@ -470,7 +469,7 @@ class ReportService {
       return preprocessReport(response.data.data || response.data);
     } catch (error) {
       console.error("Update report status error:", error);
-      
+
       // Debug modunda mock veri dön, değilse hatayı fırlat
       if (debug) {
         console.info("🔵 Mock veri kullanılıyor (updateReportStatus)");
@@ -499,10 +498,10 @@ class ReportService {
     try {
       // Use the standard reports endpoint
       const reportsResponse = await this.getAllReports(page, limit);
-      
+
       // Transform the report data into ReportedUser format
       const reportedUsers = transformReportsToUsers(reportsResponse.data);
-      
+
       return {
         data: reportedUsers,
         total: reportedUsers.length, // This is not accurate for total across all pages
@@ -511,7 +510,7 @@ class ReportService {
       };
     } catch (error) {
       console.error("Get reported users error:", error);
-      
+
       // Debug modunda mock veri dön, değilse hatayı fırlat
       if (debug) {
         console.info("🔵 Mock veri kullanılıyor (getReportedUsers)");
@@ -519,7 +518,7 @@ class ReportService {
         const mockUsers = transformReportsToUsers(mockReports);
         const start = (page - 1) * limit;
         const end = start + limit;
-        
+
         return {
           data: mockUsers.slice(start, end),
           total: mockUsers.length,
@@ -549,7 +548,7 @@ class ReportService {
         admin_notes: data.adminMessage,
         status: data.reviewed ? "reviewed" : "pending"
       };
-      
+
       return this.updateReportStatus(reportId, updateData);
     } catch (error) {
       throw handleApiError(error as AxiosError<ApiError>);
@@ -563,7 +562,7 @@ class ReportService {
       return response.data;
     } catch (error) {
       console.error("Remove report error:", error);
-      
+
       // Debug modunda mock veri dön, değilse hatayı fırlat
       if (debug) {
         console.info("🔵 Mock veri kullanılıyor (removeReport)");
@@ -581,7 +580,7 @@ class ReportService {
       return response.data;
     } catch (error) {
       console.error("Block user error:", error);
-      
+
       // Debug modunda mock veri dön, değilse hatayı fırlat
       if (debug) {
         console.info("🔵 Mock veri kullanılıyor (blockUser)");
@@ -598,36 +597,36 @@ class ReportService {
       const response = await api.get(this.BASE_PATH, {
         params: { search: searchTerm, status: status !== 'all' ? status : undefined }
       });
-      
+
       const extractedData = this.extractResponseData<any>(response.data);
       const processedReports = this.preprocessReports(extractedData.data);
-      
+
       // Transform the results to match ReportedUser format
       const reportedUsers = transformReportsToUsers(processedReports);
-      
+
       return reportedUsers;
     } catch (error) {
       console.error("Search reported users error:", error);
-      
+
       // Debug modunda mock veri dön, değilse hatayı fırlat
       if (debug) {
         console.info("🔵 Mock veri kullanılıyor (searchReportedUsers)");
         // Filter mock data based on search term
         let filteredReports = mockReports;
-        
+
         if (searchTerm) {
           const searchLower = searchTerm.toLowerCase();
-          filteredReports = mockReports.filter(r => 
+          filteredReports = mockReports.filter(r =>
             r.reported_name?.toLowerCase().includes(searchLower) ||
             r.report_reason.toLowerCase().includes(searchLower)
           );
         }
-        
+
         if (status !== 'all') {
           // Bu örnek için tüm raporlar aktif varsayılıyor
           // Gerçek bir uygulamada status değerine göre filtreleme yapılırdı
         }
-        
+
         return transformReportsToUsers(filteredReports);
       }
       throw handleApiError(error as AxiosError<ApiError>);

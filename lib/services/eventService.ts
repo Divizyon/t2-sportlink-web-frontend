@@ -170,6 +170,28 @@ class EventService {
   }
 
   /**
+   * Get event details by slug
+   */
+  async getEventBySlug(slug: string): Promise<{
+    success: boolean;
+    data?: Event;
+    message?: string;
+  }> {
+    try {
+      const response = await api.get(`/events/slug/${slug}`);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: handleApiError(error as AxiosError).message
+      };
+    }
+  }
+
+  /**
    * Create new event
    */
   async createEvent(eventData: Partial<Event>): Promise<{

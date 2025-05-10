@@ -3,7 +3,6 @@
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { DayPicker } from "react-day-picker"
-import type { DateRange, DayClickEventHandler } from "react-day-picker"
 import { tr } from 'date-fns/locale'
 
 import { cn } from "@/lib/utils"
@@ -20,7 +19,7 @@ function CalendarWithArrows({
   const [currentMonth, setCurrentMonth] = React.useState<Date>(
     props.defaultMonth || new Date()
   )
-  
+
   const handlePreviousMonth = () => {
     const newDate = new Date(currentMonth)
     newDate.setMonth(newDate.getMonth() - 1)
@@ -54,9 +53,9 @@ function CalendarWithArrows({
           <span className="sr-only">Önceki ay</span>
         </Button>
       </div>
-      
+
       {/* Takvim */}
-      <div className="relative z-0"> 
+      <div className="relative z-0">
         <DayPicker
           defaultMonth={currentMonth}
           month={currentMonth}
@@ -99,7 +98,7 @@ function CalendarWithArrows({
           {...props}
         />
       </div>
-      
+
       {/* Sağ Ok */}
       <div className="ml-2 flex items-center h-64 justify-center">
         <Button

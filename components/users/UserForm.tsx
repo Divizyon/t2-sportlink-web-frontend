@@ -106,7 +106,7 @@ export default function UserForm({ user, onSubmit, onCancel, isEditing = false }
           <Label htmlFor="phone">Telefon</Label>
           <Input
             id="phone"
-            value={formData.phone}
+            value={formData.phone || ""}
             onChange={(e) => handleChange("phone", e.target.value)}
             required
           />

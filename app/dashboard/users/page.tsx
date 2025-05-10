@@ -12,7 +12,6 @@ export default function UsersPage() {
   const {
     users,
     selectedUser,
-    isLoading,
     error,
     getUsers,
     updateUser,
@@ -22,13 +21,15 @@ export default function UsersPage() {
 
   // Local state for filtering and column visibility
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedColumns, setSelectedColumns] = useState({
+
+  // Sabit column yapılandırması
+  const selectedColumns = {
     email: true,
     phone: true,
     role: true,
     first_name: true,
     last_name: true,
-  });
+  };
 
   // Load users on component mount
   useEffect(() => {
@@ -65,15 +66,7 @@ export default function UsersPage() {
     getUsers({ searchQuery: value });
   };
 
-  // Handle column toggle
-  const handleColumnToggle = (column: keyof typeof selectedColumns) => {
-    setSelectedColumns((prev) => ({
-      ...prev,
-      [column]: !prev[column],
-    }));
-  };
-
-  // Handle user click
+  // Handle user click for details view
   const handleUserClick = (user: UserType) => {
     selectUser(user);
   };
@@ -113,10 +106,27 @@ export default function UsersPage() {
     searchQuery?: string | undefined;
     isActive?: boolean | undefined;
   }) => {
-    getUsers({
-      ...filters,
-      searchQuery: filters.searchQuery || searchQuery,
-    });
+    const queryParams: {
+      role?: string;
+      searchQuery?: string;
+      isActive?: boolean;
+    } = {};
+
+    if (filters.searchQuery) {
+      queryParams.searchQuery = filters.searchQuery;
+    } else if (searchQuery) {
+      queryParams.searchQuery = searchQuery;
+    }
+
+    if (filters.role !== undefined) {
+      queryParams.role = filters.role;
+    }
+
+    if (filters.isActive !== undefined) {
+      queryParams.isActive = filters.isActive;
+    }
+
+    getUsers(queryParams);
   };
 
   // Handle filter reset
@@ -149,7 +159,6 @@ export default function UsersPage() {
             selectedColumns={selectedColumns}
             searchQuery={searchQuery}
             onSearchChange={handleSearchChange}
-            onColumnToggle={handleColumnToggle}
             onUserClick={handleUserClick}
             onDeleteUser={handleDeleteUser}
             onUpdateUser={handleUpdateUser}
