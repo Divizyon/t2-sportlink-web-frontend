@@ -120,15 +120,15 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
     if (!dateString) return "Belirtilmemiş";
     
     try {
-      const date = new Date(dateString);
+    const date = new Date(dateString);
       // Check if date is valid before formatting
       if (isNaN(date.getTime())) return 'Belirtilmemiş';
       
-      return date.toLocaleDateString('tr-TR', { 
-        day: '2-digit', 
-        month: '2-digit', 
+    return date.toLocaleDateString('tr-TR', { 
+      day: '2-digit', 
+      month: '2-digit', 
         year: 'numeric'
-      });
+    });
     } catch (e) {
       return "Belirtilmemiş";
     }

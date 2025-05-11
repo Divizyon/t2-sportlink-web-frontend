@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Users, MapPin, Pencil, Clock, Trophy, Tag, Eye, Mail, Phone, Shield, Award, ChevronRight, AlertCircle, Info } from "lucide-react";
+import { Calendar, Users, MapPin, Pencil, Clock, Trophy, Tag, Eye, Mail, Phone, Shield, Award, ChevronRight, AlertCircle, Info, Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +51,73 @@ const EventPreview: React.FC<EventPreviewProps> = ({
   const [showAttendedEvents, setShowAttendedEvents] = useState(false);
   const [showSportsList, setShowSportsList] = useState(false);
   const [showReportsList, setShowReportsList] = useState(false);
+
+  // Türkçe karakterleri İngilizce karakterlere çeviren yardımcı fonksiyon
+  const toEnglish = (str: string) =>
+    str
+      .replace(/ı/g, 'i')
+      .replace(/İ/g, 'I')
+      .replace(/ş/g, 's')
+      .replace(/Ş/g, 'S')
+      .replace(/ö/g, 'o')
+      .replace(/Ö/g, 'O')
+      .replace(/ü/g, 'u')
+      .replace(/Ü/g, 'U')
+      .replace(/ç/g, 'c')
+      .replace(/Ç/g, 'C')
+      .replace(/ğ/g, 'g')
+      .replace(/Ğ/g, 'G');
+
+  // Katılımcıları CSV formatına dönüştüren ve indiren fonksiyon
+  const exportParticipantsToCSV = () => {
+    if (!selectedEvent || !selectedEvent.participants || selectedEvent.participants.length === 0) {
+      alert("İndirilebilecek katılımcı bulunamadı.");
+      return;
+    }
+
+    // CSV başlıkları
+    const headers = ['İsim', 'E-posta', 'Telefon', 'Kayıt Tarihi'];
+    
+    // Katılımcı verilerini hazırlama
+    const data = selectedEvent.participants.map(participant => {
+      const user = participant.user;
+      if (!user) return null;
+      
+      return [
+        `${user.first_name} ${user.last_name}`,
+        user.email,
+        user.phone || '-',
+        formatDate(participant.joined_at)
+      ];
+    }).filter(Boolean); // null değerleri filtrele
+    
+    // CSV içeriğini oluşturma
+    let csvContent = headers.join(',') + '\n';
+    
+    data.forEach(row => {
+      // Her hücredeki virgülleri kontrol et ve gerekirse tırnak içine al
+      const formattedRow = row?.map(cell => {
+        // Hücre içinde virgül, tırnak veya yeni satır varsa tırnak içine al
+        if (cell && (cell.includes(',') || cell.includes('"') || cell.includes('\n'))) {
+          // Tırnak içindeki tırnakları escape et
+          return `"${cell.replace(/"/g, '""')}"`;
+        }
+        return cell;
+      });
+      
+      csvContent += formattedRow?.join(',') + '\n';
+    });
+    
+    // CSV dosyasını indirme
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${toEnglish(selectedEvent.title)}_katilimcilar_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Katılımcılar tablosunu oluşturan yardımcı fonksiyon
   const renderParticipants = (participants: Participant[] | undefined) => {
@@ -211,8 +278,9 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                         variant="outline"
                         size="sm"
                         className="text-sm"
+                        onClick={exportParticipantsToCSV}
                       >
-                        <Mail className="h-4 w-4 mr-1" />
+                        <Download className="h-4 w-4 mr-1" />
                         Katılımcıları Dışa Aktar
                       </Button>
                     </div>

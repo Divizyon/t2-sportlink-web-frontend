@@ -41,7 +41,7 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const itemsPerPage = 10;
   const { toast } = useToast();
 
   // Ref ile ilk yükleme durumunu takip et

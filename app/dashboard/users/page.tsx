@@ -16,6 +16,7 @@ export default function UsersPage() {
     getUsers,
     updateUser,
     deleteUser,
+    createUser,
     selectUser,
     totalUsers,
     currentPage,
@@ -103,6 +104,34 @@ export default function UsersPage() {
     }
   };
 
+  // Handle user creation
+  const handleCreateUser = async (userData: Partial<UserType>) => {
+    try {
+      const result = await createUser(userData);
+      if (result.success) {
+        toast({
+          title: "Başarılı",
+          description: result.message || "Kullanıcı başarıyla oluşturuldu",
+        });
+        return result;
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Hata",
+          description: result.message || "Kullanıcı oluşturulurken bir hata oluştu",
+        });
+        throw new Error(result.message || "Kullanıcı oluşturulurken bir hata oluştu");
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: error.message || "Kullanıcı oluşturulurken bir hata oluştu",
+      });
+      throw error;
+    }
+  };
+
   // Handle filter change
   const handleFilterChange = (filters: {
     role?: string | undefined;
@@ -182,6 +211,7 @@ export default function UsersPage() {
             currentPage={currentPage}
             pageSize={pageSize}
             onPageChange={handlePageChange}
+            onCreateUser={handleCreateUser}
           />
         </div>
 

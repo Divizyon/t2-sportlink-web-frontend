@@ -31,7 +31,7 @@ interface EventListProps {
   setSearchQuery: (query: string) => void;
   handleFilterChange: (type: 'category' | 'status' | 'approval_status', value: string) => void;
   getTotalSelectedFilters: () => number;
-  handleAddEvent: () => Promise<void>;
+  handleAddEvent: () => void;
   formatDate: (dateString: string) => string;
   getStatusBadge: (status: string) => React.ReactElement;
   loading: boolean;
@@ -210,49 +210,11 @@ const EventList: React.FC<EventListProps> = ({
                   </div>
                 </div>
 
-                <div className="mb-2 px-2 font-semibold text-sm">Onay Durumuna Göre Filtrele</div>
-                <div className="flex flex-col gap-2 p-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="filter-pending"
-                      checked={selectedFilters.approval_status.includes("pending")}
-                      onCheckedChange={() => handleFilterChange('approval_status', 'pending')}
-                    />
-                    <div className="flex items-center text-sm cursor-pointer">
-                      <CheckCircle2 className="mr-2 h-4 w-4 text-orange-600" />
-                      <label htmlFor="filter-pending">Onay Bekliyor</label>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="filter-approved"
-                      checked={selectedFilters.approval_status.includes("approved")}
-                      onCheckedChange={() => handleFilterChange('approval_status', 'approved')}
-                    />
-                    <div className="flex items-center text-sm cursor-pointer">
-                      <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
-                      <label htmlFor="filter-approved">Onaylandı</label>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="filter-rejected"
-                      checked={selectedFilters.approval_status.includes("rejected")}
-                      onCheckedChange={() => handleFilterChange('approval_status', 'rejected')}
-                    />
-                    <div className="flex items-center text-sm cursor-pointer">
-                      <CheckCircle2 className="mr-2 h-4 w-4 text-red-600" />
-                      <label htmlFor="filter-rejected">Reddedildi</label>
-                    </div>
-                  </div>
-                </div>
-
                 {getTotalSelectedFilters() > 0 && (
                   <div className="flex justify-center p-2 pt-3 border-t">
                     <Button variant="outline" size="sm" onClick={() => {
                       setSearchQuery("");
                       handleFilterChange('status', 'all');
-                      handleFilterChange('approval_status', 'all');
                     }}>
                       Filtreleri Temizle
                     </Button>
@@ -296,7 +258,6 @@ const EventList: React.FC<EventListProps> = ({
                         <Button variant="outline" onClick={() => {
                           setSearchQuery("");
                           handleFilterChange('status', 'all');
-                          handleFilterChange('approval_status', 'all');
                         }}>
                           Filtreleri Temizle
                         </Button>

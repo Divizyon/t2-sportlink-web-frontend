@@ -239,18 +239,11 @@ export default function ReportsPage() {
     )
   }
 
-  if (reportIsLoading && reportedUsers.length === 0) {
-    return (
-      <div className="container mx-auto py-6">
-        <h1 className="text-2xl font-bold mb-4">Raporlar</h1>
-        <p>Yükleniyor...</p>
-      </div>
-    )
-  }
+
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Raporlar</h1>
+
 
       <div className="flex flex-col md:flex-row gap-4">
         {/* Sol panel (2/3) - Raporlanan kullanıcılar listesi */}

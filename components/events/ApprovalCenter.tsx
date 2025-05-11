@@ -246,4 +246,4 @@ const ApprovalCenter: React.FC<ApprovalCenterProps> = ({
   );
 };
 
-export default ApprovalCenter;
+export default ApprovalCenter; 

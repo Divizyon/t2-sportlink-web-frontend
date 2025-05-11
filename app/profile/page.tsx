@@ -5,15 +5,16 @@ import type { ProfileFormData } from "@/components/profile/ProfileForm";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Phone, Calendar, User, MapPin, Trophy, CalendarCheck } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Mail, Phone, Calendar, MapPin, Trophy, CalendarCheck } from "lucide-react";
+import { useEffect } from "react";
 import { useUserProfile } from "@/lib/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ProfilePage() {
   const { profile, loading, updateProfile } = useUserProfile();
-  const [createdEventsCount, setCreatedEventsCount] = useState<number>(0);
-  const [participatedEventsCount, setParticipatedEventsCount] = useState<number>(0);
+  // Kullanılmayan state yerine sabit değerler kullanıyoruz
+  const createdEventsCount = 0;
+  const participatedEventsCount = 0;
 
   useEffect(() => {
     // Load the profile when component mounts

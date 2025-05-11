@@ -12,11 +12,12 @@ import type { EventFilterParams } from "@/lib/services/eventService";
 import EventList from "@/components/events/EventList";
 import ApprovalCenter from "@/components/events/ApprovalCenter";
 import EventPreview from "@/components/events/EventPreview";
+import { EventFormModal } from "@/components/events/EventFormModal";
 
 export default function EventsPage() {
   const { toast } = useToast();
   // Use the role check again now that we've added default role
-  const { user, isLoading: authLoading, isAuthenticated, hasRequiredRole } = useAuth('admin');
+  const { isLoading: authLoading, isAuthenticated, hasRequiredRole } = useAuth('admin');
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
@@ -25,20 +26,6 @@ export default function EventsPage() {
     page: 1,
     limit: 10,
     pages: 0
-  });
-
-  const [newEvent, setNewEvent] = useState<Partial<Event>>({
-    title: "",
-    description: "",
-    event_date: "",
-    start_time: "",
-    end_time: "",
-    location_name: "",
-    max_participants: 10,
-    status: "draft" as 'draft',
-    approval_status: "pending" as "pending",
-    sport_id: "",
-    creator_id: user?.id || ""
   });
 
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
@@ -54,6 +41,9 @@ export default function EventsPage() {
     status: [],
     approval_status: []
   });
+
+  // Event modal için state ekleyelim
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
 
   // Kullanıcı doğrulamasını kontrol et
   useEffect(() => {
@@ -182,57 +172,6 @@ export default function EventsPage() {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleAddEvent = async () => {
-    try {
-      // Check if required fields are filled
-      if (!newEvent.title || !newEvent.description || !newEvent.event_date ||
-        !newEvent.start_time || !newEvent.end_time || !newEvent.location_name ||
-        !newEvent.sport_id) {
-        toast({
-          title: "Eksik Bilgi",
-          description: "Lütfen tüm zorunlu alanları doldurun",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Format dates for proper API submission
-      const formattedEvent = {
-        ...newEvent,
-        event_date: new Date(newEvent.event_date).toISOString(),
-        start_time: new Date(`${newEvent.event_date}T${newEvent.start_time}`).toISOString(),
-        end_time: new Date(`${newEvent.event_date}T${newEvent.end_time}`).toISOString(),
-        status: newEvent.status as 'active' | 'canceled' | 'completed' | 'draft'
-      };
-
-      const response = await eventService.createEvent(formattedEvent);
-
-      if (response.success && response.data) {
-        toast({
-          title: "Başarılı",
-          description: response.message || "Etkinlik başarıyla oluşturuldu",
-        });
-
-        // Etkinlik listesini güncelle
-        fetchEvents();
-        resetEvent();
-      } else {
-        toast({
-          title: "Hata",
-          description: response.message || "Etkinlik oluşturulurken bir hata oluştu",
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error("Etkinlik oluşturma hatası:", error);
-      toast({
-        title: "Hata",
-        description: error.message || "Etkinlik oluşturulurken bir hata oluştu",
-        variant: "destructive",
-      });
     }
   };
 
@@ -417,23 +356,7 @@ export default function EventsPage() {
   };
 
   const getTotalSelectedFilters = () => {
-    return selectedFilters.category.length + selectedFilters.status.length + selectedFilters.approval_status.length;
-  };
-
-  const resetEvent = () => {
-    setNewEvent({
-      title: "",
-      description: "",
-      event_date: "",
-      start_time: "",
-      end_time: "",
-      location_name: "",
-      max_participants: 10,
-      status: "draft" as 'draft',
-      approval_status: "pending" as "pending",
-      sport_id: "",
-      creator_id: user?.id || ""
-    });
+    return selectedFilters.category.length + selectedFilters.status.length;
   };
 
   // Tarih formatını düzenleyen yardımcı fonksiyon
@@ -573,6 +496,11 @@ export default function EventsPage() {
     });
   }, [pagination]);
 
+  // Modal açma fonksiyonu ekleyelim
+  const openEventModal = () => {
+    setIsEventModalOpen(true);
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 h-[calc(100vh-4rem)]">
       {/* Sol taraf (3/5) - İki parçaya bölünmüş */}
@@ -587,7 +515,7 @@ export default function EventsPage() {
           setSearchQuery={setSearchQuery}
           handleFilterChange={handleFilterChange}
           getTotalSelectedFilters={getTotalSelectedFilters}
-          handleAddEvent={handleAddEvent}
+          handleAddEvent={openEventModal}
           formatDate={formatDate}
           getStatusBadge={getStatusBadge}
           loading={loading}
@@ -622,6 +550,13 @@ export default function EventsPage() {
           handleEditEvent={handleEditEvent}
         />
       </div>
+      
+      {/* Event Form Modal */}
+      <EventFormModal
+        isOpen={isEventModalOpen}
+        onOpenChange={setIsEventModalOpen}
+        onSuccess={fetchEvents}
+      />
     </div>
   );
 } 
