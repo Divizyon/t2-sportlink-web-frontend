@@ -14,6 +14,7 @@ import type { Announcement, AnnouncementStatus } from "@/interfaces/announcement
 // Genişletilmiş duyuru tipi
 interface ExtendedAnnouncement extends Announcement {
   sourceUrl?: string;
+  source_url?: string;
   category?: string; // category bir gereklilik olarak tanımlanmışsa optional olarak ekleyin
 }
 
@@ -77,7 +78,7 @@ const AnnouncementPreview: React.FC<AnnouncementPreviewProps> = ({
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <div className="text-gray-500">Görüntülenecek duyuru seçilmedi</div>
+            <div className="text-gray-500 dark:text-gray-400">Görüntülenecek duyuru seçilmedi</div>
           </div>
         </CardContent>
       </Card>
@@ -110,7 +111,7 @@ const AnnouncementPreview: React.FC<AnnouncementPreviewProps> = ({
       <CardContent>
         {viewMode === "preview" ? (
           <div className="space-y-6">
-            <div className="relative h-48 w-full rounded-lg overflow-hidden bg-gray-100">
+            <div className="relative h-48 w-full rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
               {announcement.image ? (
                 <Image
                   src={announcement.image || defaultImage}
@@ -125,7 +126,7 @@ const AnnouncementPreview: React.FC<AnnouncementPreviewProps> = ({
                 />
               ) : (
                 <div className="flex items-center justify-center h-full w-full">
-                  <div className="text-gray-400 text-sm">Görsel bulunamadı</div>
+                  <div className="text-gray-400 dark:text-gray-500">Görsel bulunamadı</div>
                 </div>
               )}
             </div>
@@ -134,7 +135,7 @@ const AnnouncementPreview: React.FC<AnnouncementPreviewProps> = ({
                 <h3 className="text-2xl font-semibold">{announcement.title}</h3>
                 {getStatusBadge(announcement.published !== undefined ? announcement.published : (announcement.status || 'draft'))}
               </div>
-              <div className="space-y-2 text-sm text-gray-600">
+              <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   <span>Oluşturulma: {formatDate(announcement.created_at || announcement.createdAt || announcement.date)}</span>
@@ -162,18 +163,18 @@ const AnnouncementPreview: React.FC<AnnouncementPreviewProps> = ({
               </div>
               <div className="pt-4">
                 <h4 className="font-medium mb-2">Duyuru İçeriği</h4>
-                <p className="text-sm text-gray-600 whitespace-pre-line">{announcement.content}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line">{announcement.content}</p>
               </div>
               {announcement.sourceUrl && (
                 <div className="pt-4">
                   <h4 className="font-medium mb-2">Kaynak</h4>
                   <a
-                    href={announcement.sourceUrl}
+                    href={announcement.source_url || announcement.sourceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:underline"
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
                   >
-                    {announcement.sourceUrl}
+                    {announcement.source_url || announcement.sourceUrl}
                   </a>
                 </div>
               )}

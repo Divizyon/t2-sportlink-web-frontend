@@ -13,6 +13,7 @@ import useStore from '@/lib/store';
 import type { Announcement, AnnouncementStatus } from '@/interfaces/announcement';
 import { useToast } from '@/components/ui/use-toast';
 import { Checkbox } from "@/components/ui/checkbox";
+import { Pagination } from "@/components/ui/pagination";
 
 // StatusFilter için özel tip tanımı
 type StatusFilterType = AnnouncementStatus | "all" | "filtered" | "";
@@ -39,6 +40,8 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("all");
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const { toast } = useToast();
 
   // Ref ile ilk yükleme durumunu takip et
@@ -219,16 +222,20 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
     });
   }, [announcements, searchTerm, statusFilter, selectedStatuses]);
 
+  // Toplam sayfa sayısını hesapla
+  const totalPages = Math.ceil(filteredAnnouncements.length / itemsPerPage);
+
+  // Mevcut sayfadaki öğeleri hesapla
+  const currentItems = React.useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredAnnouncements.slice(startIndex, endIndex);
+  }, [filteredAnnouncements, currentPage, itemsPerPage]);
+
   // Sayfa değiştirme işlemi
   const handlePageChange = (page: number) => {
-    console.log(`handlePageChange çağrıldı: yeni sayfa=${page}, mevcut sayfa=${pagination.page}`);
-    // Zaten aynı sayfadaysak gereksiz API çağrısı yapmayalım
-    if (page !== pagination.page) {
-      console.log(`  → Sayfa değişikliği onaylandı, yeni veri çekiliyor: sayfa=${page}, limit=${pagination.limit}`);
-      getAnnouncements(page, pagination.limit);
-    } else {
-      console.log(`  → Aynı sayfa (${page}) seçildi, API çağrısı yapılmadı`);
-    }
+    console.log(`handlePageChange çağrıldı: yeni sayfa=${page}, mevcut sayfa=${currentPage}`);
+    setCurrentPage(page);
   };
 
   // ID oluşturma yardımcı fonksiyonu
@@ -419,7 +426,7 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
                 </TableCell>
               </TableRow>
             ) : (
-              filteredAnnouncements.map((announcement) => {
+              currentItems.map((announcement) => {
                 const announcementId = generateUniqueId(announcement);
                 const isSelected = selectedAnnouncement?.id === announcementId;
                 
@@ -430,7 +437,8 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
                       backgroundColor: '#d1fae5 !important',
                       borderLeft: '6px solid #059669'
                     } : {}}
-                    className={`cursor-pointer ${isSelected ? '!bg-green-100 hover:!bg-green-200' : 'hover:bg-muted'}`}
+                    data-selected={isSelected ? "true" : "false"}
+                    className={`cursor-pointer ${isSelected ? '!bg-green-100 dark:!bg-slate-700 hover:!bg-green-200 dark:hover:!bg-slate-600 dark:[&[data-selected=true]]:border-l-slate-500' : 'hover:bg-muted'}`}
                     onClick={() => {
                       const announcementWithId = {
                         ...announcement,
@@ -487,19 +495,17 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
       </div>
 
       {/* Sayfalama */}
-      {pagination.totalPages > 1 && (
-        <div className="flex justify-center mt-4">
-          <div className="flex gap-2">
-            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
-              <Button
-                key={page}
-                variant={page === pagination.page ? "default" : "outline"}
-                size="sm"
-                onClick={() => handlePageChange(page)}
-              >
-                {page}
-              </Button>
-            ))}
+      {filteredAnnouncements.length > itemsPerPage && (
+        <div className="mt-4 border-t p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Toplam <strong>{filteredAnnouncements.length}</strong> duyuru, sayfa <strong>{currentPage}</strong>/<strong>{totalPages}</strong>
+            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages > 0 ? totalPages : 1}
+              onPageChange={handlePageChange}
+            />
           </div>
         </div>
       )}

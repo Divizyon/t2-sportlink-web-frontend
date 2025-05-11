@@ -74,9 +74,9 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
             name="firstName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Ad</FormLabel>
+                <FormLabel className="dark:text-gray-200">Ad</FormLabel>
                 <FormControl>
-                  <Input placeholder="Adınız" {...field} />
+                  <Input placeholder="Adınız" {...field} className="dark:border-slate-700" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -88,9 +88,9 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
             name="lastName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Soyad</FormLabel>
+                <FormLabel className="dark:text-gray-200">Soyad</FormLabel>
                 <FormControl>
-                  <Input placeholder="Soyadınız" {...field} />
+                  <Input placeholder="Soyadınız" {...field} className="dark:border-slate-700" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -103,11 +103,11 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
           name="username"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Kullanıcı Adı</FormLabel>
+              <FormLabel className="dark:text-gray-200">Kullanıcı Adı</FormLabel>
               <FormControl>
-                <Input placeholder="kullanici_adi" {...field} />
+                <Input placeholder="kullanici_adi" {...field} className="dark:border-slate-700" />
               </FormControl>
-              <FormDescription>
+              <FormDescription className="dark:text-gray-400">
                 Kullanıcı adınız sadece harf, rakam ve alt çizgi içerebilir.
               </FormDescription>
               <FormMessage />
@@ -120,11 +120,11 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>E-posta</FormLabel>
+              <FormLabel className="dark:text-gray-200">E-posta</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="ornek@email.com" {...field} />
+                <Input type="email" placeholder="ornek@email.com" {...field} className="dark:border-slate-700" />
               </FormControl>
-              <FormDescription>
+              <FormDescription className="dark:text-gray-400">
                 Bu e-posta adresi bildirimler için kullanılacaktır.
               </FormDescription>
               <FormMessage />
@@ -137,9 +137,9 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
           name="phone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Telefon</FormLabel>
+              <FormLabel className="dark:text-gray-200">Telefon</FormLabel>
               <FormControl>
-                <Input placeholder="5XX XXX XX XX" {...field} />
+                <Input placeholder="5XX XXX XX XX" {...field} className="dark:border-slate-700" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -151,14 +151,14 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
           name="role"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Rol</FormLabel>
+              <FormLabel className="dark:text-gray-200">Rol</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="dark:border-slate-700">
                     <SelectValue placeholder="Rol seçiniz" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent className="dark:border-slate-700">
                   <SelectItem value="superadmin">Süperadmin</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="user">Üye</SelectItem>
@@ -169,9 +169,9 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
           )}
         />
 
-        <div className="border-t pt-4 mt-6">
-          <h3 className="text-base font-medium mb-4">Şifre Değiştirme</h3>
-          <p className="text-sm text-muted-foreground mb-4">
+        <div className="border-t dark:border-slate-700 pt-4 mt-6">
+          <h3 className="text-base font-medium mb-4 dark:text-gray-200">Şifre Değiştirme</h3>
+          <p className="text-sm text-muted-foreground mb-4 dark:text-gray-400">
             Şifrenizi değiştirmek istiyorsanız, aşağıdaki alanları doldurun. Değiştirmek istemiyorsanız boş bırakabilirsiniz.
           </p>
           <div className="space-y-4">
@@ -180,11 +180,11 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Yeni Şifre</FormLabel>
+                  <FormLabel className="dark:text-gray-200">Yeni Şifre</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Yeni şifre" {...field} />
+                    <Input type="password" placeholder="Yeni şifre" {...field} className="dark:border-slate-700" />
                   </FormControl>
-                  <FormDescription>
+                  <FormDescription className="dark:text-gray-400">
                     En az 6 karakter ve en az bir harf içermelidir.
                   </FormDescription>
                   <FormMessage />
@@ -197,9 +197,9 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
               name="confirmPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Şifre Onayı</FormLabel>
+                  <FormLabel className="dark:text-gray-200">Şifre Onayı</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Şifrenizi tekrar girin" {...field} />
+                    <Input type="password" placeholder="Şifrenizi tekrar girin" {...field} className="dark:border-slate-700" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -209,7 +209,7 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
         </div>
 
         <div className="flex justify-end space-x-4">
-          <Button type="submit">
+          <Button type="submit" className="dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white">
             Kaydet
           </Button>
         </div>

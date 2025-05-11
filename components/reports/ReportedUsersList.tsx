@@ -121,7 +121,16 @@ export function ReportedUsersList({
           {reportedUsers.map((user) => (
             <TableRow
               key={user.id}
-              className={`cursor-pointer ${selectedUser?.id === user.id ? 'bg-muted' : ''}`}
+              style={selectedUser?.id === user.id ? { 
+                backgroundColor: '#d1fae5 !important',
+                borderLeft: '6px solid #059669'
+              } : {}}
+              data-selected={selectedUser?.id === user.id ? "true" : "false"}
+              className={`cursor-pointer ${
+                selectedUser?.id === user.id 
+                  ? '!bg-green-100 dark:!bg-slate-700 hover:!bg-green-200 dark:hover:!bg-slate-600 dark:[&[data-selected=true]]:border-l-slate-500' 
+                  : 'hover:bg-muted'
+              }`}
               onClick={() => handleUserSelect(user)}
             >
               <TableCell>

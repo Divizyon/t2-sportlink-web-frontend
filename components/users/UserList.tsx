@@ -133,12 +133,12 @@ export default function UserList({
   }, [users, selectedUser, onUserClick]);
 
   return (
-    <Card className="h-full flex flex-col rounded-l-none border-l-0 rounded-b-none border-b-0">
+    <Card className="h-full flex flex-col rounded-l-none border-l-0 rounded-b-none border-b-0 dark:border-slate-700">
       <CardHeader className="pl-4 pb-2">
         <CardTitle>Kullanıcı Yönetimi</CardTitle>
         <div className="flex items-center justify-between gap-2 mt-2">
           <div className="flex items-center gap-4">
-            <div className="relative flex w-[300px] overflow-hidden rounded-md ring-1 ring-input">
+            <div className="relative flex w-[300px] overflow-hidden rounded-md ring-1 ring-input dark:ring-slate-700">
               <Input
                 placeholder="Kullanıcı ara..."
                 value={searchQuery}
@@ -147,7 +147,7 @@ export default function UserList({
               />
               <Button
                 variant="outline"
-                className="rounded-none h-9 px-3 border-0 bg-background hover:bg-muted"
+                className="rounded-none h-9 px-3 border-0 bg-background hover:bg-muted dark:hover:bg-slate-700"
                 onClick={() => {
                   console.log("Arama yapılıyor:", searchQuery);
                 }}
@@ -168,11 +168,11 @@ export default function UserList({
         </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
-        <div className="rounded-md rounded-b-none border border-b-0 mx-4 mt-0 mb-0 flex-1 flex flex-col">
+        <div className="rounded-md rounded-b-none border border-b-0 dark:border-slate-700 mx-4 mt-0 mb-0 flex-1 flex flex-col">
           <div className="overflow-auto h-[calc(100vh-180px)]">
             <Table className="w-full">
-              <TableHeader className="sticky top-0 bg-card z-10">
-                <TableRow className="bg-muted/50">
+              <TableHeader className="sticky top-0 bg-card dark:bg-slate-900 z-10">
+                <TableRow className="bg-muted/50 dark:bg-slate-800/50">
                   <TableHead className="font-semibold">Kullanıcı</TableHead>
                   {selectedColumns.email && (
                     <TableHead className="font-semibold">E-posta</TableHead>
@@ -193,7 +193,7 @@ export default function UserList({
                       <div className="flex flex-col items-center py-6">
                         <h3 className="text-lg font-medium mb-2">Kullanıcı bulunamadı</h3>
                         <p className="text-muted-foreground mb-4">Farklı filtreler kullanmayı veya arama terimini değiştirmeyi deneyin.</p>
-                        <Button variant="outline" onClick={onFilterReset}>
+                        <Button variant="outline" onClick={onFilterReset} className="dark:border-slate-700 dark:hover:bg-slate-800">
                           Filtreleri Temizle
                         </Button>
                       </div>
@@ -203,7 +203,7 @@ export default function UserList({
                   users.map((user) => (
                     <TableRow
                       key={user.id}
-                      className={`cursor-pointer ${selectedUser?.id === user.id ? '!bg-green-100 hover:!bg-green-200' : 'hover:bg-muted'}`}
+                      className={`cursor-pointer ${selectedUser?.id === user.id ? '!bg-green-100 dark:!bg-slate-800 hover:!bg-green-200 dark:hover:!bg-slate-700' : 'hover:bg-muted dark:hover:bg-slate-800/40'}`}
                       style={{
                         borderLeft: selectedUser?.id === user.id ? '4px solid #10b981' : 'none'
                       }}
@@ -211,15 +211,15 @@ export default function UserList({
                     >
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9 border">
+                          <Avatar className="h-9 w-9 border dark:border-slate-700">
                             <AvatarImage src={user.profile_picture || undefined} />
-                            <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                            <AvatarFallback className="bg-primary/10 text-primary font-medium dark:bg-primary/20">
                               {user.first_name?.[0]}{user.last_name?.[0]}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <div className="font-medium">{user.first_name} {user.last_name}</div>
-                            <div className="text-xs text-muted-foreground">@{user.username}</div>
+                            <div className="font-medium dark:text-gray-200">{user.first_name} {user.last_name}</div>
+                            <div className="text-xs text-muted-foreground dark:text-gray-400">@{user.username}</div>
                           </div>
                         </div>
                       </TableCell>
@@ -258,9 +258,9 @@ export default function UserList({
                             >
                               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                             </svg>
-                            {user.phone
-                              ? user.phone
-                              : <span className="text-muted-foreground italic">Belirtilmemiş</span>
+                            {user.phone && user.phone !== "" && user.phone !== "null" && user.phone !== "undefined"
+                              ? <span className="dark:text-gray-200">{user.phone}</span>
+                              : <span className="text-muted-foreground italic dark:text-gray-400">Belirtilmemiş</span>
                             }
                           </div>
                         </TableCell>
@@ -308,10 +308,10 @@ export default function UserList({
         
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="border border-t-0 rounded-b-md rounded-t-none mx-4 py-2 px-4">
+          <div className="border border-t-0 dark:border-slate-700 rounded-b-md rounded-t-none mx-4 py-2 px-4">
             <div className="flex items-center justify-between">
               <div className="flex-1 text-sm text-muted-foreground">
-                Toplam <strong>{totalUsersProp}</strong> kullanıcı, <strong>{pageSize}</strong> kayıt/sayfa
+                Toplam <strong className="dark:text-gray-300">{totalUsersProp}</strong> kullanıcı, <strong className="dark:text-gray-300">{pageSize}</strong> kayıt/sayfa
               </div>
               <div className="flex items-center gap-1">
                 <Button
@@ -319,7 +319,7 @@ export default function UserList({
                   size="icon"
                   onClick={() => onPageChange(currentPage - 1)}
                   disabled={currentPage <= 1}
-                  className="h-7 w-7"
+                  className="h-7 w-7 dark:border-slate-700 dark:hover:bg-slate-800"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   <span className="sr-only">Önceki Sayfa</span>
@@ -331,7 +331,7 @@ export default function UserList({
                       key={`ellipsis-${index}`}
                       variant="outline"
                       size="icon"
-                      className="h-7 w-7 cursor-default"
+                      className="h-7 w-7 cursor-default dark:border-slate-700"
                       disabled
                     >
                       <MoreHorizontal className="h-4 w-4" />
@@ -342,7 +342,7 @@ export default function UserList({
                       variant={currentPage === page ? "default" : "outline"}
                       size="icon"
                       onClick={() => onPageChange(page as number)}
-                      className="h-7 w-7"
+                      className={`h-7 w-7 ${currentPage !== page ? 'dark:border-slate-700 dark:hover:bg-slate-800' : ''}`}
                     >
                       {page}
                     </Button>
@@ -354,7 +354,7 @@ export default function UserList({
                   size="icon"
                   onClick={() => onPageChange(currentPage + 1)}
                   disabled={currentPage >= totalPages}
-                  className="h-7 w-7"
+                  className="h-7 w-7 dark:border-slate-700 dark:hover:bg-slate-800"
                 >
                   <ChevronRight className="h-4 w-4" />
                   <span className="sr-only">Sonraki Sayfa</span>

@@ -53,17 +53,20 @@ export function UserProfileCard({
 
   // Format date
   const formatDate = (dateString?: string): string => {
-    if (!dateString) return 'Bilinmiyor';
+    if (!dateString) return 'Belirtilmemiş';
 
     try {
       const date = new Date(dateString);
+      // Check if date is valid before formatting
+      if (isNaN(date.getTime())) return 'Belirtilmemiş';
+      
       return new Intl.DateTimeFormat('tr-TR', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
       }).format(date);
     } catch (e) {
-      return dateString;
+      return 'Belirtilmemiş';
     }
   };
 

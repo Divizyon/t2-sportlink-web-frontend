@@ -116,16 +116,22 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
   }
 
   // Tarihi kısa formatta biçimlendir
-  const formatShortDate = (dateString: string) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString('tr-TR', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const formatShortDate = (dateString: string | undefined) => {
+    if (!dateString) return "Belirtilmemiş";
+    
+    try {
+      const date = new Date(dateString);
+      // Check if date is valid before formatting
+      if (isNaN(date.getTime())) return 'Belirtilmemiş';
+      
+      return date.toLocaleDateString('tr-TR', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric'
+      });
+    } catch (e) {
+      return "Belirtilmemiş";
+    }
   }
 
   const getTitle = () => {
@@ -235,18 +241,18 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
 
               <div className="space-y-6">
                 {/* Profil Başlık */}
-                <div className="flex flex-col items-center space-y-3 bg-gradient-to-r from-green-50 to-blue-50 py-4 px-3 rounded-lg">
-                  <Avatar className="h-24 w-24 border-2 border-white shadow-md">
+                <div className="flex flex-col items-center space-y-3 bg-gradient-to-r dark:from-slate-800 dark:to-slate-800 from-green-50/90 to-blue-50/90 py-4 px-3 rounded-lg border dark:border-slate-700">
+                  <Avatar className="h-24 w-24 border-2 border-white dark:border-slate-600 shadow-md">
                     <AvatarImage src={profilePicture || undefined} alt={fullName} />
                     <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="text-center">
-                    <h3 className="font-bold text-xl text-gray-800">{fullName}</h3>
+                    <h3 className="font-bold text-xl text-gray-800 dark:text-gray-100">{fullName}</h3>
                     <div className="flex items-center justify-center gap-2 mt-1">
-                      <span className="text-sm text-gray-600">@{profile.username}</span>
-                      <Badge className="bg-green-500 hover:bg-green-600">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">@{profile.username}</span>
+                      <Badge className="bg-green-500 hover:bg-green-600 dark:bg-green-600/80 dark:hover:bg-green-600">
                         {profile.role === 'superadmin' ? 'Süper Admin' :
                           profile.role === 'admin' ? 'Admin' :
                             profile.role === 'manager' ? 'Yönetici' : 'Kullanıcı'}
@@ -256,41 +262,41 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
                 </div>
 
                 {/* Kişisel Bilgiler */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Kişisel Bilgiler</h3>
+                <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border dark:border-slate-700">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Kişisel Bilgiler</h3>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-blue-500" />
-                        <span className="text-sm font-medium text-gray-700">E-posta</span>
+                        <Mail className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">E-posta</span>
                       </div>
-                      <span className="text-sm bg-white px-2 py-1 rounded border">{profile.email}</span>
+                      <span className="text-sm bg-white dark:bg-slate-700/80 px-2 py-1 rounded border dark:border-slate-600">{profile.email}</span>
                     </div>
 
                     <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-green-500" />
-                        <span className="text-sm font-medium text-gray-700">Telefon</span>
+                        <Phone className="h-4 w-4 text-green-500 dark:text-green-400" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Telefon</span>
                       </div>
-                      <span className="text-sm bg-white px-2 py-1 rounded border">{profile.phone || 'Belirtilmemiş'}</span>
+                      <span className="text-sm bg-white dark:bg-slate-700/80 px-2 py-1 rounded border dark:border-slate-600">{profile.phone || 'Belirtilmemiş'}</span>
                     </div>
 
                     <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-purple-500" />
-                        <span className="text-sm font-medium text-gray-700">Kayıt</span>
+                        <Calendar className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Kayıt</span>
                       </div>
-                      <span className="text-sm bg-white px-2 py-1 rounded border">
+                      <span className="text-sm bg-white dark:bg-slate-700/80 px-2 py-1 rounded border dark:border-slate-600">
                         {formatShortDate(registerDate)}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-red-500" />
-                        <span className="text-sm font-medium text-gray-700">Konum</span>
+                        <MapPin className="h-4 w-4 text-red-500 dark:text-red-400" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Konum</span>
                       </div>
-                      <span className="text-sm bg-white px-2 py-1 rounded border truncate">
+                      <span className="text-sm bg-white dark:bg-slate-700/80 px-2 py-1 rounded border dark:border-slate-600 truncate">
                         {locationInfo}
                       </span>
                     </div>
@@ -298,28 +304,28 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
                 </div>
 
                 {/* İstatistikler */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">İstatistikler</h3>
+                <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border dark:border-slate-700">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">İstatistikler</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <button 
-                      className="flex flex-col items-center justify-center p-3 bg-white rounded-md border cursor-pointer hover:bg-gray-50 transition-colors"
+                      className="flex flex-col items-center justify-center p-3 bg-white dark:bg-slate-700/80 rounded-md border dark:border-slate-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors"
                       onClick={() => setCreatedEventsOpen(true)}
                     >
-                      <div className="w-6 h-6 flex items-center justify-center text-amber-500 mb-1">
+                      <div className="w-6 h-6 flex items-center justify-center text-amber-500 dark:text-amber-400 mb-1">
                         <Star className="h-4 w-4" />
                       </div>
-                      <p className="text-sm font-medium">{isLoadingEvents ? "..." : createdEvents.length}</p>
-                      <p className="text-xs text-gray-500 text-center">Oluşturduğum<br/>Etkinlikler</p>
+                      <p className="text-sm font-medium dark:text-gray-200">{isLoadingEvents ? "..." : createdEvents.length}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center">Oluşturduğum<br/>Etkinlikler</p>
                     </button>
                     <button 
-                      className="flex flex-col items-center justify-center p-3 bg-white rounded-md border cursor-pointer hover:bg-gray-50 transition-colors"
+                      className="flex flex-col items-center justify-center p-3 bg-white dark:bg-slate-700/80 rounded-md border dark:border-slate-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors"
                       onClick={() => setParticipatedEventsOpen(true)}
                     >
-                      <div className="w-6 h-6 flex items-center justify-center text-blue-500 mb-1">
+                      <div className="w-6 h-6 flex items-center justify-center text-blue-500 dark:text-blue-400 mb-1">
                         <CalendarCheck className="h-4 w-4" />
                       </div>
-                      <p className="text-sm font-medium">{isLoadingEvents ? "..." : participatedEvents.length}</p>
-                      <p className="text-xs text-gray-500 text-center">Katıldığım<br/>Etkinlikler</p>
+                      <p className="text-sm font-medium dark:text-gray-200">{isLoadingEvents ? "..." : participatedEvents.length}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center">Katıldığım<br/>Etkinlikler</p>
                     </button>
                   </div>
                 </div>
@@ -380,10 +386,10 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
 
       {/* Oluşturulan Etkinlikler Diyalogu */}
       <Dialog open={createdEventsOpen} onOpenChange={setCreatedEventsOpen}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-auto">
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-auto dark:border-slate-700">
           <DialogHeader>
             <DialogTitle>Oluşturulan Etkinlikler</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="dark:text-gray-400">
               {profile.first_name} {profile.last_name} tarafından oluşturulan etkinlikler
             </DialogDescription>
           </DialogHeader>
@@ -400,30 +406,30 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
           ) : (
             <div className="space-y-3 mt-2">
               {createdEvents.map((event) => (
-                <div key={event.id} className="border rounded-md p-3 bg-gray-50">
-                  <h4 className="font-medium text-sm">{event.title}</h4>
+                <div key={event.id} className="border dark:border-slate-700 rounded-md p-3 bg-gray-50 dark:bg-slate-800/50">
+                  <h4 className="font-medium text-sm dark:text-gray-200">{event.title}</h4>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
                     {event.event_date && (
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-3.5 w-3.5" />
-                        <span>{formatShortDate(event.event_date)}</span>
+                        <Calendar className="h-3.5 w-3.5 dark:text-gray-400" />
+                        <span className="dark:text-gray-400">{formatShortDate(event.event_date)}</span>
                       </div>
                     )}
                     {event.location && (
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-3.5 w-3.5" />
-                        <span>{event.location}</span>
+                        <MapPin className="h-3.5 w-3.5 dark:text-gray-400" />
+                        <span className="dark:text-gray-400">{event.location}</span>
                       </div>
                     )}
                     {event.sport?.name && (
                       <div className="flex items-center gap-2">
-                        <Trophy className="h-3.5 w-3.5" />
-                        <span>{event.sport.name}</span>
+                        <Trophy className="h-3.5 w-3.5 dark:text-gray-400" />
+                        <span className="dark:text-gray-400">{event.sport.name}</span>
                       </div>
                     )}
                     {event.status && (
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="h-5 px-1.5 text-xs">
+                        <Badge variant="outline" className="h-5 px-1.5 text-xs dark:border-slate-600 dark:bg-slate-700/80 dark:text-gray-300">
                           {event.status}
                         </Badge>
                       </div>
@@ -436,7 +442,7 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
           
           <div className="mt-4 flex justify-end">
             <DialogClose asChild>
-              <Button variant="outline">Kapat</Button>
+              <Button variant="outline" className="dark:border-slate-600 dark:hover:bg-slate-700">Kapat</Button>
             </DialogClose>
           </div>
         </DialogContent>
@@ -444,10 +450,10 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
 
       {/* Katılınan Etkinlikler Diyalogu */}
       <Dialog open={participatedEventsOpen} onOpenChange={setParticipatedEventsOpen}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-auto">
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-auto dark:border-slate-700">
           <DialogHeader>
             <DialogTitle>Katılınan Etkinlikler</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="dark:text-gray-400">
               {profile.first_name} {profile.last_name} tarafından katılınan etkinlikler
             </DialogDescription>
           </DialogHeader>
@@ -464,30 +470,30 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
           ) : (
             <div className="space-y-3 mt-2">
               {participatedEvents.map((event) => (
-                <div key={event.id} className="border rounded-md p-3 bg-gray-50">
-                  <h4 className="font-medium text-sm">{event.title}</h4>
+                <div key={event.id} className="border dark:border-slate-700 rounded-md p-3 bg-gray-50 dark:bg-slate-800/50">
+                  <h4 className="font-medium text-sm dark:text-gray-200">{event.title}</h4>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
                     {event.event_date && (
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-3.5 w-3.5" />
-                        <span>{formatShortDate(event.event_date)}</span>
+                        <Calendar className="h-3.5 w-3.5 dark:text-gray-400" />
+                        <span className="dark:text-gray-400">{formatShortDate(event.event_date)}</span>
                       </div>
                     )}
                     {event.location && (
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-3.5 w-3.5" />
-                        <span>{event.location}</span>
+                        <MapPin className="h-3.5 w-3.5 dark:text-gray-400" />
+                        <span className="dark:text-gray-400">{event.location}</span>
                       </div>
                     )}
                     {event.sport?.name && (
                       <div className="flex items-center gap-2">
-                        <Trophy className="h-3.5 w-3.5" />
-                        <span>{event.sport.name}</span>
+                        <Trophy className="h-3.5 w-3.5 dark:text-gray-400" />
+                        <span className="dark:text-gray-400">{event.sport.name}</span>
                       </div>
                     )}
                     {event.status && (
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="h-5 px-1.5 text-xs">
+                        <Badge variant="outline" className="h-5 px-1.5 text-xs dark:border-slate-600 dark:bg-slate-700/80 dark:text-gray-300">
                           {event.status}
                         </Badge>
                       </div>
@@ -500,7 +506,7 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
           
           <div className="mt-4 flex justify-end">
             <DialogClose asChild>
-              <Button variant="outline">Kapat</Button>
+              <Button variant="outline" className="dark:border-slate-600 dark:hover:bg-slate-700">Kapat</Button>
             </DialogClose>
           </div>
         </DialogContent>
@@ -508,17 +514,17 @@ export function TopBar({ onProfilePanelChange }: TopBarProps) {
       
       {/* Edit Profile Dialog */}
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent className="sm:max-w-[600px] h-[90vh] overflow-y-auto">
-          <DialogHeader className="px-6 pt-5 pb-3 bg-gradient-to-r from-green-50 to-blue-50 border-b">
+        <DialogContent className="sm:max-w-[600px] h-[90vh] overflow-y-auto dark:border-slate-700">
+          <DialogHeader className="px-6 pt-5 pb-3 bg-gradient-to-r from-green-50/90 to-blue-50/90 dark:from-slate-800 dark:to-slate-800 border-b dark:border-slate-700">
             <div className="flex items-center justify-between">
               <div>
-                <DialogTitle className="text-xl">Profil Bilgilerini Düzenle</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-xl dark:text-gray-100">Profil Bilgilerini Düzenle</DialogTitle>
+                <DialogDescription className="dark:text-gray-400">
                   Kişisel bilgilerinizi güncelleyebilirsiniz. Değişiklikler profilinize hemen yansıyacaktır.
                 </DialogDescription>
               </div>
               <DialogClose asChild>
-                <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
+                <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 dark:hover:bg-slate-700">
                   <X className="h-4 w-4" />
                 </Button>
               </DialogClose>

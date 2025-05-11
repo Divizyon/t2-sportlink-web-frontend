@@ -107,7 +107,7 @@ const NewsApprovalCenter: React.FC<NewsApprovalCenterProps> = ({
                         backgroundColor: '#d1fae5 !important',
                         borderLeft: '6px solid #059669'
                       } : {}}
-                        className={`cursor-pointer ${isSelected ? '!bg-green-100 hover:!bg-green-200' : 'hover:bg-muted'}`}
+                        className={`cursor-pointer ${isSelected ? '!bg-green-100 dark:!bg-slate-700 hover:!bg-green-200 dark:hover:!bg-slate-600' : 'hover:bg-muted'}`}
                         onClick={() => setSelectedNews(item)}
                       data-selected={isSelected ? "true" : "false"}
                       data-index={index}
@@ -140,7 +140,7 @@ const NewsApprovalCenter: React.FC<NewsApprovalCenterProps> = ({
                                 handleSubmitForApproval(item.id as number);
                           }}
                               title="Onaya Gönder"
-                              className="text-green-600 hover:text-green-800 hover:bg-green-100"
+                              className="text-green-600 hover:text-green-800 hover:bg-green-100 dark:hover:bg-slate-700"
                         >
                               <CheckCircle className="h-5 w-5" />
                         </Button>

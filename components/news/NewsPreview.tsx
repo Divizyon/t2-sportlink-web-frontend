@@ -41,6 +41,9 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
         const { url } = extractUrlFromContent(selectedNews.content);
         if (url) {
           setExtractedUrl(url);
+        } else if (selectedNews.source_url) {
+          // If no URL in content but source_url exists, use that
+          setExtractedUrl(selectedNews.source_url);
         }
       }
     }
@@ -150,12 +153,18 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
 
     try {
       if (onSave) {
-        // If we have an extracted URL and it's not already in the content with brackets
-        if (extractedUrl && !editedNews.content.includes(`[${extractedUrl}]`)) {
-          // Add the URL in brackets at the end of the content
-          editedNews.content = `${editedNews.content} [${extractedUrl}]`;
+        let updatedContent = editedNews.content;
+        // Remove any existing bracketed URLs
+        updatedContent = extractUrlFromContent(updatedContent).content;
+        
+        // If we have an extracted URL, add it to the end of the content in brackets
+        if (extractedUrl) {
+          updatedContent = `${updatedContent} [${extractedUrl}]`;
+          // Also store the URL in source_url for better accessibility
+          editedNews.source_url = extractedUrl;
         }
-
+        
+        editedNews.content = updatedContent;
         await onSave(editedNews);
       }
 
@@ -175,7 +184,7 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <div className="text-gray-500">Görüntülenecek haber seçilmedi</div>
+            <div className="text-gray-500 dark:text-gray-400">Görüntülenecek haber seçilmedi</div>
           </div>
         </CardContent>
       </Card>
@@ -213,7 +222,7 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
       <CardContent className="flex-1 overflow-hidden">
         {viewMode === "preview" ? (
           <div className="space-y-6 h-full overflow-y-auto overflow-x-hidden">
-            <div className="relative h-48 w-full rounded-lg overflow-hidden bg-gray-100">
+            <div className="relative h-48 w-full rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
               {editedNews.image && !imageError ? (
                 <Image
                   src={editedNews.image.startsWith('data:') || editedNews.image.startsWith('http') ? editedNews.image : defaultImage}
@@ -228,16 +237,16 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
                 />
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <span className="text-gray-400">Görsel bulunamadı veya yüklenemedi</span>
+                  <span className="text-gray-400 dark:text-gray-500">Görsel bulunamadı veya yüklenemedi</span>
                 </div>
               )}
             </div>
-            <div className="space-y-4">
+            <div className="space-y-2">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <h3 className="text-2xl font-semibold break-words">{editedNews.title}</h3>
+                <h3 className="text-xl font-semibold break-words">{editedNews.title}</h3>
                 {getStatusBadge(editedNews.status)}
               </div>
-              <div className="space-y-2 text-sm text-gray-600">
+              <div className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 flex-shrink-0" />
                   <span className="truncate">{formatDate(editedNews.date)}</span>
@@ -255,20 +264,20 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
                   <span className="truncate">{editedNews.views} görüntülenme</span>
                 </div>
               </div>
-              <div className="pt-4">
-                <h4 className="font-medium mb-2">Haber İçeriği</h4>
-                <p className="text-sm text-gray-600 whitespace-pre-line break-words">{displayContent}</p>
+              <div className="pt-2">
+                <h4 className="font-medium mb-1">Haber İçeriği</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line break-words">{displayContent}</p>
               </div>
-              {(editedNews.sourceUrl || extractedUrl) && (
-                <div className="pt-4">
-                  <h4 className="font-medium mb-2">Kaynak</h4>
+              {(editedNews.source_url || extractedUrl) && (
+                <div className="pt-2">
+                  <h4 className="font-medium mb-1">Kaynak</h4>
                   <a
-                    href={extractedUrl || editedNews.sourceUrl}
+                    href={extractedUrl || editedNews.source_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:underline break-all"
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all"
                   >
-                    {extractedUrl || editedNews.sourceUrl}
+                    {extractedUrl || editedNews.source_url}
                   </a>
                 </div>
               )}
@@ -305,7 +314,7 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
                     onChange={(e) => setExtractedUrl(e.target.value)}
                     placeholder="URL"
                   />
-                  <p className="text-xs text-gray-500">Bu URL, içerikten çıkartılmıştır ve kaynak olarak kullanılacaktır.</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Bu URL, içerikten çıkartılmıştır ve kaynak olarak kullanılacaktır.</p>
                 </div>
               )}
               <div className="grid gap-2">
@@ -348,8 +357,8 @@ const NewsPreview: React.FC<NewsPreviewProps> = ({
                 <Label htmlFor="sourceUrl">Kaynak URL</Label>
                 <Input
                   id="sourceUrl"
-                  value={editedNews.sourceUrl}
-                  onChange={(e) => handleChange("sourceUrl", e.target.value)}
+                  value={editedNews.source_url || ''}
+                  onChange={(e) => handleChange("source_url", e.target.value)}
                   placeholder="Kaynak URL'i"
                 />
               </div>

@@ -105,17 +105,20 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
 
   // Format date in DD.MM.YYYY format
   const formatShortDate = (dateString?: string): string => {
-    if (!dateString) return 'Bilinmiyor';
+    if (!dateString) return 'Belirtilmemiş';
 
     try {
       const date = new Date(dateString);
+      // Check if date is valid before formatting
+      if (isNaN(date.getTime())) return 'Belirtilmemiş';
+      
       return new Intl.DateTimeFormat('tr-TR', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
       }).format(date).replace(/\//g, '.');
     } catch (e) {
-      return dateString;
+      return 'Belirtilmemiş';
     }
   };
 
@@ -148,18 +151,18 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
         </CardHeader>
 
         <CardContent className="p-4">
-          <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-4 mb-4">
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-slate-800 dark:to-slate-800 rounded-xl p-4 mb-4 border dark:border-slate-700">
             <div className="flex flex-col items-center">
-              <Avatar className="h-20 w-20 border-2 border-white shadow-md mb-3">
+              <Avatar className="h-20 w-20 border-2 border-white dark:border-slate-600 shadow-md mb-3">
                 <AvatarImage src={user?.profile_picture || undefined} alt={user?.username} />
                 <AvatarFallback className="bg-black text-white text-xl font-semibold">
                   {getInitials(user?.first_name, user?.last_name)}
                 </AvatarFallback>
               </Avatar>
-              <h2 className="text-lg font-bold mb-1">{user?.first_name} {user?.last_name}</h2>
+              <h2 className="text-lg font-bold mb-1 dark:text-gray-100">{user?.first_name} {user?.last_name}</h2>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-gray-600 text-xs">@{user?.username}</span>
-                <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-0.5">
+                <span className="text-gray-600 dark:text-gray-300 text-xs">@{user?.username}</span>
+                <Badge className="bg-green-500 hover:bg-green-600 dark:bg-green-600/80 dark:hover:bg-green-600 text-white text-xs px-2 py-0.5">
                   {user?.role === "superadmin" ? "Süper Admin" :
                     user?.role === "admin" ? "Admin" : "Kullanıcı"}
                 </Badge>
@@ -168,29 +171,32 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
           </div>
 
           <div className="mb-4">
-            <h3 className="text-sm font-semibold mb-3">Kişisel Bilgiler</h3>
+            <h3 className="text-sm font-semibold mb-3 dark:text-gray-200">Kişisel Bilgiler</h3>
             
             <div className="space-y-3">
               {/* Email */}
               <div className="flex items-center gap-3">
-                <div className="w-6 h-6 flex items-center justify-center text-blue-500">
+                <div className="w-6 h-6 flex items-center justify-center text-blue-500 dark:text-blue-400">
                   <Mail className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="text-gray-500 text-xs">E-posta</p>
-                  <p className="font-medium text-sm">{user?.email}</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-xs">E-posta</p>
+                  <p className="font-medium text-sm dark:text-gray-200">{user?.email}</p>
                 </div>
               </div>
 
               {/* Phone */}
               <div className="flex items-center gap-3">
-                <div className="w-6 h-6 flex items-center justify-center text-green-500">
+                <div className="w-6 h-6 flex items-center justify-center text-green-500 dark:text-green-400">
                   <Phone className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="text-gray-500 text-xs">Telefon</p>
-                  <p className="font-medium text-sm">
-                    {user.phone ? user.phone : 'Belirtilmemiş'}
+                  <p className="text-gray-500 dark:text-gray-400 text-xs">Telefon</p>
+                  <p className="font-medium text-sm dark:text-gray-200">
+                    {user.phone && user.phone !== "" && user.phone !== "null" && user.phone !== "undefined" 
+                      ? user.phone 
+                      : 'Belirtilmemiş'
+                    }
                   </p>
                 </div>
               </div>
@@ -198,12 +204,12 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
               {/* Registration Date */}
               {user?.created_at && (
                 <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 flex items-center justify-center text-purple-500">
+                  <div className="w-6 h-6 flex items-center justify-center text-purple-500 dark:text-purple-400">
                     <Calendar className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-gray-500 text-xs">Kayıt</p>
-                    <p className="font-medium text-sm">{formatShortDate(user.created_at)}</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs">Kayıt</p>
+                    <p className="font-medium text-sm dark:text-gray-200">{formatShortDate(user.created_at)}</p>
                   </div>
                 </div>
               )}
@@ -263,27 +269,27 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold mb-3">İstatistikler</h3>
+            <h3 className="text-sm font-semibold mb-3 dark:text-gray-200">İstatistikler</h3>
             <div className="grid grid-cols-2 gap-3">
               <button 
-                className="border rounded-lg p-3 flex flex-col items-center hover:bg-gray-50 transition-colors cursor-pointer"
+                className="border dark:border-slate-600 rounded-lg p-3 flex flex-col items-center bg-white dark:bg-slate-700/80 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors cursor-pointer"
                 onClick={() => setCreatedEventsOpen(true)}
               >
-                <div className="w-6 h-6 flex items-center justify-center text-amber-500 mb-1">
+                <div className="w-6 h-6 flex items-center justify-center text-amber-500 dark:text-amber-400 mb-1">
                   <Star className="h-4 w-4" />
                 </div>
-                <p className="text-lg font-bold">{isLoadingStats ? "..." : createdEventsCount}</p>
-                <p className="text-gray-500 text-xs text-center">Oluşturduğum<br/>Etkinlikler</p>
+                <p className="text-lg font-bold dark:text-gray-200">{isLoadingStats ? "..." : createdEventsCount}</p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs text-center">Oluşturduğum<br/>Etkinlikler</p>
               </button>
               <button 
-                className="border rounded-lg p-3 flex flex-col items-center hover:bg-gray-50 transition-colors cursor-pointer"
+                className="border dark:border-slate-600 rounded-lg p-3 flex flex-col items-center bg-white dark:bg-slate-700/80 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors cursor-pointer"
                 onClick={() => setParticipatedEventsOpen(true)}
               >
-                <div className="w-6 h-6 flex items-center justify-center text-blue-500 mb-1">
+                <div className="w-6 h-6 flex items-center justify-center text-blue-500 dark:text-blue-400 mb-1">
                   <CalendarCheck className="h-4 w-4" />
                 </div>
-                <p className="text-lg font-bold">{isLoadingStats ? "..." : participatedEventsCount}</p>
-                <p className="text-gray-500 text-xs text-center">Katıldığım<br/>Etkinlikler</p>
+                <p className="text-lg font-bold dark:text-gray-200">{isLoadingStats ? "..." : participatedEventsCount}</p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs text-center">Katıldığım<br/>Etkinlikler</p>
               </button>
             </div>
           </div>
@@ -307,30 +313,30 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
           ) : (
             <div className="space-y-3 mt-2">
               {createdEvents.map(event => (
-                <div key={event.id} className="border rounded-md p-3 bg-gray-50">
-                  <h4 className="font-medium text-sm">{event.title}</h4>
+                <div key={event.id} className="border dark:border-slate-700 rounded-md p-3 bg-gray-50 dark:bg-slate-800/50">
+                  <h4 className="font-medium text-sm dark:text-gray-200">{event.title}</h4>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
                     {event.date && (
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-3.5 w-3.5" />
-                        <span>{formatShortDate(event.date)}</span>
+                        <Calendar className="h-3.5 w-3.5 dark:text-gray-400" />
+                        <span className="dark:text-gray-400">{formatShortDate(event.date)}</span>
                       </div>
                     )}
                     {event.location && (
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-3.5 w-3.5" />
-                        <span>{event.location}</span>
+                        <MapPin className="h-3.5 w-3.5 dark:text-gray-400" />
+                        <span className="dark:text-gray-400">{event.location}</span>
                       </div>
                     )}
                     {event.sport_type && (
                       <div className="flex items-center gap-2">
-                        <Trophy className="h-3.5 w-3.5" />
-                        <span>{event.sport_type}</span>
+                        <Trophy className="h-3.5 w-3.5 dark:text-gray-400" />
+                        <span className="dark:text-gray-400">{event.sport_type}</span>
                       </div>
                     )}
                     {event.status && (
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="h-5 px-1.5 text-xs">
+                        <Badge variant="outline" className="h-5 px-1.5 text-xs dark:border-slate-600 dark:bg-slate-700/80 dark:text-gray-300">
                           {event.status}
                         </Badge>
                       </div>
@@ -366,30 +372,30 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
           ) : (
             <div className="space-y-3 mt-2">
               {participatedEvents.map(event => (
-                <div key={event.id} className="border rounded-md p-3 bg-gray-50">
-                  <h4 className="font-medium text-sm">{event.title}</h4>
+                <div key={event.id} className="border dark:border-slate-700 rounded-md p-3 bg-gray-50 dark:bg-slate-800/50">
+                  <h4 className="font-medium text-sm dark:text-gray-200">{event.title}</h4>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
                     {event.date && (
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-3.5 w-3.5" />
-                        <span>{formatShortDate(event.date)}</span>
+                        <Calendar className="h-3.5 w-3.5 dark:text-gray-400" />
+                        <span className="dark:text-gray-400">{formatShortDate(event.date)}</span>
                       </div>
                     )}
                     {event.location && (
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-3.5 w-3.5" />
-                        <span>{event.location}</span>
+                        <MapPin className="h-3.5 w-3.5 dark:text-gray-400" />
+                        <span className="dark:text-gray-400">{event.location}</span>
                       </div>
                     )}
                     {event.sport_type && (
                       <div className="flex items-center gap-2">
-                        <Trophy className="h-3.5 w-3.5" />
-                        <span>{event.sport_type}</span>
+                        <Trophy className="h-3.5 w-3.5 dark:text-gray-400" />
+                        <span className="dark:text-gray-400">{event.sport_type}</span>
                       </div>
                     )}
                     {event.status && (
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="h-5 px-1.5 text-xs">
+                        <Badge variant="outline" className="h-5 px-1.5 text-xs dark:border-slate-600 dark:bg-slate-700/80 dark:text-gray-300">
                           {event.status}
                         </Badge>
                       </div>

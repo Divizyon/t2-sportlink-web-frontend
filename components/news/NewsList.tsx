@@ -22,19 +22,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Pagination } from "@/components/ui/pagination";
 
 interface NewsListProps {
   onDelete?: (id: number) => void;
   showActions?: boolean;
   showSearchAndCreate?: boolean;
   sportId?: string;
+  itemsPerPage?: number;
 }
 
 const NewsList: React.FC<NewsListProps> = ({
   onDelete,
   showActions = true,
   showSearchAndCreate = true,
-  sportId
+  sportId,
+  itemsPerPage = 10
 }) => {
   const { news, loading, error, getAllNews, getNewsByCategory, setSelectedNews, createNews, selectedNews } = useStore();
   const [isAddNewsDialogOpen, setIsAddNewsDialogOpen] = useState(false);
@@ -49,18 +52,30 @@ const NewsList: React.FC<NewsListProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const fetchNews = async () => {
       if (sportId) {
-        await getNewsByCategory(sportId);
+        await getNewsByCategory(sportId, {
+          page: 1,
+          limit: 100 // Tüm haberleri almak için yüksek bir limit değeri
+        });
       } else {
-        await getAllNews();
+        await getAllNews({
+          page: 1,
+          limit: 100 // Tüm haberleri almak için yüksek bir limit değeri
+        });
       }
     };
 
     fetchNews();
   }, [sportId, getAllNews, getNewsByCategory]);
+
+  // Arama veya filtreleme yapıldığında, sayfayı 1'e resetle
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedStatuses]);
 
   const getStatusBadge = (status: NewsStatus) => {
     const statusColors = {
@@ -196,6 +211,29 @@ const NewsList: React.FC<NewsListProps> = ({
     });
   }, [news, searchTerm, selectedStatuses]);
 
+  // Toplam sayfa sayısını hesapla
+  const totalPages = Math.ceil(filteredNews.length / itemsPerPage);
+
+  // Debug: Haber sayısını ve pagination durumunu konsola yazdır
+  React.useEffect(() => {
+    console.log("Toplam haber sayısı:", news?.length || 0);
+    console.log("Filtrelenmiş haber sayısı:", filteredNews.length);
+    console.log("Sayfa başına gösterilecek haber sayısı:", itemsPerPage);
+    console.log("Toplam sayfa sayısı:", totalPages);
+  }, [news, filteredNews, itemsPerPage, totalPages]);
+
+  // Mevcut sayfadaki öğeleri hesapla
+  const currentItems = React.useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredNews.slice(startIndex, endIndex);
+  }, [filteredNews, currentPage, itemsPerPage]);
+
+  // Sayfa değişimini işle
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
   // Function to extract URL from content and remove it from displayed content
   const extractUrlFromContent = (content: string): { content: string, url: string | null } => {
     const urlRegex = /\[(https?:\/\/[^\s\]]+)\]/;
@@ -329,17 +367,17 @@ const NewsList: React.FC<NewsListProps> = ({
       </CardHeader>
       <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
         <div className="rounded-md rounded-b-none border border-b-0 mx-4 mt-0 mb-0 flex-1 flex flex-col">
-          <div className="overflow-auto h-[calc(100vh-180px)]">
-            <Table>
-              <TableHeader className="sticky top-0 bg-white z-10">
+          <div className="overflow-auto h-[calc(100vh-250px)]">
+            <Table className="min-w-full table-fixed">
+              <TableHeader className="sticky top-0 bg-white z-10 dark:bg-background">
                 <TableRow>
-                  <TableHead>Görsel</TableHead>
-                  <TableHead>Başlık</TableHead>
-                  <TableHead>İçerik</TableHead>
-                  <TableHead>Spor Dalı</TableHead>
-                  <TableHead>Yayın Tarihi</TableHead>
-                  <TableHead>Durum</TableHead>
-                  {showActions && <TableHead className="text-right">İşlemler</TableHead>}
+                  <TableHead className="w-[80px]">Görsel</TableHead>
+                  <TableHead className="w-[150px]">Başlık</TableHead>
+                  <TableHead className="w-[250px]">İçerik</TableHead>
+                  <TableHead className="w-[120px]">Spor Dalı</TableHead>
+                  <TableHead className="w-[120px]">Yayın Tarihi</TableHead>
+                  <TableHead className="w-[120px]">Durum</TableHead>
+                  {showActions && <TableHead className="w-[100px] text-right">İşlemler</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody className="overflow-y-auto">
@@ -372,7 +410,7 @@ const NewsList: React.FC<NewsListProps> = ({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredNews.map((item, index) => {
+                  currentItems.map((item, index) => {
                     const isSelected = isSameNews(selectedNews?.id, item.id);
 
                     return (
@@ -382,7 +420,7 @@ const NewsList: React.FC<NewsListProps> = ({
                           backgroundColor: '#d1fae5 !important',
                           borderLeft: '6px solid #059669'
                         } : {}}
-                        className={`cursor-pointer ${isSelected ? '!bg-green-100 hover:!bg-green-200' : 'hover:bg-muted'}`}
+                        className={`cursor-pointer ${isSelected ? '!bg-green-100 dark:!bg-slate-700 hover:!bg-green-200 dark:hover:!bg-slate-600 dark:[&[data-selected=true]]:border-l-slate-500' : 'hover:bg-muted'}`}
                         onClick={() => setSelectedNews(item)}
                         data-selected={isSelected ? "true" : "false"}
                         data-index={index}
@@ -396,11 +434,17 @@ const NewsList: React.FC<NewsListProps> = ({
                             />
                           </div>
                         </TableCell>
-                        <TableCell className="font-medium">{item.title}</TableCell>
-                        <TableCell className="max-w-xs truncate">{extractUrlFromContent(item.content).content}</TableCell>
-                        <TableCell>{item.category}</TableCell>
-                        <TableCell>{new Date(item.date).toLocaleDateString('tr-TR')}</TableCell>
-                        <TableCell>{getStatusBadge(item.status)}</TableCell>
+                        <TableCell className="font-medium max-w-[150px] truncate">
+                          {item.title.substring(0, 20)}
+                          {item.title.length > 20 ? '...' : ''}
+                        </TableCell>
+                        <TableCell className="max-w-[250px] truncate">
+                          {extractUrlFromContent(item.content).content.substring(0, 10)}
+                          {extractUrlFromContent(item.content).content.length > 10 ? '...' : ''}
+                        </TableCell>
+                        <TableCell className="max-w-[120px] truncate">{item.category}</TableCell>
+                        <TableCell className="max-w-[120px] whitespace-nowrap">{new Date(item.date).toLocaleDateString('tr-TR')}</TableCell>
+                        <TableCell className="max-w-[120px]">{getStatusBadge(item.status)}</TableCell>
                         {showActions && (
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
@@ -425,6 +469,22 @@ const NewsList: React.FC<NewsListProps> = ({
               </TableBody>
             </Table>
           </div>
+          
+          {/* Pagination */}
+          {!loading && !error && filteredNews.length > 0 && (
+            <div className="mt-4 border-t p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Toplam <strong>{filteredNews.length}</strong> haber, sayfa <strong>{currentPage}</strong>/<strong>{totalPages}</strong>
+                </div>
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages > 0 ? totalPages : 1}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
 

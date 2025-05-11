@@ -314,7 +314,8 @@ const EventList: React.FC<EventListProps> = ({
                       backgroundColor: '#d1fae5 !important',
                       borderLeft: '6px solid #059669'
                     } : {}}
-                    className={`cursor-pointer ${selectedEvent?.id === event.id ? '!bg-green-100 hover:!bg-green-200' : 'hover:bg-muted'}`}
+                    data-selected={selectedEvent?.id === event.id ? "true" : "false"}
+                    className={`cursor-pointer ${selectedEvent?.id === event.id ? '!bg-green-100 dark:!bg-slate-700 hover:!bg-green-200 dark:hover:!bg-slate-600 dark:[&[data-selected=true]]:border-l-slate-500' : 'hover:bg-muted'}`}
                     onClick={() => setSelectedEvent(event)}
                   >
                     <TableCell className="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900">{event.title}</TableCell>

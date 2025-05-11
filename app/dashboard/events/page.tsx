@@ -603,6 +603,7 @@ export default function EventsPage() {
           handleApproveEvent={handleApproveEvent}
           handleRejectEvent={handleRejectEvent}
           formatDate={formatDate}
+          itemsPerPage={5}
         />
       </div>
 

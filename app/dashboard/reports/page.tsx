@@ -52,6 +52,18 @@ export default function ReportsPage() {
     // getReportDetailsForUser is called inside setReportSelectedUser
   }
 
+  // Veri yüklendiğinde otomatik olarak ilk kullanıcıyı seç
+  useEffect(() => {
+    // Veriler yüklenmiş ve kullanıcı listesi doluysa ve seçili kullanıcı yoksa
+    if (!reportIsLoading && reportedUsers && reportedUsers.length > 0 && !reportSelectedUser) {
+      // Otomatik olarak ilk kullanıcıyı seç
+      const firstUser = reportedUsers[0];
+      if (firstUser) {
+        handleUserSelect(firstUser);
+      }
+    }
+  }, [reportIsLoading, reportedUsers, reportSelectedUser]);
+
   const handleBlockUser = async (userId: string, username: string) => {
     try {
       const success = await blockUserFromReports(userId, "Rapor nedeniyle engellendi")

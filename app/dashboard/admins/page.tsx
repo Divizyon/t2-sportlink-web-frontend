@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Pagination } from "@/components/ui/pagination"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
-import { Loader2, Search, UserPlus, ShieldAlert } from "lucide-react"
+import { Loader2, Search, UserPlus, ShieldAlert, Trash2 } from "lucide-react"
 import useAuth from "@/lib/hooks/useAuth"
 import adminService from "@/lib/services/adminService"
 import type { AdminUser, AdminCreateData } from "@/lib/services/adminService"
@@ -224,204 +224,214 @@ export default function AdminsPage() {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8 max-w-6xl">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
+        <div className="container mx-auto px-0 py-4 max-w-full h-full">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4">
                 <div>
-                    <h1 className="text-3xl font-bold">Admin Yönetimi</h1>
-                    <p className="text-muted-foreground mt-1">
-                        Admin kullanıcılarını görüntüleyin, oluşturun ve yönetin.
-                    </p>
+                
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-                    {/* Arama formu */}
-                    <form onSubmit={handleSearch} className="flex w-full lg:w-auto gap-2">
-                        <Input
-                            type="text"
-                            placeholder="İsim, e-posta veya kullanıcı adı ile ara..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full"
-                        />
-                        <Button type="submit" size="icon">
-                            <Search className="h-4 w-4" />
-                        </Button>
-                    </form>
+                {/* Dialog bileşeni - gizli ama hala erişilebilir */}
+                <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Yeni Admin Kullanıcısı Oluştur</DialogTitle>
+                            <DialogDescription>
+                                Yeni bir admin kullanıcısı oluşturmak için gerekli bilgileri girin.
+                            </DialogDescription>
+                        </DialogHeader>
 
-                    {/* Admin Oluştur */}
-                    <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button className="whitespace-nowrap">
-                                <UserPlus className="mr-2 h-4 w-4" />
-                                Admin Oluştur
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                                <DialogTitle>Yeni Admin Kullanıcısı Oluştur</DialogTitle>
-                                <DialogDescription>
-                                    Yeni bir admin kullanıcısı oluşturmak için gerekli bilgileri girin.
-                                </DialogDescription>
-                            </DialogHeader>
-
-                            <form onSubmit={handleCreateAdmin} className="space-y-4 py-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="first_name">Ad *</Label>
-                                        <Input
-                                            id="first_name"
-                                            name="first_name"
-                                            value={formData.first_name}
-                                            onChange={handleInputChange}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="last_name">Soyad *</Label>
-                                        <Input
-                                            id="last_name"
-                                            name="last_name"
-                                            value={formData.last_name}
-                                            onChange={handleInputChange}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
+                        <form onSubmit={handleCreateAdmin} className="space-y-4 py-4">
+                            <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="username">Kullanıcı Adı *</Label>
+                                    <Label htmlFor="first_name">Ad *</Label>
                                     <Input
-                                        id="username"
-                                        name="username"
-                                        value={formData.username}
+                                        id="first_name"
+                                        name="first_name"
+                                        value={formData.first_name}
                                         onChange={handleInputChange}
                                         required
                                     />
                                 </div>
-
                                 <div className="space-y-2">
-                                    <Label htmlFor="email">E-posta *</Label>
+                                    <Label htmlFor="last_name">Soyad *</Label>
                                     <Input
-                                        id="email"
-                                        name="email"
-                                        type="email"
-                                        value={formData.email}
+                                        id="last_name"
+                                        name="last_name"
+                                        value={formData.last_name}
                                         onChange={handleInputChange}
                                         required
                                     />
                                 </div>
+                            </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="password">Şifre *</Label>
-                                    <Input
-                                        id="password"
-                                        name="password"
-                                        type="password"
-                                        value={formData.password}
-                                        onChange={handleInputChange}
-                                        required
-                                    />
-                                </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="username">Kullanıcı Adı *</Label>
+                                <Input
+                                    id="username"
+                                    name="username"
+                                    value={formData.username}
+                                    onChange={handleInputChange}
+                                    required
+                                />
+                            </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="phone">Telefon</Label>
-                                    <Input
-                                        id="phone"
-                                        name="phone"
-                                        value={formData.phone || ""}
-                                        onChange={handleInputChange}
-                                    />
-                                </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="email">E-posta *</Label>
+                                <Input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={handleInputChange}
+                                    required
+                                />
+                            </div>
 
-                                <div className="flex justify-end gap-4 pt-4">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => setCreateDialogOpen(false)}
-                                    >
-                                        İptal
-                                    </Button>
-                                    <Button type="submit" disabled={isSubmitting}>
-                                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Oluştur
-                                    </Button>
-                                </div>
-                            </form>
-                        </DialogContent>
-                    </Dialog>
-                </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="password">Şifre *</Label>
+                                <Input
+                                    id="password"
+                                    name="password"
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={handleInputChange}
+                                    required
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="phone">Telefon</Label>
+                                <Input
+                                    id="phone"
+                                    name="phone"
+                                    value={formData.phone || ""}
+                                    onChange={handleInputChange}
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-4 pt-4">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setCreateDialogOpen(false)}
+                                >
+                                    İptal
+                                </Button>
+                                <Button type="submit" disabled={isSubmitting}>
+                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Oluştur
+                                </Button>
+                            </div>
+                        </form>
+                    </DialogContent>
+                </Dialog>
             </div>
 
-            {/* Admin Listesi */}
-            <Card>
-                <CardHeader>
+            {/* Admin Listesi - Yeni UI, Haber Listesine Benzer Şekilde */}
+            <Card className="h-[calc(100vh-120px)] flex flex-col">
+                <CardHeader className="pl-4 pb-2">
                     <CardTitle>Admin Kullanıcıları</CardTitle>
-                    <CardDescription>
-                        Sistemde kayıtlı tüm admin kullanıcıları ve bilgileri
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Kullanıcı Adı</TableHead>
-                                <TableHead>Ad Soyad</TableHead>
-                                <TableHead>E-posta</TableHead>
-                                <TableHead>Oluşturulma Tarihi</TableHead>
-                                <TableHead className="text-right">İşlemler</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {isLoading ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-8">
-                                        <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                                        <span className="mt-2 text-sm text-muted-foreground block">Yükleniyor...</span>
-                                    </TableCell>
-                                </TableRow>
-                            ) : admins.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-8">
-                                        <p className="text-muted-foreground">Kayıtlı admin kullanıcısı bulunamadı.</p>
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                admins.map((admin) => (
-                                    <TableRow key={admin.id}>
-                                        <TableCell className="font-medium">{admin.username}</TableCell>
-                                        <TableCell>{admin.first_name} {admin.last_name}</TableCell>
-                                        <TableCell>{admin.email}</TableCell>
-                                        <TableCell>{new Date(admin.created_at).toLocaleDateString('tr-TR')}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Button
-                                                variant="destructive"
-                                                size="sm"
-                                                onClick={() => handleDeactivateAdmin(admin.id)}
-                                            >
-                                                Devre Dışı Bırak
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-
-                    {pagination.totalPages > 1 && (
-                        <div className="mt-6">
-                            <Pagination
-                                currentPage={pagination.page}
-                                totalPages={pagination.totalPages}
-                                onPageChange={(page) => loadAdmins(page, searchQuery || undefined)}
-                            />
+                    <div className="flex items-center justify-between gap-2 mt-2">
+                        <div className="flex items-center gap-4">
+                            <div className="relative flex w-[300px] overflow-hidden rounded-md ring-1 ring-input">
+                                <Input
+                                    placeholder="Admin ara..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full rounded-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                />
+                                <Button
+                                    variant="outline"
+                                    className="rounded-none h-9 px-3 border-0 bg-background hover:bg-muted"
+                                    onClick={(e) => handleSearch(e as any)}
+                                >
+                                    <Search className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
-                    )}
+
+                        <Button size="sm" className="gap-1" onClick={() => setCreateDialogOpen(true)}>
+                            <UserPlus className="h-4 w-4" /> Yeni Admin Ekle
+                        </Button>
+                    </div>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
+                    <div className="border mx-0 mt-0 mb-0 flex-1 flex flex-col">
+                        <div className="overflow-auto h-[calc(100vh-200px)]">
+                            <Table className="min-w-full table-fixed">
+                                <TableHeader className="sticky top-0 bg-white z-10 dark:bg-background">
+                                    <TableRow>
+                                        <TableHead className="w-[150px]">Kullanıcı Adı</TableHead>
+                                        <TableHead className="w-[200px]">Ad Soyad</TableHead>
+                                        <TableHead className="w-[200px]">E-posta</TableHead>
+                                        <TableHead className="w-[150px]">Oluşturulma Tarihi</TableHead>
+                                        <TableHead className="w-[100px] text-right">İşlemler</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody className="overflow-y-auto">
+                                    {isLoading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center py-4">
+                                                <div className="flex flex-col justify-center items-center py-8">
+                                                    <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                                                    <span className="text-muted-foreground">Yükleniyor...</span>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : admins.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center py-4">
+                                                <div className="flex flex-col items-center py-8">
+                                                    <ShieldAlert className="h-10 w-10 text-muted-foreground mb-4" />
+                                                    <h3 className="text-lg font-medium mb-2">Admin kullanıcısı bulunamadı</h3>
+                                                    <p className="text-muted-foreground mb-4">Henüz sistemde kayıtlı admin bulunmamaktadır veya arama kriterlerinize uygun admin yoktur.</p>
+                                                    <Button variant="outline" onClick={() => loadAdmins(1)}>
+                                                        Tüm Adminleri Göster
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        admins.map((admin) => (
+                                            <TableRow key={admin.id} className="hover:bg-muted cursor-pointer h-14">
+                                                <TableCell className="font-medium max-w-[150px] truncate py-4">{admin.username}</TableCell>
+                                                <TableCell className="max-w-[200px] truncate py-4">{admin.first_name} {admin.last_name}</TableCell>
+                                                <TableCell className="max-w-[200px] truncate py-4">{admin.email}</TableCell>
+                                                <TableCell className="max-w-[150px] whitespace-nowrap py-4">{new Date(admin.created_at).toLocaleDateString('tr-TR')}</TableCell>
+                                                <TableCell className="text-right py-4">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeactivateAdmin(admin.id);
+                                                            }}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        
+                        {/* Pagination */}
+                        {!isLoading && admins.length > 0 && pagination.totalPages > 1 && (
+                            <div className="mt-2 p-2 border-t flex justify-center">
+                                <Pagination
+                                    currentPage={pagination.page}
+                                    totalPages={pagination.totalPages > 0 ? pagination.totalPages : 1}
+                                    onPageChange={(page) => loadAdmins(page, searchQuery || undefined)}
+                                />
+                            </div>
+                        )}
+                    </div>
                 </CardContent>
-                <CardFooter className="flex justify-between">
-                    <p className="text-sm text-muted-foreground">
-                        Toplam {pagination.total} admin kullanıcısı
-                    </p>
-                </CardFooter>
             </Card>
         </div>
     )

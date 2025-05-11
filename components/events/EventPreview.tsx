@@ -56,24 +56,24 @@ const EventPreview: React.FC<EventPreviewProps> = ({
   const renderParticipants = (participants: Participant[] | undefined) => {
     if (!participants || participants.length === 0) {
       return (
-        <div className="p-4 bg-gray-50 rounded-md text-center text-gray-500">
+        <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-md text-center text-gray-500 dark:text-gray-400">
           Henüz katılımcı bulunmamaktadır.
         </div>
       );
     }
 
     return (
-      <div className="overflow-auto max-h-60 bg-gray-50 rounded-md">
+      <div className="overflow-auto max-h-60 bg-gray-50 dark:bg-slate-800 rounded-md">
         <table className="min-w-full text-sm">
-          <thead className="sticky top-0 bg-gray-100">
+          <thead className="sticky top-0 bg-gray-100 dark:bg-slate-700">
             <tr>
-              <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase">İsim</th>
-              <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase">E-posta</th>
-              <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase">Telefon</th>
-              <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase">Kayıt Tarihi</th>
+              <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">İsim</th>
+              <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">E-posta</th>
+              <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Telefon</th>
+              <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Kayıt Tarihi</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {participants.map((participant) => {
               const user = participant.user;
               if (!user) return null;
@@ -81,7 +81,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
               return (
                 <tr
                   key={participant.user_id}
-                  className="hover:bg-gray-100 cursor-pointer"
+                  className="hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer"
                   onClick={() => {
                     // Participant nesnesi oluştururken kesin tip kontrolü için
                     const participantData: {
@@ -110,7 +110,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                   }}
                 >
                   <td className="py-2 px-3">{`${user.first_name} ${user.last_name}`}</td>
-                  <td className="py-2 px-3 text-blue-600">{user.email}</td>
+                  <td className="py-2 px-3 text-blue-600 dark:text-blue-400">{user.email}</td>
                   <td className="py-2 px-3">{user.phone || "-"}</td>
                   <td className="py-2 px-3">{formatDate(participant.joined_at)}</td>
                 </tr>
@@ -164,7 +164,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                     <h3 className="text-2xl font-semibold">{selectedEvent.title}</h3>
                     {getStatusBadge(selectedEvent.status)}
                   </div>
-                  <div className="space-y-2 text-sm text-gray-600">
+                  <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
                       <span>{formatDate(selectedEvent.event_date)}</span>
@@ -192,11 +192,11 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                   </div>
                   <div className="pt-4">
                     <h4 className="font-medium mb-2">Etkinlik Detayları</h4>
-                    <p className="text-sm text-gray-600 whitespace-pre-line">{selectedEvent.description}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line">{selectedEvent.description}</p>
                   </div>
 
                   {/* Katılımcılar bölümünü tüm etkinlikler için göster */}
-                  <div className="pt-4 border-t border-gray-200">
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                     <h4 className="font-medium mb-2 flex items-center">
                       <Users className="h-4 w-4 mr-1 text-blue-500" />
                       <span>Katılımcılar ({selectedEvent.participants?.length || 0} / {selectedEvent.max_participants || 0})</span>
@@ -219,9 +219,9 @@ const EventPreview: React.FC<EventPreviewProps> = ({
 
                     {/* Eğer katılımcı yoksa bilgi mesajı */}
                     {(!selectedEvent.participants?.length) && (
-                      <div className="p-4 bg-gray-50 rounded-md text-center flex items-center justify-center">
+                      <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-md text-center flex items-center justify-center">
                         <Info className="h-4 w-4 mr-2 text-blue-500" />
-                        <span className="text-gray-600">
+                        <span className="text-gray-600 dark:text-gray-300">
                           Henüz katılımcı bulunmamaktadır.
                         </span>
                       </div>
@@ -268,7 +268,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                           />
                         </div>
                       )}
-                      <span className="text-xs text-gray-500 mt-1">Sadece PNG, JPG ve JPEG formatları desteklenmektedir.</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">Sadece PNG, JPG ve JPEG formatları desteklenmektedir.</span>
                     </div>
                   </div>
                   <div className="grid gap-2">
@@ -396,7 +396,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
               </div>
             )
           ) : (
-            <div className="text-center text-gray-500 py-8">
+            <div className="text-center text-gray-500 dark:text-gray-400 py-8">
               Önizlemek için bir etkinlik seçin
             </div>
           )}
@@ -407,10 +407,10 @@ const EventPreview: React.FC<EventPreviewProps> = ({
       {selectedParticipant && (
         <Dialog open={!!selectedParticipant} onOpenChange={(open) => !open && setSelectedParticipant(null)}>
           <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader className="px-6 pt-5 pb-3 bg-gradient-to-r from-green-50 to-blue-50 border-b">
+            <DialogHeader className="px-6 pt-5 pb-3 bg-gradient-to-r from-green-50 to-blue-50 dark:from-slate-800 dark:to-blue-950 border-b">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16 border-2 border-white shadow-sm">
+                  <Avatar className="h-16 w-16 border-2 border-white dark:border-slate-700 shadow-sm">
                     <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
                       {selectedParticipant?.name ? (
                         <>
@@ -424,7 +424,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <DialogTitle className="text-xl text-gray-800">
+                    <DialogTitle className="text-xl text-gray-800 dark:text-gray-100">
                       {selectedParticipant?.name ? (
                         <>
                           {selectedParticipant.name}
@@ -447,37 +447,37 @@ const EventPreview: React.FC<EventPreviewProps> = ({
               </div>
             </DialogHeader>
             <div className="px-6 pt-5 pb-4">
-              <div className="grid grid-cols-1 gap-4">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Kişisel Bilgiler</h3>
+              <div className="space-y-6">
+                <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Kişisel Bilgiler</h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-2">
                         <Mail className="h-4 w-4 text-blue-500" />
-                        <span className="text-sm font-medium text-gray-700">E-posta</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">E-posta</span>
                       </div>
-                      <span className="text-sm bg-white px-2 py-1 rounded border">{selectedParticipant?.email}</span>
+                      <span className="text-sm bg-white dark:bg-slate-700 px-2 py-1 rounded border dark:border-slate-600">{selectedParticipant.email || "Belirtilmemiş"}</span>
                     </div>
 
                     <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-2">
                         <Phone className="h-4 w-4 text-green-500" />
-                        <span className="text-sm font-medium text-gray-700">Telefon</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Telefon</span>
                       </div>
-                      <span className="text-sm bg-white px-2 py-1 rounded border">{selectedParticipant?.phone || "Belirtilmemiş"}</span>
+                      <span className="text-sm bg-white dark:bg-slate-700 px-2 py-1 rounded border dark:border-slate-600">{selectedParticipant.phone || "Belirtilmemiş"}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Etkinlik Bilgileri</h3>
+                <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Etkinlik Bilgileri</h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-purple-500" />
-                        <span className="text-sm font-medium text-gray-700">Kayıt Tarihi</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Kayıt Tarihi</span>
                       </div>
-                      <span className="text-sm bg-white px-2 py-1 rounded border">
+                      <span className="text-sm bg-white dark:bg-slate-700 px-2 py-1 rounded border dark:border-slate-600">
                         {selectedParticipant?.registration_date && formatDate(selectedParticipant.registration_date)}
                       </span>
                     </div>
@@ -485,48 +485,21 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                     <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-2">
                         <Trophy className="h-4 w-4 text-amber-500" />
-                        <span className="text-sm font-medium text-gray-700">Etkinlik</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Etkinlik</span>
                       </div>
-                      <span className="text-sm bg-white px-2 py-1 rounded border">
+                      <span className="text-sm bg-white dark:bg-slate-700 px-2 py-1 rounded border dark:border-slate-600">
                         {selectedEvent?.title}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Rol Yönetimi</h3>
-                  <div className="flex items-center justify-between px-1 mb-3">
-                    <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-red-500" />
-                      <span className="text-sm font-medium text-gray-700">Kullanıcı Rolü</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Select
-                        value="user" // Static value, needs logic if editable
-                        onValueChange={() => { }} // No action defined
-                      >
-                        <SelectTrigger id="edit-role" className="w-[120px] h-7 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="user">Üye</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <Button onClick={() => { }} className="w-full bg-green-600 hover:bg-green-700 text-sm h-9">
-                    Kaydet
-                  </Button>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Katılımcı İstatistikleri</h3>
+                <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Katılımcı İstatistikleri</h3>
                   <div className="space-y-3">
                     <div
                       onClick={() => setShowAttendedEvents(true)}
-                      className="flex items-center justify-between cursor-pointer bg-white hover:bg-gray-100 p-3 rounded border mb-2"
+                      className="flex items-center justify-between cursor-pointer bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 p-3 rounded border dark:border-slate-600 mb-2"
                     >
                       <div className="flex items-center gap-2">
                         <Award className="h-4 w-4 text-indigo-500" />
@@ -534,13 +507,13 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                       </div>
                       <div className="flex items-center">
                         <Badge variant="outline" className="text-xs mr-1">1</Badge> {/* Static count */}
-                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                        <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       </div>
                     </div>
 
                     <div
                       onClick={() => setShowSportsList(true)}
-                      className="flex items-center justify-between cursor-pointer bg-white hover:bg-gray-100 p-3 rounded border mb-2"
+                      className="flex items-center justify-between cursor-pointer bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 p-3 rounded border dark:border-slate-600 mb-2"
                     >
                       <div className="flex items-center gap-2">
                         <Trophy className="h-4 w-4 text-amber-500" />
@@ -550,26 +523,28 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                         <div className="flex flex-wrap gap-1 justify-end items-center mr-1">
                           <Badge variant="outline" className="text-xs">{selectedEvent?.sport?.name ?? "Genel"}</Badge>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-gray-400" />
-                      </div>
-                    </div>
-
-                    <div
-                      onClick={() => setShowReportsList(true)}
-                      className="flex items-center justify-between cursor-pointer bg-white hover:bg-gray-100 p-3 rounded border mb-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-red-500" />
-                        <span className="text-sm font-medium">Hakkında Raporlar</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Badge variant="outline" className="text-xs bg-red-500 text-red-600 border-red-200 mr-1">2</Badge> {/* Static count */}
-                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                        <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
+            <div className="p-4 flex justify-end space-x-2 border-t dark:border-gray-700">
+              <Button
+                variant="outline"
+                onClick={() => setSelectedParticipant(null)}
+              >
+                Kapat
+              </Button>
+              <Button
+                variant="destructive"
+                // onClick={handleRemoveParticipant}
+                className="flex items-center gap-1"
+              >
+                <Shield className="h-4 w-4" />
+                Etkinlikten Çıkar
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

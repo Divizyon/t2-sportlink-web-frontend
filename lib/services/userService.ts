@@ -23,6 +23,7 @@ export interface UserResponse {
 const formatPhoneNumber = (phone: any): string | null => {
   if (phone === null || phone === undefined) return null;
   if (phone === '') return null;
+  if (phone === 'null' || phone === 'undefined') return null;
   
   // Number tipinde gelirse string'e çevir
   const phoneStr = phone.toString().trim();
@@ -47,11 +48,21 @@ class UserService {
       const response = await api.get(`${this.BASE_PATH}/profile`);
 
       if (response.data && response.data.success && response.data.data) {
+        // Format phone number for consistency
+        if (response.data.data) {
+          response.data.data.phone = formatPhoneNumber(response.data.data.phone);
+        }
+        
         return {
           success: true,
           data: response.data.data as User
         };
       } else if (response.data) {
+        // Format phone number for consistency
+        if (response.data) {
+          response.data.phone = formatPhoneNumber(response.data.phone);
+        }
+        
         return {
           success: true,
           data: response.data as User
@@ -83,6 +94,11 @@ class UserService {
   }> {
     try {
       const response = await api.put(`${this.BASE_PATH}/profile`, profileData);
+
+      // Format phone number in response for consistency
+      if (response.data.user) {
+        response.data.user.phone = formatPhoneNumber(response.data.user.phone);
+      }
 
       return {
         success: true,
