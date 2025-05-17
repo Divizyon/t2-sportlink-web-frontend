@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Trash, Plus, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
+import { Search, Trash, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -19,11 +19,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import UserFilter from "./UserFilter";
 import type { UserType } from "@/interfaces/user";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 interface UserListProps {
   users: UserType[];
@@ -51,7 +49,6 @@ interface UserListProps {
   currentPage: number;
   pageSize: number;
   onPageChange: (page: number) => void;
-  onCreateUser?: (userData: Partial<UserType>) => Promise<any>;
 }
 
 export default function UserList({
@@ -68,7 +65,6 @@ export default function UserList({
   currentPage,
   pageSize,
   onPageChange,
-  onCreateUser,
 }: UserListProps) {
   // Toplam sayfa sayısını hesapla
   const totalPages = Math.max(1, Math.ceil((totalUsersProp || 0) / Math.max(1, pageSize || 10)));
@@ -136,57 +132,6 @@ export default function UserList({
     }
   }, [users, selectedUser, onUserClick]);
 
-  // Add state for dialog
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [newUserData, setNewUserData] = useState({
-    username: "",
-    email: "",
-    password: "",
-    first_name: "",
-    last_name: "",
-    phone: "",
-    role: "user" // Default to regular user
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Handle form input change
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setNewUserData(prev => ({ ...prev, [name]: value }));
-  };
-
-  // Handle form submission
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newUserData.username || !newUserData.email || !newUserData.password || !newUserData.first_name || !newUserData.last_name) {
-      alert("Lütfen zorunlu alanları doldurun.");
-      return;
-    }
-    
-    if (onCreateUser) {
-      setIsSubmitting(true);
-      try {
-        await onCreateUser(newUserData);
-        // Reset form and close dialog
-        setNewUserData({
-          username: "",
-          email: "",
-          password: "",
-          first_name: "",
-          last_name: "",
-          phone: "",
-          role: "user"
-        });
-        setCreateDialogOpen(false);
-      } catch (error) {
-        console.error("Kullanıcı oluşturulurken hata:", error);
-      } finally {
-        setIsSubmitting(false);
-      }
-    }
-  };
-
   return (
     <Card className="h-full flex flex-col rounded border dark:border-slate-700">
       <CardHeader className="pl-4 pb-2">
@@ -217,122 +162,8 @@ export default function UserList({
             />
           </div>
 
-          <Button size="sm" className="gap-1" onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="h-4 w-4" /> Yeni Kullanıcı Ekle
-          </Button>
         </div>
       </CardHeader>
-      
-      {/* New User Dialog */}
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Yeni Kullanıcı Oluştur</DialogTitle>
-            <DialogDescription>
-              Yeni bir kullanıcı oluşturmak için gerekli bilgileri girin.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={handleCreateUser} className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="first_name">Ad *</Label>
-                <Input
-                  id="first_name"
-                  name="first_name"
-                  value={newUserData.first_name}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="last_name">Soyad *</Label>
-                <Input
-                  id="last_name"
-                  name="last_name"
-                  value={newUserData.last_name}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="username">Kullanıcı Adı *</Label>
-              <Input
-                id="username"
-                name="username"
-                value={newUserData.username}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">E-posta *</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={newUserData.email}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Şifre *</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                value={newUserData.password}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefon</Label>
-              <Input
-                id="phone"
-                name="phone"
-                value={newUserData.phone || ""}
-                onChange={handleInputChange}
-                placeholder="Örn: 5XX XXX XXXX"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="role">Kullanıcı Rolü</Label>
-              <select
-                id="role"
-                name="role"
-                value={newUserData.role}
-                onChange={handleInputChange}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="user">Kullanıcı</option>
-                <option value="admin">Admin</option>
-                <option value="superadmin">Süper Admin</option>
-              </select>
-            </div>
-
-            <div className="flex justify-end gap-4 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setCreateDialogOpen(false)}
-              >
-                İptal
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Oluşturuluyor..." : "Oluştur"}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
       
       <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
         <div className="rounded-md border dark:border-slate-700 mx-4 mt-0 mb-0 flex-1 flex flex-col">

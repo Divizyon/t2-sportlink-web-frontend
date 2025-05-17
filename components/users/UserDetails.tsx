@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserIcon, Phone, Mail, Calendar, MapPin, Trophy, Shield, Star, CalendarCheck } from "lucide-react";
+import { UserIcon, Phone, Mail, Calendar, MapPin, Trophy, Shield, Star, CalendarCheck, FileText } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -52,6 +52,7 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
   // Diyalog control state
   const [createdEventsOpen, setCreatedEventsOpen] = useState<boolean>(false);
   const [participatedEventsOpen, setParticipatedEventsOpen] = useState<boolean>(false);
+  const [reportsOpen, setReportsOpen] = useState<boolean>(false);
   
   // Etkinlik listeleri state
   const [createdEvents, setCreatedEvents] = useState<EventInfo[]>([]);
@@ -270,7 +271,7 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
 
           <div>
             <h3 className="text-sm font-semibold mb-3 dark:text-gray-200">İstatistikler</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <button 
                 className="border dark:border-slate-600 rounded-lg p-3 flex flex-col items-center bg-white dark:bg-slate-700/80 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors cursor-pointer"
                 onClick={() => setCreatedEventsOpen(true)}
@@ -290,6 +291,16 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
                 </div>
                 <p className="text-lg font-bold dark:text-gray-200">{isLoadingStats ? "..." : participatedEventsCount}</p>
                 <p className="text-gray-500 dark:text-gray-400 text-xs text-center">Katıldığım<br/>Etkinlikler</p>
+              </button>
+              <button 
+                className="border dark:border-slate-600 rounded-lg p-3 flex flex-col items-center bg-white dark:bg-slate-700/80 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors cursor-pointer"
+                onClick={() => setReportsOpen(true)}
+              >
+                <div className="w-6 h-6 flex items-center justify-center text-green-500 dark:text-green-400 mb-1">
+                  <FileText className="h-4 w-4" />
+                </div>
+                <p className="text-lg font-bold dark:text-gray-200">0</p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs text-center">Kullanıcı<br/>Raporları</p>
               </button>
             </div>
           </div>
@@ -405,6 +416,28 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
               ))}
             </div>
           )}
+          
+          <div className="mt-4 flex justify-end">
+            <DialogClose asChild>
+              <Button variant="outline">Kapat</Button>
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Kullanıcı Raporları Diyalogu */}
+      <Dialog open={reportsOpen} onOpenChange={setReportsOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Kullanıcı Raporları</DialogTitle>
+            <DialogDescription>
+              {user.first_name} {user.last_name} kullanıcısına ait raporlar
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-8 text-center text-muted-foreground">
+            <p>Henüz rapor bulunmamaktadır.</p>
+          </div>
           
           <div className="mt-4 flex justify-end">
             <DialogClose asChild>

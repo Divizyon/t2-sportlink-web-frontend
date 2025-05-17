@@ -211,7 +211,6 @@ export default function UsersPage() {
             currentPage={currentPage}
             pageSize={pageSize}
             onPageChange={handlePageChange}
-            onCreateUser={handleCreateUser}
           />
         </div>
 
