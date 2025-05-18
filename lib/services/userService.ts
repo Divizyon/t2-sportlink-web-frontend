@@ -368,7 +368,7 @@ class UserService {
    */
   async changeUserRole(userId: string, role: string): Promise<UserResponse> {
     try {
-      const response = await api.put(`${this.BASE_PATH}/admin/users/${userId}/role`, { role });
+      const response = await api.put(`/users/admin/users/${userId}/role`, { role });
 
       return {
         success: true,
@@ -429,6 +429,35 @@ class UserService {
       };
     } catch (error) {
       console.error('Kullanıcının katıldığı etkinlikler alınırken hata:', error);
+      const apiError = handleApiError(error as AxiosError);
+      return {
+        success: false,
+        message: apiError.message
+      };
+    }
+  }
+
+  /**
+   * Belirli bir kullanıcı hakkındaki raporları getirir (admin için)
+   */
+  async getUserReports(userId: string): Promise<{
+    success: boolean;
+    data?: any;
+    message?: string;
+  }> {
+    try {
+      // Postman koleksiyonundaki endpoint yapısına göre düzeltildi
+      const response = await api.get(`/reports/users/${userId}`);
+      
+      console.log('Kullanıcı raporları yanıtı:', response.data);
+
+      return {
+        success: true,
+        data: response.data.data,
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error('Kullanıcı raporları alınırken hata:', error);
       const apiError = handleApiError(error as AxiosError);
       return {
         success: false,

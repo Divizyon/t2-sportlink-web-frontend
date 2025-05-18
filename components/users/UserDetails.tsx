@@ -57,52 +57,76 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
   // Etkinlik listeleri state
   const [createdEvents, setCreatedEvents] = useState<EventInfo[]>([]);
   const [participatedEvents, setParticipatedEvents] = useState<EventInfo[]>([]);
+  const [userReports, setUserReports] = useState<any[]>([]);
+  const [isLoadingReports, setIsLoadingReports] = useState<boolean>(false);
 
   // Kullanıcı değiştiğinde etkinlik sayılarını yükle
   useEffect(() => {
     if (user?.id) {
       setIsLoadingStats(true);
-      
-      // Oluşturulan etkinlikleri getir
-      userService.getUserCreatedEvents(user.id)
-        .then(response => {
-          if (response.success && response.data) {
-            // Veri kontrol ediliyor ve dizi olması sağlanıyor
-            const eventsData = Array.isArray(response.data) ? response.data : 
-              (response.data.events ? response.data.events : []);
-            setCreatedEventsCount(eventsData.length || 0);
-            setCreatedEvents(eventsData);
-            console.log("Oluşturulan etkinlikler:", eventsData);
-          }
-        })
-        .catch(error => {
-          console.error("Oluşturulan etkinlikler alınırken hata:", error);
+
+      // Etkinlikleri ve raporları paralel çek
+      Promise.all([
+        userService.getUserCreatedEvents(user.id),
+        userService.getUserParticipatedEvents(user.id)
+      ]).then(([createdResponse, participatedResponse]) => {
+        // Oluşturulan etkinlikler
+        if (createdResponse.success && createdResponse.data) {
+          const eventsData = Array.isArray(createdResponse.data) ? createdResponse.data :
+            (createdResponse.data.events ? createdResponse.data.events : []);
+          setCreatedEventsCount(eventsData.length || 0);
+          setCreatedEvents(eventsData);
+          console.log("Oluşturulan etkinlikler:", eventsData);
+        } else {
           setCreatedEvents([]);
-        });
-      
-      // Katılınan etkinlikleri getir
-      userService.getUserParticipatedEvents(user.id)
-        .then(response => {
-          if (response.success && response.data) {
-            console.log("API katılınan etkinlik yanıtı:", response.data);
-            
-            // Veri kontrol ediliyor ve dizi olması sağlanıyor
-            const eventsData = Array.isArray(response.data) ? response.data : 
-              (response.data.events ? response.data.events : []);
-            setParticipatedEventsCount(eventsData.length || 0);
-            setParticipatedEvents(eventsData);
-            console.log("Katılınan etkinlikler:", eventsData);
-          }
-        })
-        .catch(error => {
-          console.error("Katılınan etkinlikler alınırken hata:", error);
+          setCreatedEventsCount(0);
+        }
+        // Katılınan etkinlikler
+        if (participatedResponse.success && participatedResponse.data) {
+          const eventsData = Array.isArray(participatedResponse.data) ? participatedResponse.data :
+            (participatedResponse.data.events ? participatedResponse.data.events : []);
+          setParticipatedEventsCount(eventsData.length || 0);
+          setParticipatedEvents(eventsData);
+          console.log("Katılınan etkinlikler:", eventsData);
+        } else {
           setParticipatedEvents([]);
-        })
-        .finally(() => {
-          setIsLoadingStats(false);
-        });
+          setParticipatedEventsCount(0);
+        }
+      }).catch(error => {
+        setCreatedEvents([]);
+        setCreatedEventsCount(0);
+        setParticipatedEvents([]);
+        setParticipatedEventsCount(0);
+        console.error("Etkinlikler alınırken hata:", error);
+      }).finally(() => {
+        setIsLoadingStats(false);
+      });
+
+      // Kullanıcı raporlarını getir
+      loadUserReports();
     }
   }, [user?.id]);
+
+  // Raporları yükle
+  const loadUserReports = async () => {
+    if (!user?.id) return;
+    
+    setIsLoadingReports(true);
+    try {
+      const response = await userService.getUserReports(user.id);
+      if (response.success && response.data) {
+        const reportsData = Array.isArray(response.data) ? response.data : 
+          (response.data.reports ? response.data.reports : []);
+        setUserReports(reportsData);
+        console.log("Kullanıcı raporları:", reportsData);
+      }
+    } catch (error) {
+      console.error("Kullanıcı raporları alınırken hata:", error);
+      setUserReports([]);
+    } finally {
+      setIsLoadingReports(false);
+    }
+  };
 
   // Format date in DD.MM.YYYY format
   const formatShortDate = (dateString?: string): string => {
@@ -242,9 +266,14 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
                     <div className="flex items-center gap-2">
                       <Select 
                         value={user.role} 
-                        onValueChange={(value) => {
+                        onValueChange={async (value) => {
                           if (value !== user.role) {
-                            onUpdateUser({ ...user, role: value });
+                            const result = await userService.changeUserRole(user.id, value);
+                            if (result.success) {
+                              onUpdateUser({ ...user, role: value });
+                            } else {
+                              alert(result.message || "Rol değiştirilemedi!");
+                            }
                           }
                         }}
                       >
@@ -299,7 +328,7 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
                 <div className="w-6 h-6 flex items-center justify-center text-green-500 dark:text-green-400 mb-1">
                   <FileText className="h-4 w-4" />
                 </div>
-                <p className="text-lg font-bold dark:text-gray-200">0</p>
+                <p className="text-lg font-bold dark:text-gray-200">{isLoadingReports ? "..." : userReports.length}</p>
                 <p className="text-gray-500 dark:text-gray-400 text-xs text-center">Kullanıcı<br/>Raporları</p>
               </button>
             </div>
@@ -435,9 +464,40 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-8 text-center text-muted-foreground">
-            <p>Henüz rapor bulunmamaktadır.</p>
-          </div>
+          {isLoadingReports ? (
+            <div className="py-8 text-center text-muted-foreground">
+              <p>Raporlar yükleniyor...</p>
+            </div>
+          ) : !Array.isArray(userReports) || userReports.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              <p>Henüz rapor bulunmamaktadır.</p>
+            </div>
+          ) : (
+            <div className="space-y-3 mt-2">
+              {userReports.map(report => (
+                <div key={report.id} className="border dark:border-slate-700 rounded-md p-3 bg-gray-50 dark:bg-slate-800/50">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium text-sm dark:text-gray-200">
+                        {report.report_reason}
+                      </h4>
+                      {report.event_id && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Etkinlik ID: {report.event_id}
+                        </p>
+                      )}
+                    </div>
+                    <Badge variant="outline" className="h-5 px-1.5 text-xs dark:border-slate-600 dark:bg-slate-700/80 dark:text-gray-300">
+                      {report.status || 'İnceleniyor'}
+                    </Badge>
+                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    <p>Rapor Tarihi: {formatShortDate(report.created_at)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           
           <div className="mt-4 flex justify-end">
             <DialogClose asChild>
