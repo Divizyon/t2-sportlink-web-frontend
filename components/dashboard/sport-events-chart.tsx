@@ -263,9 +263,35 @@ export function SportEventsChart({
           date: `${format(weekStart, "dd.MM", { locale: tr })} - ${format(weekEnd, "dd.MM.yyyy", { locale: tr })}`,
         };
 
-        // Spor dalları için toplam değerleri hesapla
+        // Spor dalları için API'den gelen değerleri kullan
+        const sportsInThisWeek: Record<string, number> = {};
         getSportTypes().forEach(sport => {
-          weekData[sport] = Math.round(Math.random() * 50 + 20); // Gerçek uygulamada burada veri aralığına göre hesaplama yapılır
+          sportsInThisWeek[sport] = 0;
+        });
+
+        // Bu haftaya ait günleri bul ve değerleri topla
+        chartData.forEach(dayData => {
+          // Günün tarihini parse et
+          const dateParts = dayData.date.split('.');
+          if (dateParts.length !== 3) return;
+
+          const day = parseInt(dateParts[0]);
+          const month = parseInt(dateParts[1]) - 1;
+          const year = parseInt(dateParts[2]);
+          const dayDate = new Date(year, month, day);
+
+          // Bu gün bu haftaya ait mi kontrol et
+          if (dayDate >= weekStart && dayDate <= weekEnd) {
+            // Spor verilerini topla
+            getSportTypes().forEach(sport => {
+              sportsInThisWeek[sport] += (dayData[sport] || 0);
+            });
+          }
+        });
+
+        // Haftadaki spor verilerini ekle
+        getSportTypes().forEach(sport => {
+          weekData[sport] = sportsInThisWeek[sport];
         });
 
         grouped.push(weekData);
@@ -281,9 +307,35 @@ export function SportEventsChart({
           date: `${format(monthStart, "MMM", { locale: tr })}-${format(monthEnd, "MMM yyyy", { locale: tr })}`,
         };
 
-        // Spor dalları için toplam değerleri hesapla
+        // Spor dalları için API'den gelen değerleri kullan
+        const sportsInThisMonth: Record<string, number> = {};
         getSportTypes().forEach(sport => {
-          monthData[sport] = Math.round(Math.random() * 150 + 50); // Gerçek uygulamada burada veri aralığına göre hesaplama yapılır
+          sportsInThisMonth[sport] = 0;
+        });
+
+        // Bu aya ait günleri bul ve değerleri topla
+        chartData.forEach(dayData => {
+          // Günün tarihini parse et
+          const dateParts = dayData.date.split('.');
+          if (dateParts.length !== 3) return;
+
+          const day = parseInt(dateParts[0]);
+          const month = parseInt(dateParts[1]) - 1;
+          const year = parseInt(dateParts[2]);
+          const dayDate = new Date(year, month, day);
+
+          // Bu gün bu aya ait mi kontrol et
+          if (dayDate >= monthStart && dayDate <= monthEnd) {
+            // Spor verilerini topla
+            getSportTypes().forEach(sport => {
+              sportsInThisMonth[sport] += (dayData[sport] || 0);
+            });
+          }
+        });
+
+        // Aydaki spor verilerini ekle
+        getSportTypes().forEach(sport => {
+          monthData[sport] = sportsInThisMonth[sport];
         });
 
         grouped.push(monthData);
@@ -305,9 +357,35 @@ export function SportEventsChart({
           date: `${year}`,
         };
 
-        // Spor dalları için toplam değerleri hesapla
+        // Spor dalları için API'den gelen değerleri kullan
+        const sportsInThisYear: Record<string, number> = {};
         getSportTypes().forEach(sport => {
-          yearData[sport] = Math.round(Math.random() * 1200 + 300); // Gerçek uygulamada burada veri aralığına göre hesaplama yapılır
+          sportsInThisYear[sport] = 0;
+        });
+
+        // Bu yıla ait günleri bul ve değerleri topla
+        chartData.forEach(dayData => {
+          // Günün tarihini parse et
+          const dateParts = dayData.date.split('.');
+          if (dateParts.length !== 3) return;
+
+          const day = parseInt(dateParts[0]);
+          const month = parseInt(dateParts[1]) - 1;
+          const year = parseInt(dateParts[2]);
+          const dayDate = new Date(year, month, day);
+
+          // Bu gün bu yıla ait mi kontrol et
+          if (dayDate.getFullYear() === year) {
+            // Spor verilerini topla
+            getSportTypes().forEach(sport => {
+              sportsInThisYear[sport] += (dayData[sport] || 0);
+            });
+          }
+        });
+
+        // Yıldaki spor verilerini ekle
+        getSportTypes().forEach(sport => {
+          yearData[sport] = sportsInThisYear[sport];
         });
 
         grouped.push(yearData);
