@@ -19,17 +19,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Upload, X, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import eventService from '@/lib/services/eventService';
-import Image from 'next/image';
 import type { Event } from '@/interfaces/event';
+import type { Sport } from '@/interfaces/sport';
+
+// Helper text for users to understand the coordinates
+const LOCATION_HELP_TEXT = "İpucu: Google Maps'te bir konuma sağ tıkladığınızda koordinatları kopyalayabilirsiniz.";
+
+// Sabit spor dalları listesi - property'leri SportInterface'den alarak
+const PREDEFINED_SPORTS = [
+  { id: "909a0f7f-54f7-4a47-b47f-5d074b88bcc6", name: "Futbol" },
+  { id: "5dc3ebe8-3111-47e3-86d4-648cc1c1df98", name: "Basketbol" },
+  { id: "bc691491-2143-4781-800d-a63b8e28ac0b", name: "Tenis" },
+  { id: "c82d3ffe-340e-494e-92ee-4e43ab376d8c", name: "Voleybol" },
+  { id: "36d22b6d-e407-40be-a023-b0e45669d1a3", name: "Yüzme" }
+] as Sport[];
 
 type EventFormModalProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   event?: Event | null;
-  onSuccess?: () => void;
+  onSuccess?: (event?: Event) => void;
 };
 
 interface FormDataType {
@@ -39,27 +51,31 @@ interface FormDataType {
   start_time: string;
   end_time: string;
   location_name: string;
+  location_latitude: number;
+  location_longitude: number;
   max_participants: number;
-  status: 'active' | 'draft' | 'canceled' | 'completed';
+  status: 'active' | 'canceled' | 'completed' | 'draft';
   approval_status: 'pending' | 'approved' | 'rejected';
   sport_id: string;
-  image?: string;
-  creator_id?: string;
+  creator_id: string;
 }
 
+// Default formData values
 const defaultEvent: FormDataType = {
   title: '',
   description: '',
-  event_date: '',
-  start_time: '',
-  end_time: '',
+  event_date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+  start_time: '12:00', // Default start time
+  end_time: '14:00', // Default end time
   location_name: '',
+  location_latitude: 0,
+  location_longitude: 0,
   max_participants: 10,
   status: 'draft',
   approval_status: 'pending',
   sport_id: '',
-  image: '',
-};
+  creator_id: '',
+}
 
 export function EventFormModal({
   isOpen,
@@ -68,69 +84,101 @@ export function EventFormModal({
   onSuccess,
 }: EventFormModalProps) {
   const [formData, setFormData] = useState<FormDataType>(defaultEvent);
-  const [dragOver, setDragOver] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sports, setSports] = useState<Sport[]>([]);
+  const [loadingSports, setLoadingSports] = useState(false);
   const isLoading = false;
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const isEditing = !!event && !!event.id;
+
+  // Mevcut sportService.listSports çağrısı yerine sabit listeyi kullanacak şekilde güncellendi
+  useEffect(() => {
+    const fetchSports = () => {
+      setLoadingSports(true);
+      try {
+        // API çağrısı yerine önceden tanımlanmış spor dallarını kullan
+        setSports(PREDEFINED_SPORTS);
+        console.log('Sports loaded:', PREDEFINED_SPORTS);
+      } catch (error) {
+        console.error('Error setting sports:', error);
+        toast({
+          title: "Hata", 
+          description: "Spor dalları yüklenirken bir hata oluştu",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingSports(false);
+      }
+    };
+    
+    if (isOpen) {
+      fetchSports();
+    }
+  }, [isOpen, toast]);
 
   // Modal açıldığında mevcut etkinlik bilgilerini yükle veya sıfırla
   useEffect(() => {
     if (isOpen) {
       // Eğer düzenleme modundaysa ve geçerli bir etkinlik varsa
       if (isEditing && event) {
-        // Tarih dönüşümlerini güvenli şekilde yapalım
-        let formattedEventDate = '';
-        let formattedStartTime = '';
-        let formattedEndTime = '';
-        let sportId = '';
-        let creatorId = '';
+        // Formun varsayılan değerlerini hazırlama
+        const data = {...defaultEvent};
         
         try {
-          // Safely convert to string to avoid type errors
+          // event_date
           if (event.event_date) {
-            const date = new Date(String(event.event_date));
-            if (!isNaN(date.getTime())) {
-              formattedEventDate = date.toISOString().split('T')[0];
+            const eventDate = new Date(event.event_date);
+            if (!isNaN(eventDate.getTime())) {
+              data.event_date = eventDate.toISOString().split('T')[0];
             }
           }
-          
+          // Type-safety için non-null assertion
+          data.event_date = data.event_date || new Date().toISOString().split('T')[0];
+
+          // start_time
           if (event.start_time) {
-            const date = new Date(String(event.start_time));
-            if (!isNaN(date.getTime())) {
-              formattedStartTime = date.toTimeString().substring(0, 5);
-            }
-          }
-          
-          if (event.end_time) {
-            const date = new Date(String(event.end_time));
-            if (!isNaN(date.getTime())) {
-              formattedEndTime = date.toTimeString().substring(0, 5);
+            const startTime = new Date(event.start_time);
+            if (!isNaN(startTime.getTime())) {
+              data.start_time = startTime.toTimeString().substring(0, 5);
             }
           }
 
-          // Convert IDs to strings safely
-          sportId = event.sport_id ? String(event.sport_id) : '';
-          creatorId = event.creator_id ? String(event.creator_id) : '';
+          // end_time
+          if (event.end_time) {
+            const endTime = new Date(event.end_time);
+            if (!isNaN(endTime.getTime())) {
+              data.end_time = endTime.toTimeString().substring(0, 5);
+            }
+          }
+
+          // Temel alanlar
+          data.title = event.title || '';
+          data.description = event.description || '';
+          data.location_name = event.location_name || '';
+          data.location_latitude = event.location_latitude || 0;
+          data.location_longitude = event.location_longitude || 0;
+          data.max_participants = event.max_participants || 10;
+          data.status = (event.status as 'active' | 'draft' | 'canceled' | 'completed') || 'draft';
+          data.approval_status = (event.approval_status as 'pending' | 'approved' | 'rejected') || 'pending';
+          
+          // sport_id
+          if (event.sport_id) {
+            data.sport_id = event.sport_id;
+          } else if (event.sport && event.sport.id) {
+            data.sport_id = event.sport.id;
+          }
+
+          // creator_id
+          if (event.creator_id) {
+            data.creator_id = event.creator_id;
+          } else if (event.creator && event.creator.id) {
+            data.creator_id = event.creator.id;
+          }
         } catch (error) {
-          console.error('Data formatting error:', error);
+          console.error('Date formatting error:', error);
         }
 
-        setFormData({
-          title: event.title || '',
-          description: event.description || '',
-          event_date: formattedEventDate,
-          start_time: formattedStartTime,
-          end_time: formattedEndTime,
-          location_name: event.location_name || '',
-          max_participants: event.max_participants || 10,
-          status: (event.status as 'active' | 'draft' | 'canceled' | 'completed') || 'draft',
-          approval_status: (event.approval_status as 'pending' | 'approved' | 'rejected') || 'pending',
-          sport_id: sportId,
-          image: event.image || '',
-          creator_id: creatorId,
-        });
+        setFormData(data);
       } else {
         // Yeni etkinlik ekleme modu
         setFormData({...defaultEvent});
@@ -222,18 +270,54 @@ export function EventFormModal({
         return;
       }
       
+      // Validate status field
+      if (!formData.status || !['active', 'canceled', 'completed', 'draft'].includes(formData.status)) {
+        toast({
+          title: "Hata",
+          description: "Geçerli bir durum (status) seçiniz",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Validate coordinates
+      if (isNaN(formData.location_latitude) || formData.location_latitude === 0) {
+        toast({
+          title: "Hata",
+          description: "Geçerli bir enlem (latitude) koordinatı giriniz",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      if (isNaN(formData.location_longitude) || formData.location_longitude === 0) {
+        toast({
+          title: "Hata",
+          description: "Geçerli bir boylam (longitude) koordinatı giriniz",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
       // Format dates for proper API submission
       const formattedEvent = {
         ...formData,
         event_date: new Date(formData.event_date).toISOString(),
         start_time: new Date(`${formData.event_date}T${formData.start_time}`).toISOString(),
         end_time: new Date(`${formData.event_date}T${formData.end_time}`).toISOString(),
+        // Ensure status is a valid value
+        status: formData.status || 'draft',
       };
       
       let response;
       
       if (isEditing && event && event.id) {
         // Etkinlik güncelleme
+        // PUT işlemi {{baseUrl}}/api/events/{{eventId}} endpoint'ine yapılacak
+        console.log(`Etkinlik güncelleniyor: /api/events/${event.id}`);
         response = await eventService.updateEvent(event.id, formattedEvent);
       } else {
         // Yeni etkinlik oluşturma
@@ -252,7 +336,10 @@ export function EventFormModal({
         handleModalClose(false);
         
         // Etkinlik listesini güncelle (sadece başarılı olduğunda)
-        if (onSuccess) {
+        if (onSuccess && response.data) {
+          onSuccess(response.data);
+        } else if (onSuccess) {
+          // If no data, just call the callback without parameters
           onSuccess();
         }
       } else {
@@ -262,57 +349,15 @@ export function EventFormModal({
           variant: "destructive",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Hata",
-        description: error.message || "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.",
+        description: error instanceof Error ? error.message : "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.",
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Gerçek bir uygulamada, bu dosyayı bir API'ye yükleyecektik
-      // Bu basitleştirilmiş örnekte sadece bir dosya adını kaydediyoruz
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setFormData(prev => ({
-          ...prev,
-          image: result
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragOver(false);
-    
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setFormData(prev => ({
-          ...prev,
-          image: result
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveImage = () => {
-    setFormData(prev => ({
-      ...prev,
-      image: ''
-    }));
   };
 
   const handleModalClose = (open: boolean) => {
@@ -399,14 +444,40 @@ export function EventFormModal({
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="location_latitude">Enlem*</Label>
+                  <Input
+                    id="location_latitude"
+                    type="number"
+                    step="0.000001"
+                    placeholder="Örn: 41.015137"
+                    value={String(formData.location_latitude)}
+                    onChange={(e) => handleChange('location_latitude', parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="location_longitude">Boylam*</Label>
+                  <Input
+                    id="location_longitude"
+                    type="number"
+                    step="0.000001"
+                    placeholder="Örn: 28.979530"
+                    value={String(formData.location_longitude)}
+                    onChange={(e) => handleChange('location_longitude', parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 italic mt-1 mb-3">{LOCATION_HELP_TEXT}</p>
+
               <div className="grid gap-2">
                 <Label htmlFor="max_participants">Maksimum Katılımcı Sayısı</Label>
                 <Input
                   id="max_participants"
                   type="number"
                   min="1"
-                  value={formData.max_participants}
-                  onChange={(e) => handleChange('max_participants', parseInt(e.target.value))}
+                  value={String(formData.max_participants)}
+                  onChange={(e) => handleChange('max_participants', parseInt(e.target.value) || 1)}
                 />
               </div>
 
@@ -415,92 +486,51 @@ export function EventFormModal({
                 <Select 
                   value={formData.sport_id} 
                   onValueChange={(value) => handleChange('sport_id', value)}
+                  disabled={loadingSports}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Spor dalı seçin" />
+                    <SelectValue placeholder={loadingSports ? "Spor dalları yükleniyor..." : "Spor dalı seçin"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">Futbol</SelectItem>
-                    <SelectItem value="2">Basketbol</SelectItem>
-                    <SelectItem value="3">Voleybol</SelectItem>
-                    <SelectItem value="4">Tenis</SelectItem>
-                    <SelectItem value="5">Yüzme</SelectItem>
+                    {sports.length > 0 ? (
+                      sports.map((sport) => (
+                        <SelectItem key={sport.id} value={sport.id}>
+                          {sport.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      loadingSports ? (
+                        <div className="flex items-center justify-center py-2 px-2 text-sm text-center text-gray-500">
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Spor dalları yükleniyor...
+                        </div>
+                      ) : (
+                        <div className="py-2 px-2 text-sm text-center text-gray-500">
+                          Spor dalı bulunamadı
+                        </div>
+                      )
+                    )}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="status">Durum</Label>
+                <Label htmlFor="status">Durum*</Label>
                 <Select 
                   value={formData.status} 
-                  onValueChange={(value) => handleChange('status', value)}
+                  onValueChange={(value) => handleChange('status', value as 'active' | 'canceled' | 'completed' | 'draft')}
+                  defaultValue="draft"
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Durum seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="draft">Taslak</SelectItem>
+                    <SelectItem value="draft">Pasif</SelectItem>
                     <SelectItem value="active">Aktif</SelectItem>
                     <SelectItem value="canceled">İptal Edildi</SelectItem>
                     <SelectItem value="completed">Tamamlandı</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="grid gap-2">
-                <Label>Etkinlik Görseli</Label>
-                <div
-                  className={`border-2 border-dashed rounded-md p-6 text-center ${
-                    dragOver ? 'border-primary bg-primary/10' : 'border-input'
-                  }`}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setDragOver(true);
-                  }}
-                  onDragLeave={() => setDragOver(false)}
-                  onDrop={handleDrop}
-                >
-                  {formData.image ? (
-                    <div className="relative w-full h-48">
-                      <Image
-                        src={formData.image}
-                        alt="Etkinlik görseli"
-                        fill
-                        className="object-contain"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2"
-                        onClick={handleRemoveImage}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <Upload className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
-                      <div className="text-sm text-muted-foreground mb-2">
-                        Görsel yüklemek için sürükleyip bırakın veya tıklayın
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        Görsel Seç
-                      </Button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleFileChange}
-                      />
-                    </>
-                  )}
-                </div>
               </div>
             </div>
           </div>

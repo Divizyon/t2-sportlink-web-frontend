@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 
@@ -13,6 +13,26 @@ export const Pagination: React.FC<PaginationProps> = ({
   totalPages,
   onPageChange,
 }) => {
+  const [isChanging, setIsChanging] = useState(false);
+  
+  // Reset isChanging flag when currentPage changes
+  useEffect(() => {
+    setIsChanging(false);
+  }, [currentPage]);
+
+  // Debounced page change handler to prevent rapid successive clicks
+  const handlePageChange = (page: number) => {
+    if (isChanging || page === currentPage) return;
+    
+    setIsChanging(true);
+    onPageChange(page);
+    
+    // Automatically reset after timeout as a failsafe
+    setTimeout(() => {
+      setIsChanging(false);
+    }, 500);
+  };
+  
   // Sayfa numaralarını oluştur
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
@@ -44,8 +64,9 @@ export const Pagination: React.FC<PaginationProps> = ({
       <Button
         variant="outline"
         size="icon"
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
+        onClick={() => handlePageChange(currentPage - 1)}
+        disabled={currentPage === 1 || isChanging}
+        className={isChanging ? "opacity-50 cursor-not-allowed" : ""}
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
@@ -63,7 +84,9 @@ export const Pagination: React.FC<PaginationProps> = ({
           ) : (
             <Button
               variant={currentPage === page ? 'default' : 'outline'}
-              onClick={() => onPageChange(page as number)}
+              onClick={() => handlePageChange(page as number)}
+              disabled={isChanging}
+              className={isChanging ? "opacity-50 cursor-not-allowed" : ""}
             >
               {page}
             </Button>
@@ -74,8 +97,9 @@ export const Pagination: React.FC<PaginationProps> = ({
       <Button
         variant="outline"
         size="icon"
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
+        onClick={() => handlePageChange(currentPage + 1)}
+        disabled={currentPage === totalPages || isChanging}
+        className={isChanging ? "opacity-50 cursor-not-allowed" : ""}
       >
         <ChevronRight className="h-4 w-4" />
       </Button>

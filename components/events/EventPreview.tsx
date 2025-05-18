@@ -26,10 +26,8 @@ interface EventPreviewProps {
   selectedEvent: Event | null;
   viewMode: "preview" | "edit";
   handleChange: (name: string, value: string | number | string[] | boolean) => void;
-  handleImageUpload: (e: ChangeEvent<HTMLInputElement>, isNewEvent: boolean) => void;
   getStatusBadge: (status: string) => React.ReactNode;
   formatDate: (dateString: string) => string;
-  defaultImage: string;
   setViewMode: React.Dispatch<React.SetStateAction<"preview" | "edit">>;
   renderSelectWithFallback: (value: string | undefined, onChange: (value: string) => void, placeholder: string, options: { value: string, label: string }[]) => React.ReactNode;
   handleEditEvent: () => Promise<void>;
@@ -39,10 +37,8 @@ const EventPreview: React.FC<EventPreviewProps> = ({
   selectedEvent,
   viewMode,
   handleChange,
-  handleImageUpload,
   getStatusBadge,
   formatDate,
-  defaultImage,
   setViewMode,
   renderSelectWithFallback,
   handleEditEvent
@@ -218,14 +214,6 @@ const EventPreview: React.FC<EventPreviewProps> = ({
           {selectedEvent ? (
             viewMode === "preview" ? (
               <div className="space-y-6">
-                <div className="relative h-48 w-full rounded-lg overflow-hidden">
-                  <Image
-                    src={selectedEvent.image || defaultImage}
-                    alt={selectedEvent.title}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-2xl font-semibold">{selectedEvent.title}</h3>
@@ -318,28 +306,6 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="edit-image">Resim</Label>
-                    <div className="flex flex-col gap-2">
-                      <Input
-                        id="edit-image"
-                        type="file"
-                        accept=".png,.jpg,.jpeg"
-                        onChange={(e) => handleImageUpload(e, false)}
-                      />
-                      {selectedEvent.image && (
-                        <div className="relative w-full h-32 mt-2 rounded-md overflow-hidden">
-                          <Image
-                            src={selectedEvent.image}
-                            alt="Etkinlik Resmi"
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      )}
-                      <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">Sadece PNG, JPG ve JPEG formatları desteklenmektedir.</span>
-                    </div>
-                  </div>
-                  <div className="grid gap-2">
                     <Label htmlFor="edit-date">Tarih</Label>
                     <Input
                       id="edit-date"
@@ -404,12 +370,12 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                       (value) => handleChange('sport_id', value),
                       "Spor seçin",
                       [
-                        { value: "1", label: "Futbol" },
-                        { value: "2", label: "Basketbol" },
-                        { value: "3", label: "Voleybol" },
-                        { value: "4", label: "Tenis" },
-                        { value: "5", label: "Yüzme" },
-                        // Add other sports as needed
+                        { value: "909a0f7f-54f7-4a47-b47f-5d074b88bcc6", label: "Futbol" },
+                        { value: "5dc3ebe8-3111-47e3-86d4-648cc1c1df98", label: "Basketbol" },
+                        { value: "c82d3ffe-340e-494e-92ee-4e43ab376d8c", label: "Voleybol" },
+                        { value: "bc691491-2143-4781-800d-a63b8e28ac0b", label: "Tenis" },
+                        { value: "36d22b6d-e407-40be-a023-b0e45669d1a3", label: "Yüzme" },
+                        // Gerçek veritabanı UUID değerleri kullanılıyor
                       ]
                     )}
                   </div>
@@ -419,8 +385,8 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                       id="edit-capacity"
                       type="number"
                       min="1"
-                      value={selectedEvent.max_participants}
-                      onChange={(e) => handleChange('max_participants', parseInt(e.target.value))}
+                      value={String(selectedEvent.max_participants)}
+                      onChange={(e) => handleChange('max_participants', parseInt(e.target.value) || 1)}
                     />
                   </div>
                   {/* Price and Organizer seem removed in original code? Let's assume they are not needed for now 
@@ -450,15 +416,20 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                         (value) => handleChange('status', value),
                         "Durum seçin",
                         [
-                          { value: "pending", label: "Beklemede" },
+                          { value: "draft", label: "Draft" },
                           { value: "active", label: "Aktif" },
-                          { value: "cancelled", label: "İptal Edildi" },
+                          { value: "passive", label: "Pasif" },
                         ]
                       )}
                     </div>
                   </div>
                   <div className="flex justify-end pt-4">
-                    <Button onClick={handleEditEvent}>Değişiklikleri Kaydet</Button>
+                    <Button 
+                      onClick={handleEditEvent}
+                      title="PUT {{baseUrl}}/api/events/{{eventId}} endpoint'ine bağlanacak"
+                    >
+                      Değişiklikleri Kaydet
+                    </Button>
                   </div>
                 </div>
               </div>

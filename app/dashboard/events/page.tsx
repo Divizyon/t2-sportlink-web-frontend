@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { ChangeEvent } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import EventList from "@/components/events/EventList";
 import ApprovalCenter from "@/components/events/ApprovalCenter";
 import EventPreview from "@/components/events/EventPreview";
 import { EventFormModal } from "@/components/events/EventFormModal";
+import { getSafeStatus } from "@/interfaces/event";
 
 export default function EventsPage() {
   const { toast } = useToast();
@@ -35,11 +36,9 @@ export default function EventsPage() {
   const [selectedFilters, setSelectedFilters] = useState<{
     category: string[];
     status: string[];
-    approval_status: string[];
   }>({
     category: [],
-    status: [],
-    approval_status: []
+    status: []
   });
 
   // Event modal için state ekleyelim
@@ -64,37 +63,9 @@ export default function EventsPage() {
     }
   }, [authLoading, isAuthenticated, hasRequiredRole, toast]);
 
-  // Sayfa yüklendiğinde ve filtreler değiştiğinde etkinlikleri yükle
-  useEffect(() => {
-    // Eğer kimlik doğrulama tamamlandıysa ve gerekli yetkiler varsa, etkinlikleri getir
-    if (!authLoading && isAuthenticated && hasRequiredRole) {
-      console.log('Fetching events with params:', {
-        page: pagination.page,
-        limit: pagination.limit,
-        searchQuery,
-        selectedFilters
-      });
-      fetchEvents();
-    } else {
-      console.log('Not fetching events because:', {
-        authLoading,
-        isAuthenticated,
-        hasRequiredRole
-      });
-    }
-  }, [pagination.page, pagination.limit, searchQuery, selectedFilters, authLoading, isAuthenticated, hasRequiredRole]);
-
-  // Sonuçlar içinden ilk etkinliği seç
-  useEffect(() => {
-    if (events.length > 0 && !selectedEvent) {
-      setSelectedEvent(events[0] || null);
-    }
-  }, [events, selectedEvent]);
-
-  // Etkinlikleri API'den yükle
-  const fetchEvents = async () => {
+  // Memoize fetchEvents to prevent unnecessary recreations
+  const fetchEvents = useCallback(async () => {
     try {
-      console.log('Starting fetchEvents with page:', pagination.page);
       setLoading(true);
 
       const params: EventFilterParams = {
@@ -107,18 +78,12 @@ export default function EventsPage() {
       }
 
       // Tüm etkinlik durumlarını içerecek şekilde parametre ayarla
-      // API'ye tüm etkinlik tiplerini dahil et
       params.status = ['all'];
-      console.log('Status parameter set to:', params.status);
-
-      // Tüm onay durumlarını içerecek şekilde parametre ayarla
-      (params as any).approval_status = ['pending', 'approved', 'rejected', 'cancelled'];
       
       if (selectedFilters.category.length > 0 && selectedFilters.category[0]) {
         params.sportId = selectedFilters.category[0];
       }
 
-      console.log('Calling eventService.listEvents with params:', params);
       const response = await eventService.listEvents(params);
       
       if (response.success && response.data) {
@@ -130,20 +95,6 @@ export default function EventsPage() {
           totalPages: Math.ceil(eventsData.length / pagination.limit)
         };
         
-        // Dönen etkinliklerin durumlarını kontrol et ve logla
-        const statusCounts: Record<string, number> = {};
-        eventsData.forEach(event => {
-          statusCounts[event.status] = (statusCounts[event.status] || 0) + 1;
-        });
-        console.log('API returned events by status:', statusCounts);
-        
-        console.log('API returned:', {
-          total: paginationData.total || eventsData.length,
-          page: paginationData.page || 1, 
-          limit: paginationData.limit || 10,
-          events: eventsData.length
-        });
-
         // Update events state
         setEvents(eventsData);
 
@@ -156,7 +107,6 @@ export default function EventsPage() {
           limit: paginationData.limit || prev.limit
         }));
       } else {
-        console.error('Error in fetchEvents:', response.message);
         toast({
           title: "Hata",
           description: response.message || "Etkinlikler yüklenirken bir hata oluştu",
@@ -164,7 +114,6 @@ export default function EventsPage() {
         });
       }
     } catch (error) {
-      console.error("Error in fetchEvents:", error);
       toast({
         title: "Hata",
         description: "Etkinlikler yüklenirken bir hata oluştu",
@@ -173,22 +122,55 @@ export default function EventsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.page, pagination.limit, searchQuery, selectedFilters, toast]);
+
+  // Sayfa yüklendiğinde ve filtreler değiştiğinde etkinlikleri yükle
+  useEffect(() => {
+    // Eğer kimlik doğrulama tamamlandıysa ve gerekli yetkiler varsa, etkinlikleri getir
+    if (!authLoading && isAuthenticated && hasRequiredRole) {
+      fetchEvents();
+    }
+  }, [pagination.page, pagination.limit, searchQuery, selectedFilters, authLoading, isAuthenticated, hasRequiredRole, fetchEvents]);
+
+  // Sonuçlar içinden ilk etkinliği seç
+  useEffect(() => {
+    if (events.length > 0 && !selectedEvent) {
+      setSelectedEvent(events[0] || null);
+    }
+  }, [events, selectedEvent]);
 
   const handleEditEvent = async () => {
-    if (!editingEvent) return;
-
+    // Debug için bilgileri logla
+    console.log('handleEditEvent çağrıldı');
+    console.log('selectedEvent:', selectedEvent);
+    
     try {
-      // Use selectedEvent for update payload if editingEvent is not the source of truth for the form
-      const updatePayload = viewMode === 'edit' && selectedEvent ? selectedEvent : editingEvent;
-
+      // Herzaman selectedEvent kullan, varlığını kontrol et
+      if (!selectedEvent) {
+        console.error('Güncellenecek etkinlik bulunamadı');
+        toast({
+          title: "Hata",
+          description: "Güncellenecek etkinlik bilgileri bulunamadı",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Ensure the status is one of the expected types
       const typedPayload = {
-        ...updatePayload,
-        status: updatePayload.status as 'active' | 'canceled' | 'completed' | 'draft',
-        approval_status: updatePayload.approval_status as 'pending' | 'approved' | 'rejected'
+        ...selectedEvent,
+        status: selectedEvent.status as 'draft' | 'active' | 'passive'
       };
 
+      // Update the UI immediately for a more responsive feel
+      setEvents(prevEvents => prevEvents.map(event => 
+        event.id === selectedEvent.id ? {...event, ...typedPayload} : event
+      ));
+      
+      // Switch back to preview mode immediately
+      setViewMode("preview");
+
+      console.log('API isteği gönderiliyor:', typedPayload);
       const response = await eventService.updateEvent(typedPayload.id, typedPayload);
 
       if (response.success) {
@@ -196,137 +178,84 @@ export default function EventsPage() {
           title: "Başarılı",
           description: response.message || "Etkinlik başarıyla güncellendi",
         });
-
-        // Etkinlik listesini güncelle
-        fetchEvents();
-
-        // Seçili etkinliği güncelle (no longer need fetchEventDetails if list update is sufficient)
-        // if (selectedEvent && selectedEvent.id === updatePayload.id) {
-        // The list update should handle this implicitly
-        // }
-
-        setEditingEvent(null); // Reset editing state if used
-        setViewMode("preview"); // Switch back to preview after successful edit
       } else {
+        // If the API call fails, revert the changes
         toast({
           title: "Hata",
           description: response.message || "Etkinlik güncellenirken bir hata oluştu",
           variant: "destructive",
         });
+        
+        // Refresh events to revert changes
+        fetchEvents();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Etkinlik güncelleme hatası:", error);
       toast({
         title: "Hata",
-        description: error.message || "Etkinlik güncellenirken bir hata oluştu",
+        description: error instanceof Error ? error.message : "Etkinlik güncellenirken bir hata oluştu",
         variant: "destructive",
       });
+      
+      // Refresh events to revert changes
+      fetchEvents();
     }
   };
 
   const handleDeleteEvent = async (id: string) => {
     try {
+      // Find the event to delete
+      const eventToDelete = events.find(e => e.id === id);
+      if (!eventToDelete) return;
+      
+      // Update UI immediately
+      setEvents(prevEvents => prevEvents.filter(event => event.id !== id));
+      
+      // Update pagination count immediately
+      setPagination(prev => ({
+        ...prev,
+        total: prev.total - 1
+      }));
+
+      // If the deleted event is selected, clear the selection
+      if (selectedEvent && selectedEvent.id === id) {
+        setSelectedEvent(null);
+      }
+      
+      // Make API request in the background
       const response = await eventService.deleteEvent(id);
 
-      if (response.success) {
-        toast({
-          title: "Başarılı",
-          description: response.message || "Etkinlik başarıyla silindi",
-        });
-
-        // Etkinlik listesini güncelle
-        fetchEvents();
-
-        // Eğer silinen etkinlik seçili ise, seçimi kaldır veya ilkini seç
-        if (selectedEvent && selectedEvent.id === id) {
-          setSelectedEvent(null); // Clear selection after delete
-        }
-      } else {
+      if (!response.success) {
+        // Only show error if something went wrong
         toast({
           title: "Hata",
           description: response.message || "Etkinlik silinirken bir hata oluştu",
           variant: "destructive",
         });
+        
+        // Refresh events to show correct state
+        fetchEvents();
+      } else {
+        // Show success message
+        toast({
+          title: "Başarılı",
+          description: response.message || "Etkinlik başarıyla silindi",
+        });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Etkinlik silme hatası:", error);
       toast({
         title: "Hata",
-        description: error.message || "Etkinlik silinirken bir hata oluştu",
+        description: error instanceof Error ? error.message : "Etkinlik silinirken bir hata oluştu",
         variant: "destructive",
       });
+      
+      // Refresh events to show correct state
+      fetchEvents();
     }
   };
 
-  const handleApproveEvent = async (id: string) => {
-    try {
-      const response = await eventService.approveEvent(id);
-
-      if (response.success) {
-        toast({
-          title: "Başarılı",
-          description: response.message || "Etkinlik başarıyla onaylandı",
-        });
-
-        // Etkinlik listesini güncelle
-        fetchEvents();
-
-        // Seçili etkinliği güncelle (list update should handle this)
-        // if (selectedEvent && selectedEvent.id === id) {
-        // Fetch updated list instead of single detail
-        // }
-      } else {
-        toast({
-          title: "Hata",
-          description: response.message || "Etkinlik onaylanırken bir hata oluştu",
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error("Etkinlik onaylama hatası:", error);
-      toast({
-        title: "Hata",
-        description: error.message || "Etkinlik onaylanırken bir hata oluştu",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleRejectEvent = async (id: string) => {
-    try {
-      const response = await eventService.rejectEvent(id);
-
-      if (response.success) {
-        toast({
-          title: "Başarılı",
-          description: response.message || "Etkinlik başarıyla reddedildi",
-        });
-
-        // Etkinlik listesini güncelle
-        fetchEvents();
-
-        // Seçili etkinliği güncelle (list update should handle this)
-        // if (selectedEvent && selectedEvent.id === id) {
-        // Fetch updated list instead of single detail
-        // }
-      } else {
-        toast({
-          title: "Hata",
-          description: response.message || "Etkinlik reddedilirken bir hata oluştu",
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error("Etkinlik reddetme hatası:", error);
-      toast({
-        title: "Hata",
-        description: error.message || "Etkinlik reddedilirken bir hata oluştu",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleFilterChange = (type: 'category' | 'status' | 'approval_status', value: string) => {
+  const handleFilterChange = (type: 'category' | 'status', value: string) => {
     setSelectedFilters(prev => {
       const currentFilters = prev[type];
 
@@ -386,45 +315,17 @@ export default function EventsPage() {
     }
   };
 
-  // Dosya yükleme için yardımcı fonksiyon
-  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-
-    if (!file) return;
-
-    // Yalnızca PNG, JPG ve JPEG formatlarını kabul et
-    if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
-      alert('Lütfen sadece PNG, JPG veya JPEG formatında dosya yükleyiniz.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      console.log("Dosya yüklendi, ancak işleme alınmadı. Backend API bu özelliği desteklemiyor.");
-      toast({
-        title: "Bilgi",
-        description: "Dosya yükleme şu anda desteklenmiyor.",
-      });
-    };
-    reader.readAsDataURL(file);
-  };
-
   const handleChange = (name: string, value: string | number | string[] | boolean) => {
     if (selectedEvent) {
       if (name === "status") {
-        const statusValue = value as string;
+        // Make sure status is properly typed
+        const statusValue = getSafeStatus(value as string);
         setSelectedEvent({ ...selectedEvent, [name]: statusValue });
-      } else if (name === "approval_status") {
-        const approvalStatusValue = value as "pending" | "approved" | "rejected" | "cancelled";
-        setSelectedEvent({ ...selectedEvent, [name]: approvalStatusValue });
       } else {
         setSelectedEvent({ ...selectedEvent, [name]: value });
       }
     }
   };
-
-  // İmage komponenti için varsayılan resim
-  const defaultImage = "/images/event-placeholder.jpg";
 
   // Select komponentleri için
   const renderSelectWithFallback = (value: string | undefined, onChange: (value: string) => void, placeholder: string, options: { value: string, label: string }[]) => {
@@ -444,23 +345,23 @@ export default function EventsPage() {
 
   // Durum etiketleri için yardımcı fonksiyon
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'active':
         return (
-          <Badge variant="default" className="bg-green-500">
+          <Badge variant="default" className="bg-green-500 text-white">
             Aktif
           </Badge>
         );
-      case 'inactive':
+      case 'draft':
+        return (
+          <Badge variant="secondary" className="bg-amber-500 text-white">
+            Beklemede
+          </Badge>
+        );
+      case 'passive':
         return (
           <Badge variant="secondary" className="bg-gray-500">
             Pasif
-          </Badge>
-        );
-      case 'pending':
-        return (
-          <Badge variant="outline" className="text-yellow-600 bg-yellow-50 border-yellow-200">
-            Beklemede
           </Badge>
         );
       default:
@@ -472,33 +373,124 @@ export default function EventsPage() {
     }
   };
 
-  // Sayfa değişikliği için handler
+  // Sayfa değişikliği için handler - API çağrılarını azaltmak için basit bir debounce ekleyelim
+  const [isPageChangePending, setIsPageChangePending] = useState(false);
+  
   const handlePageChange = (page: number) => {
+    // Eğer şu anda bir sayfa değişikliği bekliyorsa, işlemi yapma
+    if (isPageChangePending) return;
+    
+    // Sayfa değişikliği yapılıyor işaretini koy
+    setIsPageChangePending(true);
+    
     // Yeni sayfaya geçerken yükleme gösterecek şekilde state'i güncelle
     setPagination(prev => ({
       ...prev,
       page
     }));
     
-    // Yeni sayfanın verilerini yükle
-    console.log(`Navigating to page: ${page}`);
-    // fetchEvents fonksiyonu, pagination state değişikliğini algılayıp çalışacak
+    // 500ms sonra işareti kaldır - bu birden fazla hızlı tıklamaları engeller
+    setTimeout(() => {
+      setIsPageChangePending(false);
+    }, 500);
   };
-
-  // Debug pagination data
-  useEffect(() => {
-    console.log('Current pagination state:', {
-      total: pagination.total,
-      page: pagination.page,
-      limit: pagination.limit,
-      pages: pagination.pages,
-      shouldShowPagination: pagination.total > pagination.limit
-    });
-  }, [pagination]);
 
   // Modal açma fonksiyonu ekleyelim
   const openEventModal = () => {
     setIsEventModalOpen(true);
+  };
+
+  // Yeni etkinlik eklendiğinde sadece listeye ekle
+  const handleEventAdded = (newEvent?: Event) => {
+    if (newEvent) {
+      // Add to the beginning of the list for immediate visibility
+      setEvents(prevEvents => [newEvent, ...prevEvents]);
+      
+      // Update pagination count to reflect the addition
+      setPagination(prev => ({
+        ...prev,
+        total: prev.total + 1
+      }));
+      
+      // Automatically select the new event for better UX
+      setSelectedEvent(newEvent);
+      
+      // Show success toast
+      toast({
+        title: "Başarılı",
+        description: "Etkinlik başarıyla eklendi",
+      });
+    } else {
+      // If no event data returned, refresh the list
+      fetchEvents();
+    }
+  };
+
+  // Event durumunu güncelleme işlevi
+  const handleUpdateStatus = async (id: string, newStatus: 'active' | 'passive' | 'draft') => {
+    try {
+      // Güncellenecek etkinliği bul
+      const eventToUpdate = events.find(e => e.id === id);
+      if (!eventToUpdate) return;
+      
+      // Make sure we have a valid typed status
+      const safeStatus = getSafeStatus(newStatus);
+      
+      // UI'ı hemen güncelle
+      setEvents(prevEvents => prevEvents.map(event => 
+        event.id === id ? {...event, status: safeStatus} : event
+      ));
+
+      // Seçili etkinlik güncellenenle aynıysa, onu da güncelle
+      if (selectedEvent && selectedEvent.id === id) {
+        setSelectedEvent({...selectedEvent, status: safeStatus});
+      }
+      
+      // API isteği yap
+      const response = await eventService.updateEvent(id, {
+        status: safeStatus
+      });
+
+      if (!response.success) {
+        // Sadece bir şeyler yanlış giderse hata göster
+        toast({
+          title: "Hata",
+          description: response.message || `Etkinlik durumu güncellenirken bir hata oluştu`,
+          variant: "destructive",
+        });
+        
+        // Doğru durumu göstermek için etkinlikleri yenile
+        fetchEvents();
+      } else {
+        // Başarı mesajı göster - status'a göre farklı mesajlar
+        if (newStatus === 'active') {
+          toast({
+            title: "Başarılı",
+            description: "Etkinlik onaylandı",
+          });
+        } else if (newStatus === 'passive') {
+          toast({
+            title: "Bilgi",
+            description: "Etkinlik reddedildi",
+          });
+        } else {
+          toast({
+            title: "Başarılı",
+            description: `Etkinlik durumu "${newStatus}" olarak güncellendi`,
+          });
+        }
+      }
+    } catch (error: unknown) {
+      console.error("Etkinlik durumu güncelleme hatası:", error);
+      toast({
+        title: "Hata",
+        description: error instanceof Error ? error.message : "Etkinlik durumu güncellenirken bir hata oluştu",
+        variant: "destructive",
+      });
+      
+      // Doğru durumu göstermek için etkinlikleri yenile
+      fetchEvents();
+    }
   };
 
   return (
@@ -528,10 +520,9 @@ export default function EventsPage() {
         <ApprovalCenter
           events={events}
           setSelectedEvent={setSelectedEvent}
-          handleApproveEvent={handleApproveEvent}
-          handleRejectEvent={handleRejectEvent}
           formatDate={formatDate}
           itemsPerPage={5}
+          handleUpdateStatus={handleUpdateStatus}
         />
       </div>
 
@@ -541,10 +532,8 @@ export default function EventsPage() {
           selectedEvent={selectedEvent}
           viewMode={viewMode}
           handleChange={handleChange}
-          handleImageUpload={(e) => handleImageUpload(e)}
           getStatusBadge={getStatusBadge}
           formatDate={formatDate}
-          defaultImage={defaultImage}
           setViewMode={setViewMode}
           renderSelectWithFallback={renderSelectWithFallback}
           handleEditEvent={handleEditEvent}
@@ -555,7 +544,7 @@ export default function EventsPage() {
       <EventFormModal
         isOpen={isEventModalOpen}
         onOpenChange={setIsEventModalOpen}
-        onSuccess={fetchEvents}
+        onSuccess={handleEventAdded}
       />
     </div>
   );

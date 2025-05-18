@@ -4,8 +4,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Trash, Filter, ListFilter, CheckCircle2, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
-import { Select, SelectContent, SelectTrigger } from "@/components/ui/select";
+import { Search, Plus, Trash, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
+import EventFilter from "./EventFilter";
 import {
   Table,
   TableBody,
@@ -24,12 +24,11 @@ interface EventListProps {
   selectedFilters: {
     category: string[];
     status: string[];
-    approval_status: string[];
   };
   setSelectedEvent: (event: Event) => void;
   handleDeleteEvent: (id: string) => void;
   setSearchQuery: (query: string) => void;
-  handleFilterChange: (type: 'category' | 'status' | 'approval_status', value: string) => void;
+  handleFilterChange: (type: 'category' | 'status', value: string) => void;
   getTotalSelectedFilters: () => number;
   handleAddEvent: () => void;
   formatDate: (dateString: string) => string;
@@ -148,80 +147,23 @@ const EventList: React.FC<EventListProps> = ({
               </Button>
             </div>
 
-            <Select>
-              <SelectTrigger className="w-10 h-10 p-0 [&>svg]:hidden">
-                <div className="flex items-center justify-center w-full h-full relative">
-                  <Filter className="h-5 w-5" />
-                  {getTotalSelectedFilters() > 0 && (
-                    <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-primary"></span>
-                  )}
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <div className="mb-2 px-2 font-semibold text-sm">Duruma Göre Filtrele</div>
-                <div className="flex flex-col gap-2 p-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="filter-all"
-                      checked={selectedFilters.status.length === 0}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          handleFilterChange('status', 'all');
-                        }
-                      }}
-                    />
-                    <div className="flex items-center text-sm cursor-pointer">
-                      <ListFilter className="mr-2 h-4 w-4" />
-                      <label htmlFor="filter-all">Tümü</label>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="filter-active"
-                      checked={selectedFilters.status.includes("active")}
-                      onCheckedChange={() => handleFilterChange('status', 'active')}
-                    />
-                    <div className="flex items-center text-sm cursor-pointer">
-                      <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
-                      <label htmlFor="filter-active">Aktif</label>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="filter-draft"
-                      checked={selectedFilters.status.includes("draft")}
-                      onCheckedChange={() => handleFilterChange('status', 'draft')}
-                    />
-                    <div className="flex items-center text-sm cursor-pointer">
-                      <CheckCircle2 className="mr-2 h-4 w-4 text-yellow-600" />
-                      <label htmlFor="filter-draft">Taslak</label>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="filter-completed"
-                      checked={selectedFilters.status.includes("completed")}
-                      onCheckedChange={() => handleFilterChange('status', 'completed')}
-                    />
-                    <div className="flex items-center text-sm cursor-pointer">
-                      <CheckCircle2 className="mr-2 h-4 w-4 text-gray-600" />
-                      <label htmlFor="filter-completed">Tamamlandı</label>
-                    </div>
-                  </div>
-                </div>
-
-                {getTotalSelectedFilters() > 0 && (
-                  <div className="flex justify-center p-2 pt-3 border-t">
-                    <Button variant="outline" size="sm" onClick={() => {
-                      setSearchQuery("");
-                      handleFilterChange('status', 'all');
-                    }}>
-                      Filtreleri Temizle
-                    </Button>
-                  </div>
-                )}
-              </SelectContent>
-            </Select>
+            <EventFilter 
+              onFilterChange={(filters) => {
+                if (filters.status) {
+                  const statusArray = filters.status.split(",");
+                  // Apply each status filter separately
+                  statusArray.forEach(status => {
+                    handleFilterChange('status', status);
+                  });
+                } else {
+                  handleFilterChange('status', 'all');
+                }
+              }}
+              onReset={() => {
+                setSearchQuery("");
+                handleFilterChange('status', 'all');
+              }}
+            />
           </div>
 
           <Button size="sm" className="gap-1" onClick={() => handleAddEvent()}>
@@ -235,6 +177,7 @@ const EventList: React.FC<EventListProps> = ({
             <TableHeader>
               <TableRow>
                 <TableHead>Başlık</TableHead>
+                <TableHead>Organizatör</TableHead>
                 <TableHead>Tarih</TableHead>
                 <TableHead>Kategori</TableHead>
                 <TableHead>Durum</TableHead>
@@ -244,13 +187,13 @@ const EventList: React.FC<EventListProps> = ({
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-4">
+                  <TableCell colSpan={6} className="text-center py-4">
                     Yükleniyor...
                   </TableCell>
                 </TableRow>
               ) : events.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-4">
+                  <TableCell colSpan={6} className="text-center py-4">
                     {searchQuery || getTotalSelectedFilters() > 0 ? (
                       <div className="flex flex-col items-center py-8">
                         <h3 className="text-lg font-medium mb-2">Arama kriterlerine uygun etkinlik bulunamadı</h3>
@@ -280,6 +223,9 @@ const EventList: React.FC<EventListProps> = ({
                     onClick={() => setSelectedEvent(event)}
                   >
                     <TableCell className="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900">{event.title}</TableCell>
+                    <TableCell className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
+                      {event.creator ? `${event.creator.first_name} ${event.creator.last_name}` : event.organizer || 'Belirtilmemiş'}
+                    </TableCell>
                     <TableCell className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{formatDate(event.event_date)}</TableCell>
                     <TableCell className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
                       {event.sport ? event.sport.name : 'Belirtilmemiş'}

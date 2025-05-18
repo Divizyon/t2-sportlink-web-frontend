@@ -14,8 +14,7 @@ export interface Event {
   location_latitude: number;
   location_longitude: number;
   max_participants: number;
-  status: 'active' | 'canceled' | 'completed' | 'draft';
-  approval_status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  status: 'draft' | 'active' | 'passive';
   created_at: string;
   updated_at: string;
   participants?: Array<{
@@ -60,7 +59,41 @@ export interface EventRating {
   review: string;
 }
 
+// Simple request cache for frequently called endpoints
+interface CacheEntry {
+  timestamp: number;
+  data: any;
+}
+
 class EventService {
+  private requestCache: Record<string, CacheEntry> = {};
+  private cacheTTL = 30 * 1000; // 30 seconds TTL
+  
+  private getCacheKey(endpoint: string, params: any): string {
+    return `${endpoint}:${JSON.stringify(params)}`;
+  }
+  
+  private getCachedData(key: string): any | null {
+    const entry = this.requestCache[key];
+    if (!entry) return null;
+    
+    const now = Date.now();
+    if (now - entry.timestamp > this.cacheTTL) {
+      // Cache expired
+      delete this.requestCache[key];
+      return null;
+    }
+    
+    return entry.data;
+  }
+  
+  private setCachedData(key: string, data: any): void {
+    this.requestCache[key] = {
+      timestamp: Date.now(),
+      data
+    };
+  }
+
   /**
    * List events with optional filters
    */
@@ -77,7 +110,6 @@ class EventService {
       if (params?.sportId) queryParams.append('sportId', params.sportId);
       
       // Status parametresini API'ye gönderme
-      console.log('Original status params:', params?.status);
       if (params?.status && params.status.length > 0) {
         // 'all' parametresi veya özel durumlar
         if (params.status.includes('all')) {
@@ -89,26 +121,26 @@ class EventService {
         // Default olarak 'all' gönder
         queryParams.append('status', 'all');
       }
-      console.log('Final status params:', queryParams.getAll('status'));
-      
-      // Approval Status parametrelerini API'ye gönder
-      if ((params as any)?.approval_status && (params as any).approval_status.length > 0) {
-        (params as any).approval_status.forEach((s: string) => queryParams.append('approval_status', s));
-      }
       
       if (params?.keyword) queryParams.append('keyword', params.keyword);
       if (params?.startDate) queryParams.append('startDate', params.startDate);
       if (params?.endDate) queryParams.append('endDate', params.endDate);
 
       const apiUrl = `/events?${queryParams.toString()}`;
-      console.log('API request:', apiUrl);
-      const response = await api.get(apiUrl);
-
-      // API yanıtını kontrol et
-      console.log('API response status:', response.status);
       
+      // Check cache first before making request
+      const cacheKey = this.getCacheKey('listEvents', queryParams.toString());
+      const cachedData = this.getCachedData(cacheKey);
+      
+      if (cachedData) {
+        return {
+          success: true,
+          data: cachedData
+        };
+      }
+      
+      const response = await api.get(apiUrl);
       const rawData = response.data;
-      console.log('Raw API response structure:', Object.keys(rawData));
 
       let events: Event[] = [];
 
@@ -122,22 +154,20 @@ class EventService {
         events = rawData.data.events;
       } else {
         events = [];
-        console.error('Could not find events array in API response:', rawData);
       }
 
-      // Etkinliklerin status ve approval_status dağılımlarını logla
-      const statusCounts = events.reduce((acc, event) => {
-        acc[event.status] = (acc[event.status] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      
-      const approvalStatusCounts = events.reduce((acc, event) => {
-        acc[event.approval_status] = (acc[event.approval_status] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      
-      console.log('Events by status:', statusCounts);
-      console.log('Events by approval status:', approvalStatusCounts);
+      // Standardize status values for UI consistency
+      events = events.map(event => {
+        // Handle status values consistently - now just ensuring it's one of our 3 allowed values
+        const status = String(event.status).toLowerCase();
+        if (status === 'inactive' || status === 'draft') {
+          return {...event, status: 'draft' as Event['status']};
+        } else if (status === 'active') {
+          return {...event, status: 'active' as Event['status']};
+        } else {
+          return {...event, status: 'passive' as Event['status']};
+        }
+      });
 
       let pagination = {
         total: 0,
@@ -169,15 +199,15 @@ class EventService {
         data: events,
         pagination: pagination
       };
-
-      console.log('Returning events count:', events.length);
+      
+      // Store in cache
+      this.setCachedData(cacheKey, standardizedData);
 
       return {
         success: true,
         data: standardizedData
       };
     } catch (error) {
-      console.error('Error in listEvents:', error);
       return {
         success: false,
         message: handleApiError(error as AxiosError).message
@@ -254,6 +284,7 @@ class EventService {
 
   /**
    * Update event
+   * API Endpoint: PUT {{baseUrl}}/api/events/{{eventId}}
    */
   async updateEvent(eventId: string, eventData: Partial<Event>): Promise<{
     success: boolean;
@@ -261,13 +292,67 @@ class EventService {
     message?: string;
   }> {
     try {
-      const response = await api.put(`/events/${eventId}`, eventData);
+      if (!eventId) {
+        console.error('Event ID is missing in updateEvent call');
+        return {
+          success: false,
+          message: 'Etkinlik ID bilgisi eksik'
+        };
+      }
+
+      // Create a copy of the data we will send to the API
+      let dataToSend: Record<string, any> = { ...eventData };
+      
+      // If status is being updated, map it to what the backend expects
+      if (eventData.status) {
+        // Map frontend status to backend status
+        // Backend accepts: 'active' | 'canceled' | 'completed' | 'draft' | 'pending'
+        switch (eventData.status) {
+          case 'draft':
+            dataToSend.status = 'pending'; 
+            break;
+          case 'active':
+            dataToSend.status = 'active';
+            break;
+          case 'passive':
+            dataToSend.status = 'passive'; // Map to 'draft' instead of 'inactive'
+            break;
+          default:
+            // Keep original value if no mapping exists
+            break;
+        }
+      }
+      
+      console.log(`[EventService] updateEvent isteği başlıyor: ${eventId}`);
+      const apiEndpoint = `/events/${eventId}`;
+      console.log(`[EventService] Request URL: ${apiEndpoint}`);
+      console.log(`[EventService] Request payload:`, dataToSend);
+
+      const response = await api.put(apiEndpoint, dataToSend);
+      console.log(`[EventService] Update response received:`, response.data);
+      
       return {
         success: true,
         data: response.data,
         message: 'Etkinlik başarıyla güncellendi'
       };
-    } catch (error) {
+    } catch (error: unknown) {
+      console.error('[EventService] Update event error:', error);
+      // AxiosError detaylarını logle
+      const axiosError = error as AxiosError;
+      if (axiosError.response) {
+        // Sunucudan cevap geldi ancak 2xx status kodu değil
+        console.error('Response error data:', axiosError.response.data);
+        console.error('Response status:', axiosError.response.status);
+        console.error('Response headers:', axiosError.response.headers);
+      } else if (axiosError.request) {
+        // İstek yapıldı fakat cevap alınamadı
+        console.error('Request made but no response received:', axiosError.request);
+      } else {
+        // İstek oluşturulurken hata oluştu
+        console.error('Error in setting up the request:', axiosError.message);
+      }
+      
       return {
         success: false,
         message: handleApiError(error as AxiosError).message

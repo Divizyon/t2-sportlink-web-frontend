@@ -12,7 +12,6 @@ export interface Event {
   status: EventStatus;
   sportType: string;
   organizerId: string;
-  imageUrl?: string;
   createdAt: string;
   updatedAt: string;
 } 
