@@ -240,7 +240,50 @@ export function SportEventsChart({
 
     // Orijinal veriyi grupla
     if (newGroupingType === 'daily' || !dateRange.to) {
-      setGroupedData(chartData);
+      // Günlük gösterimde, tarih aralığındaki tüm günleri oluştur
+      if (dateRange.to) {
+        const allDays: any[] = [];
+        const startDate = new Date(dateRange.from);
+        const endDate = new Date(dateRange.to);
+
+        // Orijinal veriyi kolay erişim için map'e dönüştür
+        const dataMap = new Map();
+        chartData.forEach(item => {
+          dataMap.set(item.date, item);
+        });
+
+        // Tarih aralığındaki her gün için bir kayıt oluştur
+        let currentDate = startDate;
+        while (currentDate <= endDate) {
+          const dateKey = format(currentDate, "dd.MM.yyyy");
+          const dayData = dataMap.get(dateKey);
+
+          if (dayData) {
+            // Bu tarih için veri varsa kullan
+            allDays.push(dayData);
+          } else {
+            // Bu tarih için veri yoksa, sıfır değerlerle oluştur
+            const emptyDay: Record<string, any> = {
+              date: dateKey
+            };
+
+            // Tüm spor dalları için sıfır değeri ata
+            getSportTypes().forEach(sport => {
+              emptyDay[sport] = 0;
+            });
+
+            allDays.push(emptyDay);
+          }
+
+          // Bir sonraki güne geç
+          currentDate = new Date(currentDate);
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        setGroupedData(allDays);
+      } else {
+        setGroupedData(chartData);
+      }
       setGroupingType('daily');
       return;
     }
@@ -252,46 +295,44 @@ export function SportEventsChart({
     // Yeni gruplandırılmış veri yapısı
     const grouped: any[] = [];
 
+    // Orijinal veriyi tarih formatına dönüştür
+    const parsedChartData = chartData.map(item => {
+      const dateParts = item.date.split('.');
+      if (dateParts.length !== 3) return null;
+
+      const day = parseInt(dateParts[0]);
+      const month = parseInt(dateParts[1]) - 1;
+      const year = parseInt(dateParts[2]);
+      return {
+        ...item,
+        parsedDate: new Date(year, month, day)
+      };
+    }).filter(item => item !== null);
+
     // Gruplama türüne göre işlem yap
     if (newGroupingType === 'weekly') {
       // Haftaya göre gruplandır
       let weekStart = startOfWeek(startDate, { weekStartsOn: 1 });
 
-      while (isBefore(weekStart, endDate)) {
+      while (isBefore(weekStart, endDate) || weekStart.getTime() === endDate.getTime()) {
         const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
         const weekData: Record<string, any> = {
           date: `${format(weekStart, "dd.MM", { locale: tr })} - ${format(weekEnd, "dd.MM.yyyy", { locale: tr })}`,
         };
 
-        // Spor dalları için API'den gelen değerleri kullan
-        const sportsInThisWeek: Record<string, number> = {};
+        // Spor dalları için başlangıç değerlerini sıfırla
         getSportTypes().forEach(sport => {
-          sportsInThisWeek[sport] = 0;
+          weekData[sport] = 0;
         });
 
-        // Bu haftaya ait günleri bul ve değerleri topla
-        chartData.forEach(dayData => {
-          // Günün tarihini parse et
-          const dateParts = dayData.date.split('.');
-          if (dateParts.length !== 3) return;
-
-          const day = parseInt(dateParts[0]);
-          const month = parseInt(dateParts[1]) - 1;
-          const year = parseInt(dateParts[2]);
-          const dayDate = new Date(year, month, day);
-
-          // Bu gün bu haftaya ait mi kontrol et
-          if (dayDate >= weekStart && dayDate <= weekEnd) {
+        // Bu haftaya ait verileri topla
+        parsedChartData.forEach(dayData => {
+          if (dayData.parsedDate >= weekStart && dayData.parsedDate <= weekEnd) {
             // Spor verilerini topla
             getSportTypes().forEach(sport => {
-              sportsInThisWeek[sport] += (dayData[sport] || 0);
+              weekData[sport] += (dayData[sport] || 0);
             });
           }
-        });
-
-        // Haftadaki spor verilerini ekle
-        getSportTypes().forEach(sport => {
-          weekData[sport] = sportsInThisWeek[sport];
         });
 
         grouped.push(weekData);
@@ -301,41 +342,25 @@ export function SportEventsChart({
       // Aya göre gruplandır
       let monthStart = startOfMonth(startDate);
 
-      while (isBefore(monthStart, endDate)) {
+      while (isBefore(monthStart, endDate) || monthStart.getTime() === endDate.getTime()) {
         const monthEnd = endOfMonth(monthStart);
         const monthData: Record<string, any> = {
-          date: `${format(monthStart, "MMM", { locale: tr })}-${format(monthEnd, "MMM yyyy", { locale: tr })}`,
+          date: `${format(monthStart, "MMM", { locale: tr })}-${format(monthStart, "yyyy", { locale: tr })}`,
         };
 
-        // Spor dalları için API'den gelen değerleri kullan
-        const sportsInThisMonth: Record<string, number> = {};
+        // Spor dalları için başlangıç değerlerini sıfırla
         getSportTypes().forEach(sport => {
-          sportsInThisMonth[sport] = 0;
+          monthData[sport] = 0;
         });
 
-        // Bu aya ait günleri bul ve değerleri topla
-        chartData.forEach(dayData => {
-          // Günün tarihini parse et
-          const dateParts = dayData.date.split('.');
-          if (dateParts.length !== 3) return;
-
-          const day = parseInt(dateParts[0]);
-          const month = parseInt(dateParts[1]) - 1;
-          const year = parseInt(dateParts[2]);
-          const dayDate = new Date(year, month, day);
-
-          // Bu gün bu aya ait mi kontrol et
-          if (dayDate >= monthStart && dayDate <= monthEnd) {
+        // Bu aya ait verileri topla
+        parsedChartData.forEach(dayData => {
+          if (dayData.parsedDate >= monthStart && dayData.parsedDate <= monthEnd) {
             // Spor verilerini topla
             getSportTypes().forEach(sport => {
-              sportsInThisMonth[sport] += (dayData[sport] || 0);
+              monthData[sport] += (dayData[sport] || 0);
             });
           }
-        });
-
-        // Aydaki spor verilerini ekle
-        getSportTypes().forEach(sport => {
-          monthData[sport] = sportsInThisMonth[sport];
         });
 
         grouped.push(monthData);
@@ -344,11 +369,16 @@ export function SportEventsChart({
     } else if (newGroupingType === 'yearly') {
       // Yıla göre gruplandır
       const years = new Set<number>();
-      let yearStart = startDate;
 
-      while (isBefore(yearStart, endDate)) {
+      // Tarih aralığındaki tüm yılları belirle
+      let yearStart = new Date(startDate);
+      yearStart.setMonth(0, 1);
+      let yearEnd = new Date(endDate);
+      yearEnd.setMonth(11, 31);
+
+      while (yearStart <= yearEnd) {
         years.add(yearStart.getFullYear());
-        yearStart = addMonths(yearStart, 1);
+        yearStart.setFullYear(yearStart.getFullYear() + 1);
       }
 
       // Her yıl için bir veri girişi oluştur
@@ -357,35 +387,19 @@ export function SportEventsChart({
           date: `${year}`,
         };
 
-        // Spor dalları için API'den gelen değerleri kullan
-        const sportsInThisYear: Record<string, number> = {};
+        // Spor dalları için başlangıç değerlerini sıfırla
         getSportTypes().forEach(sport => {
-          sportsInThisYear[sport] = 0;
+          yearData[sport] = 0;
         });
 
-        // Bu yıla ait günleri bul ve değerleri topla
-        chartData.forEach(dayData => {
-          // Günün tarihini parse et
-          const dateParts = dayData.date.split('.');
-          if (dateParts.length !== 3) return;
-
-          const day = parseInt(dateParts[0]);
-          const month = parseInt(dateParts[1]) - 1;
-          const year = parseInt(dateParts[2]);
-          const dayDate = new Date(year, month, day);
-
-          // Bu gün bu yıla ait mi kontrol et
-          if (dayDate.getFullYear() === year) {
+        // Bu yıla ait verileri topla
+        parsedChartData.forEach(dayData => {
+          if (dayData.parsedDate.getFullYear() === year) {
             // Spor verilerini topla
             getSportTypes().forEach(sport => {
-              sportsInThisYear[sport] += (dayData[sport] || 0);
+              yearData[sport] += (dayData[sport] || 0);
             });
           }
-        });
-
-        // Yıldaki spor verilerini ekle
-        getSportTypes().forEach(sport => {
-          yearData[sport] = sportsInThisYear[sport];
         });
 
         grouped.push(yearData);
