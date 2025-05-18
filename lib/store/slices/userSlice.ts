@@ -57,6 +57,8 @@ export interface UserProfileState {
     message: string | undefined;
   }>;
   selectUser: (user: UserType | null) => void;
+  setUsers: (users: UserType[]) => void;
+  setUserAndUsers: (updatedUser: UserType) => void;
 }
 
 const createUserProfileSlice: StateCreator<UserProfileState, [], [], UserProfileState> = (set, get) => {
@@ -280,8 +282,16 @@ const createUserProfileSlice: StateCreator<UserProfileState, [], [], UserProfile
         const response = await userService.createUser(userData);
 
         if (response.success && response.data) {
-          // Kullanıcı listesini güncelle
-          await get().getUsers();
+          // Mevcut state'i al
+          const currentState = get();
+          
+          // Kullanıcı listesini güncelle - mevcut filtreleri ve sayfa bilgilerini koru
+          await get().getUsers({
+            page: currentState.currentPage,
+            limit: currentState.pageSize,
+            // Diğer parametreler buraya eklenebilir
+          });
+          
           return { success: true, message: response.message };
         }
 
@@ -364,6 +374,7 @@ const createUserProfileSlice: StateCreator<UserProfileState, [], [], UserProfile
             return {
               users: updatedUsers,
               selectedUser: updatedSelectedUser,
+              totalUsers: state.totalUsers > 0 ? state.totalUsers - 1 : 0, // Toplam kullanıcı sayısını güncelle
               isLoading: false
             };
           });
@@ -392,7 +403,21 @@ const createUserProfileSlice: StateCreator<UserProfileState, [], [], UserProfile
 
     selectUser: (user) => {
       set({ selectedUser: user });
-    }
+    },
+
+    setUsers: (users: UserType[]) => set({ users }),
+
+    setUserAndUsers: (updatedUser: UserType) => set((state) => {
+      const updatedUsers = state.users.map(user =>
+        user.id === updatedUser.id ? { ...user, ...updatedUser } : user
+      );
+      return {
+        users: updatedUsers,
+        selectedUser: state.selectedUser?.id === updatedUser.id
+          ? { ...state.selectedUser, ...updatedUser }
+          : state.selectedUser,
+      };
+    }),
   };
 };
 

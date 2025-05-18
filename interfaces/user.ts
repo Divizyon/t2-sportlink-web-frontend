@@ -39,6 +39,7 @@ export interface UserType {
   profile_picture?: string;
   default_location_latitude?: number;
   default_location_longitude?: number;
+  location_name?: string;
   is_active: boolean;
   created_at: string;
   updated_at?: string;

@@ -16,6 +16,7 @@ const profileSchema = yup.object().shape({
     .matches(/^[a-zA-Z0-9_]+$/, 'Kullanıcı adı sadece harf, rakam ve alt çizgi içerebilir'),
   email: yup.string().email('Geçerli bir e-posta adresi giriniz').required('E-posta alanı zorunludur'),
   phone: yup.string().matches(/^[0-9]+$/, 'Geçerli bir telefon numarası giriniz'),
+  location_name: yup.string(),
   role: yup.string().required('Rol seçimi zorunludur'),
   password: yup.string()
     .test('password-validation', 'Şifre en az 6 karakter olmalıdır', function (value) {
@@ -50,6 +51,7 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
       username: initialData?.username || '',
       email: initialData?.email || '',
       phone: initialData?.phone || '',
+      location_name: initialData?.location_name || '',
       role: initialData?.role || '',
       password: '',
       confirmPassword: '',
@@ -141,6 +143,23 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
               <FormControl>
                 <Input placeholder="5XX XXX XX XX" {...field} className="dark:border-slate-700" />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="location_name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="dark:text-gray-200">Konum</FormLabel>
+              <FormControl>
+                <Input placeholder="Örn: İstanbul, Kadıköy" {...field} className="dark:border-slate-700" />
+              </FormControl>
+              <FormDescription className="dark:text-gray-400">
+                Bulunduğunuz şehir veya bölgeyi yazabilirsiniz.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

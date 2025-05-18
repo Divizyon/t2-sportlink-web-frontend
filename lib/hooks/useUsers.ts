@@ -24,6 +24,8 @@ const useUsers = () => {
     updateUser: store.updateUser,
     deleteUser: store.deleteUser,
     selectUser: store.selectUser,
+    setUsers: store.setUsers,
+    setUserAndUsers: store.setUserAndUsers,
   };
 };
 

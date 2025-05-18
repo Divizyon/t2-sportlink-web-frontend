@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogClose,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import type { UserType } from "@/interfaces/user";
 import { useStore } from "@/lib/store";
@@ -53,6 +54,10 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
   const [createdEventsOpen, setCreatedEventsOpen] = useState<boolean>(false);
   const [participatedEventsOpen, setParticipatedEventsOpen] = useState<boolean>(false);
   const [reportsOpen, setReportsOpen] = useState<boolean>(false);
+  
+  // Rol değiştirme diyaloğu için state
+  const [roleConfirmOpen, setRoleConfirmOpen] = useState<boolean>(false);
+  const [newRole, setNewRole] = useState<string>("");
   
   // Etkinlik listeleri state
   const [createdEvents, setCreatedEvents] = useState<EventInfo[]>([]);
@@ -154,6 +159,37 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
     return (first + last).toUpperCase();
   };
 
+  // Rol değiştirme işlemini başlat
+  const handleRoleChange = (value: string) => {
+    if (user && value !== user.role) {
+      setNewRole(value);
+      setRoleConfirmOpen(true);
+    }
+  };
+
+  // Rol değiştirme işlemini tamamla
+  const confirmRoleChange = async () => {
+    if (user && user.id) {
+      const result = await userService.changeUserRole(user.id, newRole);
+      if (result.success) {
+        onUpdateUser({ ...user, role: newRole } as UserType);
+      } else {
+        alert(result.message || "Rol değiştirilemedi!");
+      }
+    }
+    setRoleConfirmOpen(false);
+  };
+
+  // Rol görüntüleme
+  const getRoleName = (role: string): string => {
+    switch (role) {
+      case "superadmin": return "Süper Admin";
+      case "admin": return "Admin";
+      case "user": return "Kullanıcı";
+      default: return role;
+    }
+  };
+
   if (!user) {
     return (
       <Card className="w-full max-w-md mx-auto h-full">
@@ -227,29 +263,31 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
               </div>
 
               {/* Registration Date */}
-              {user?.created_at && (
-                <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 flex items-center justify-center text-purple-500 dark:text-purple-400">
-                    <Calendar className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs">Kayıt</p>
-                    <p className="font-medium text-sm dark:text-gray-200">{formatShortDate(user.created_at)}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Location if available */}
               <div className="flex items-center gap-3">
-                <div className="w-6 h-6 flex items-center justify-center text-red-500">
+                <div className="w-6 h-6 flex items-center justify-center text-purple-500 dark:text-purple-400">
+                  <Calendar className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-gray-500 dark:text-gray-400 text-xs">Kayıt Tarihi</p>
+                  <p className="font-medium text-sm dark:text-gray-200">
+                    {user?.created_at ? formatShortDate(user.created_at) : 'Belirtilmemiş'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Location */}
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 flex items-center justify-center text-red-500 dark:text-red-400">
                   <MapPin className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="text-gray-500 text-xs">Konum</p>
-                  <p className="font-medium text-sm">
-                    {user?.default_location_latitude && user?.default_location_longitude
-                      ? `${user.default_location_latitude.toFixed(6)}, ${user.default_location_longitude.toFixed(6)}`
-                      : 'Konum Bilgisi Belirtilmemiş'
+                  <p className="text-gray-500 dark:text-gray-400 text-xs">Konum</p>
+                  <p className="font-medium text-sm dark:text-gray-200">
+                    {user?.location_name 
+                      ? user.location_name 
+                      : user?.default_location_latitude && user?.default_location_longitude
+                        ? `${user.default_location_latitude.toFixed(6)}, ${user.default_location_longitude.toFixed(6)}`
+                        : 'Konum Bilgisi Belirtilmemiş'
                     }
                   </p>
                 </div>
@@ -266,16 +304,7 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
                     <div className="flex items-center gap-2">
                       <Select 
                         value={user.role} 
-                        onValueChange={async (value) => {
-                          if (value !== user.role) {
-                            const result = await userService.changeUserRole(user.id, value);
-                            if (result.success) {
-                              onUpdateUser({ ...user, role: value });
-                            } else {
-                              alert(result.message || "Rol değiştirilemedi!");
-                            }
-                          }
-                        }}
+                        onValueChange={handleRoleChange}
                       >
                         <SelectTrigger className="h-7 text-xs min-w-[120px]">
                           <SelectValue placeholder="Rol seçin" />
@@ -504,6 +533,22 @@ export default function UserDetails({ user, onUpdateUser }: UserDetailsProps) {
               <Button variant="outline">Kapat</Button>
             </DialogClose>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rol değiştirme onay diyaloğu */}
+      <Dialog open={roleConfirmOpen} onOpenChange={setRoleConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rol Değiştirme</DialogTitle>
+            <DialogDescription>
+              <strong>{user?.first_name} {user?.last_name}</strong> isimli kullanıcının rolünü <strong>{getRoleName(newRole)}</strong> olarak değiştirmek istiyor musunuz?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 gap-2">
+            <Button variant="outline" onClick={() => setRoleConfirmOpen(false)}>İptal</Button>
+            <Button onClick={confirmRoleChange}>Onayla</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

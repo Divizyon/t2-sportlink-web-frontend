@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 export default function UsersPage() {
   const {
     users,
+    setUsers,
+    setUserAndUsers,
     selectedUser,
     error,
     getUsers,
@@ -25,6 +27,7 @@ export default function UsersPage() {
 
   // Local state for filtering and column visibility
   const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string | undefined>(undefined);
 
   // Sabit column yapılandırması
   const selectedColumns = {
@@ -77,31 +80,29 @@ export default function UsersPage() {
 
   // Handle user delete
   const handleDeleteUser = async (id: string) => {
-    if (window.confirm("Bu kullanıcıyı silmek istediğinize emin misiniz?")) {
-      const result = await deleteUser(id);
-      if (result.success) {
-        toast({
-          title: "Başarılı",
-          description: result.message || "Kullanıcı başarıyla silindi",
-        });
-      }
+    const result = await deleteUser(id);
+    if (result.success) {
+      // Toast mesajı göster
+      toast({
+        title: "Başarılı",
+        description: result.message || "Kullanıcı başarıyla silindi",
+      });
+      
+      // Silme işlemi başarılı olduğunda, kullanıcı listesini mevcut filtreleri koruyarak yeniden çek
+      getUsers({
+        page: currentPage,
+        searchQuery,
+        ...(roleFilter && { role: roleFilter })
+      });
     }
   };
 
   // Handle user update
   const handleUpdateUser = async (userData: Partial<UserType>) => {
-    if (!userData.id) {
-      console.error("Update için kullanıcı ID'si eksik");
-      return;
-    }
-
-    const result = await updateUser(userData.id, userData);
-    if (result.success) {
-      toast({
-        title: "Başarılı",
-        description: result.message || "Kullanıcı başarıyla güncellendi",
-      });
-    }
+    // Sadece local state güncellenecek, API çağrısı yapılmayacak
+    // Eğer başka alanlar güncellenecekse, burada ek API endpointi eklenmeli
+    // Şimdilik sadece rol değişikliği için local güncelleme yeterli
+    // toast veya başka bir bildirim de gösterilebilir
   };
 
   // Handle user creation
@@ -155,11 +156,18 @@ export default function UsersPage() {
 
     if (filters.role !== undefined) {
       queryParams.role = filters.role;
+      setRoleFilter(filters.role); // Update role filter state
+      console.log("Ayarlanan rol filtresi:", filters.role);
+    } else {
+      setRoleFilter(undefined); // Clear role filter state
     }
 
     if (filters.isActive !== undefined) {
       queryParams.isActive = filters.isActive;
     }
+
+    // Detaylı log
+    console.log("Filter değişikliği - Gönderilecek paramlar:", queryParams);
 
     getUsers(queryParams);
   };
@@ -167,17 +175,47 @@ export default function UsersPage() {
   // Handle filter reset
   const handleFilterReset = () => {
     setSearchQuery("");
+    setRoleFilter(undefined); // Clear role filter state
     getUsers({ page: 1 });
   };
 
   // Handle page change
   const handlePageChange = (page: number) => {
     // Mevcut filtreleri de koruyarak sayfa değiştir
-    getUsers({
+    console.log("Sayfa değiştiriliyor:", page);
+    
+    const currentFilters = {
       page,
       searchQuery,
-    });
+      // Kullan React state'i, DOM manipülasyonu yerine
+      ...(roleFilter && { role: roleFilter })
+    };
+    
+    // Detaylı log
+    console.log("Sayfa değişimi - Gönderilecek paramlar:", currentFilters);
+    
+    // Sayfa değişikliğinde filtre rol parametresi varsa gönder
+    getUsers(currentFilters);
   };
+
+  // Kullanıcı listesini ve seçili kullanıcıyı local olarak güncelle
+  const updateLocalUser = (updatedUser: UserType) => {
+    setUserAndUsers(updatedUser);
+  };
+
+  // Backend çağrılarını debug için
+  useEffect(() => {
+    console.log("Güncel filtre durumu:", {
+      page: currentPage,
+      roleFilter,
+      searchQuery
+    });
+  }, [currentPage, roleFilter, searchQuery]);
+
+  // Sayfa değiştiğinde veya filtre değiştiğinde hemen React'a bildirmek için referans
+  useEffect(() => {
+    console.log("Pagination state değişti:", { currentPage, pageSize, totalUsers });
+  }, [currentPage, pageSize, totalUsers]);
 
   return (
     <div className="flex flex-col h-full w-full gap-6 p-4">
@@ -220,7 +258,7 @@ export default function UsersPage() {
             user={selectedUser}
             onUpdateUser={(userData) => {
               if (userData.id) {
-                handleUpdateUser(userData);
+                updateLocalUser(userData);
               }
             }}
           />

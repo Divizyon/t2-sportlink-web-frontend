@@ -178,6 +178,7 @@ class UserService {
 
   /**
    * Tüm kullanıcıları listeler (admin için)
+   * Çoklu rol filtresi için OR mantığı uygular
    */
   async getAllUsers(params?: {
     page?: number;
@@ -187,12 +188,90 @@ class UserService {
     searchQuery?: string;
   }): Promise<UserListResponse> {
     try {
-      // Query parametrelerini oluştur
+      // Eğer çoklu rol filtresi varsa (OR mantığı için)
+      if (params?.role && params.role.includes(',')) {
+        const roles = params.role.split(',').filter(r => r.trim());
+        
+        // Her rol için ayrı bir istek yap
+        if (roles.length > 1) {
+          console.log("Çoklu rol filtresi uygulanıyor:", roles);
+          
+          const roleRequests = roles.map(role => {
+            // Her rol için aynı parametrelerle istek
+            const roleParams = { 
+              ...params, 
+              role: role.trim(),
+              // Sayfalama bilgilerini kaldır, tüm sonuçları al
+              page: undefined,
+              limit: 1000 // Makul bir üst limit
+            };
+            
+            // Her rol için ayrı istek
+            return this.getAllUsers(roleParams);
+          });
+          
+          // Tüm istekleri paralel yap
+          const responses = await Promise.all(roleRequests);
+          
+          // Başarılı yanıtları topla
+          const successfulResponses = responses.filter(resp => resp.success && resp.data?.users);
+          
+          if (successfulResponses.length === 0) {
+            // Hiçbir istek başarılı değilse, ilk hatayı döndür
+            const firstError = responses.find(resp => !resp.success);
+            return firstError || { success: false, message: 'Kullanıcılar listelenirken bir hata oluştu' };
+          }
+          
+          // Tüm kullanıcıları birleştir
+          let allUsers: any[] = [];
+          successfulResponses.forEach(resp => {
+            if (resp.data?.users) {
+              allUsers = [...allUsers, ...resp.data.users];
+            }
+          });
+          
+          // Kullanıcı ID'lerine göre tekrar eden kayıtları kaldır
+          const uniqueUsers = allUsers.filter((user, index, self) => 
+            index === self.findIndex(u => u.id === user.id)
+          );
+          
+          // Manuel sayfalama uygula
+          const page = params?.page || 1;
+          const limit = params?.limit || 10;
+          const startIdx = (page - 1) * limit;
+          const endIdx = startIdx + limit;
+          const paginatedUsers = uniqueUsers.slice(startIdx, endIdx);
+          
+          console.log("Çoklu rol filtresi sonuçları:", {
+            totalUniqueUsers: uniqueUsers.length,
+            currentPage: page,
+            usersInPage: paginatedUsers.length
+          });
+          
+          // Sonuçları döndür
+          return {
+            success: true,
+            data: {
+              users: paginatedUsers,
+              total: uniqueUsers.length,
+              page: page,
+              limit: limit
+            }
+          };
+        }
+      }
+      
+      // Tek rol filtresi veya diğer filtreler için normal API isteği
       const queryParams = new URLSearchParams();
 
       if (params?.page) queryParams.append('page', params.page.toString());
       if (params?.limit) queryParams.append('limit', params.limit.toString());
-      if (params?.role) queryParams.append('role', params.role);
+      
+      // Rol filtresi - Artık tek bir rol için
+      if (params?.role) {
+        queryParams.append('role', params.role);
+        console.log("API'ye gönderilen rol filtresi:", params.role);
+      }
 
       // Not: Backend'de isActive filtresi destekleniyorsa bu satırı aktif edin
       if (params?.isActive !== undefined) queryParams.append('isActive', params.isActive.toString());
@@ -200,13 +279,10 @@ class UserService {
       if (params?.searchQuery) queryParams.append('q', params.searchQuery);
 
       const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+      
+      console.log(`API istek yollanıyor: ${this.BASE_PATH}/admin/users${queryString}`);
+      
       const response = await api.get(`${this.BASE_PATH}/admin/users${queryString}`);
-
-      // Pagination bilgilerini konsola yazdır (debug için)
-      console.log('API Response:', {
-        users: response.data.data?.users?.length,
-        pagination: response.data.data?.pagination,
-      });
 
       // Telefon verilerini düzenle
       if (response.data.data && response.data.data.users) {
