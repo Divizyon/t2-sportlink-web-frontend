@@ -185,6 +185,43 @@ const EventPreview: React.FC<EventPreviewProps> = ({
     );
   };
 
+  const statusOptions = [
+    { value: "active", label: "Aktif" },
+    { value: "pending", label: "Beklemede" },
+    { value: "passive", label: "Pasif" },
+    { value: "canceled", label: "İptal Edildi" }
+  ];
+
+  const getStatusClass = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-amber-100 text-amber-800';
+      case 'passive':
+        return 'bg-gray-100 text-gray-800';
+      case 'canceled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'Aktif';
+      case 'pending':
+        return 'Beklemede';
+      case 'passive':
+        return 'Pasif';
+      case 'canceled':
+        return 'İptal Edildi';
+      default:
+        return status;
+    }
+  };
+
   return (
     <>
       <Card className="h-full">
@@ -415,11 +452,7 @@ const EventPreview: React.FC<EventPreviewProps> = ({
                         selectedEvent.status,
                         (value) => handleChange('status', value),
                         "Durum seçin",
-                        [
-                          { value: "draft", label: "Draft" },
-                          { value: "active", label: "Aktif" },
-                          { value: "passive", label: "Pasif" },
-                        ]
+                        statusOptions
                       )}
                     </div>
                   </div>

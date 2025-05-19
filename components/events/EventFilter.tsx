@@ -16,7 +16,7 @@ interface EventFilterProps {
 }
 
 export default function EventFilter({ onFilterChange, onReset }: EventFilterProps) {
-  const ALL_STATUSES = ["active", "draft", "passive"];
+  const ALL_STATUSES = ["active", "passive", "pending", "canceled"];
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [isTumuSelected, setIsTumuSelected] = useState(true); // Başlangıçta Tümü seçili
   const [open, setOpen] = useState(false);
@@ -29,7 +29,8 @@ export default function EventFilter({ onFilterChange, onReset }: EventFilterProp
     if (isTumuSelected) {
       onFilterChange({}); // Tümü seçiliyse filtre yok
     } else {
-      onFilterChange({ status: statuses.join(",") }); // Çoklu durum desteği için virgülle birleştir
+      // Durumları dizi olarak değil, doğrudan ayrı ayrı değerler olarak gönder
+      onFilterChange({ status: statuses.join(",") }); 
     }
   };
 
@@ -85,13 +86,17 @@ export default function EventFilter({ onFilterChange, onReset }: EventFilterProp
   const getStatusClass = (status: string) => {
     switch (status) {
       case 'active':
-        return "text-green-600";
-      case 'draft':
-        return "text-amber-600";
+        return 'bg-green-100 text-green-800';
       case 'passive':
-        return "text-gray-600";
+        return 'bg-gray-100 text-gray-800';
+      case 'pending':
+        return 'bg-amber-500 text-white';
+      case 'canceled':
+        return 'bg-red-100 text-red-800';
+      case 'completed':
+        return 'bg-blue-100 text-blue-800';
       default:
-        return "text-gray-400";
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -99,11 +104,15 @@ export default function EventFilter({ onFilterChange, onReset }: EventFilterProp
   const getStatusText = (status: string) => {
     switch (status) {
       case 'active':
-        return "Aktif";
-      case 'draft':
-        return "Beklemede";
+        return 'Aktif';
       case 'passive':
-        return "Pasif";
+        return 'Pasif';
+      case 'pending':
+        return 'Beklemede';
+      case 'canceled':
+        return 'İptal Edildi';
+      case 'completed':
+        return 'Tamamlandı';
       default:
         return status;
     }
@@ -155,11 +164,11 @@ export default function EventFilter({ onFilterChange, onReset }: EventFilterProp
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="status-draft"
-                  checked={isTumuSelected ? false : selectedStatuses.includes("draft")}
-                  onCheckedChange={() => handleStatusToggle("draft")}
+                  id="status-pending"
+                  checked={isTumuSelected ? false : selectedStatuses.includes("pending")}
+                  onCheckedChange={() => handleStatusToggle("pending")}
                 />
-                <Label htmlFor="status-draft" className="text-sm cursor-pointer flex items-center gap-2">
+                <Label htmlFor="status-pending" className="text-sm cursor-pointer flex items-center gap-2">
                   <CheckCircle2 className={`h-4 w-4 text-amber-600`} />
                   Beklemede
                 </Label>
@@ -173,6 +182,28 @@ export default function EventFilter({ onFilterChange, onReset }: EventFilterProp
                 <Label htmlFor="status-passive" className="text-sm cursor-pointer flex items-center gap-2">
                   <CheckCircle2 className={`h-4 w-4 text-gray-600`} />
                   Pasif
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="status-canceled"
+                  checked={isTumuSelected ? false : selectedStatuses.includes("canceled")}
+                  onCheckedChange={() => handleStatusToggle("canceled")}
+                />
+                <Label htmlFor="status-canceled" className="text-sm cursor-pointer flex items-center gap-2">
+                  <CheckCircle2 className={`h-4 w-4 text-red-600`} />
+                  İptal Edildi
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="status-completed"
+                  checked={isTumuSelected ? false : selectedStatuses.includes("completed")}
+                  onCheckedChange={() => handleStatusToggle("completed")}
+                />
+                <Label htmlFor="status-completed" className="text-sm cursor-pointer flex items-center gap-2">
+                  <CheckCircle2 className={`h-4 w-4 text-blue-600`} />
+                  Tamamlandı
                 </Label>
               </div>
             </div>

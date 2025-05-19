@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,16 @@ import {
 } from "@/components/ui/table";
 import type { Event } from "@/interfaces/event";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface EventListProps {
   events: Event[];
@@ -61,6 +71,25 @@ const EventList: React.FC<EventListProps> = ({
   pageSize = 10,
   onPageChange = () => {},
 }) => {
+  // State for delete confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
+
+  // Function to handle delete confirmation
+  const confirmDelete = (event: Event) => {
+    setEventToDelete(event);
+    setDeleteDialogOpen(true);
+  };
+
+  // Function to execute delete after confirmation
+  const executeDelete = () => {
+    if (eventToDelete) {
+      handleDeleteEvent(eventToDelete.id);
+    }
+    setDeleteDialogOpen(false);
+    setEventToDelete(null);
+  };
+
   // Toplam sayfa sayısını etkinlik sayısına göre hesapla
   const totalPages = Math.max(1, Math.ceil((totalEvents || events.length) / Math.max(1, pageSize)));
 
@@ -127,190 +156,213 @@ const EventList: React.FC<EventListProps> = ({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Etkinlik Listesi</CardTitle>
-        <div className="flex items-center justify-between gap-2 mt-2">
-          <div className="flex items-center gap-4">
-            <div className="relative flex w-[300px] overflow-hidden rounded-md ring-1 ring-input">
-              <Input
-                placeholder="Etkinlik ara..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Etkinlik Listesi</CardTitle>
+          <div className="flex items-center justify-between gap-2 mt-2">
+            <div className="flex items-center gap-4">
+              <div className="relative flex w-[300px] overflow-hidden rounded-md ring-1 ring-input">
+                <Input
+                  placeholder="Etkinlik ara..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+                <Button
+                  variant="outline"
+                  className="rounded-none h-9 px-3 border-0 bg-background hover:bg-muted"
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <EventFilter 
+                onFilterChange={(filters) => {
+                  if (filters.status) {
+                    const statusArray = filters.status.split(",");
+                    // Apply each status filter separately
+                    statusArray.forEach(status => {
+                      handleFilterChange('status', status);
+                    });
+                  } else {
+                    handleFilterChange('status', 'all');
+                  }
+                }}
+                onReset={() => {
+                  setSearchQuery("");
+                  handleFilterChange('status', 'all');
+                }}
               />
-              <Button
-                variant="outline"
-                className="rounded-none h-9 px-3 border-0 bg-background hover:bg-muted"
-              >
-                <Search className="h-4 w-4" />
-              </Button>
             </div>
 
-            <EventFilter 
-              onFilterChange={(filters) => {
-                if (filters.status) {
-                  const statusArray = filters.status.split(",");
-                  // Apply each status filter separately
-                  statusArray.forEach(status => {
-                    handleFilterChange('status', status);
-                  });
-                } else {
-                  handleFilterChange('status', 'all');
-                }
-              }}
-              onReset={() => {
-                setSearchQuery("");
-                handleFilterChange('status', 'all');
-              }}
-            />
+            <Button size="sm" className="gap-1" onClick={() => handleAddEvent()}>
+              <Plus className="h-4 w-4" /> Yeni Etkinlik Ekle
+            </Button>
           </div>
-
-          <Button size="sm" className="gap-1" onClick={() => handleAddEvent()}>
-            <Plus className="h-4 w-4" /> Yeni Etkinlik Ekle
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Başlık</TableHead>
-                <TableHead>Organizatör</TableHead>
-                <TableHead>Tarih</TableHead>
-                <TableHead>Kategori</TableHead>
-                <TableHead>Durum</TableHead>
-                <TableHead className="text-right">İşlemler</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4">
-                    Yükleniyor...
-                  </TableCell>
+                  <TableHead>Başlık</TableHead>
+                  <TableHead>Organizatör</TableHead>
+                  <TableHead>Tarih</TableHead>
+                  <TableHead>Kategori</TableHead>
+                  <TableHead>Durum</TableHead>
+                  <TableHead className="text-right">İşlemler</TableHead>
                 </TableRow>
-              ) : events.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4">
-                    {searchQuery || getTotalSelectedFilters() > 0 ? (
-                      <div className="flex flex-col items-center py-8">
-                        <h3 className="text-lg font-medium mb-2">Arama kriterlerine uygun etkinlik bulunamadı</h3>
-                        <p className="text-muted-foreground mb-4">Farklı filtreler kullanmayı veya arama terimini değiştirmeyi deneyin.</p>
-                        <Button variant="outline" onClick={() => {
-                          setSearchQuery("");
-                          handleFilterChange('status', 'all');
-                        }}>
-                          Filtreleri Temizle
-                        </Button>
-                      </div>
-                    ) : (
-                      "Henüz etkinlik bulunmamaktadır."
-                    )}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                events.map((event) => (
-                  <TableRow
-                    key={event.id}
-                    style={selectedEvent?.id === event.id ? { 
-                      backgroundColor: '#d1fae5 !important',
-                      borderLeft: '6px solid #059669'
-                    } : {}}
-                    data-selected={selectedEvent?.id === event.id ? "true" : "false"}
-                    className={`cursor-pointer ${selectedEvent?.id === event.id ? '!bg-green-100 dark:!bg-slate-700 hover:!bg-green-200 dark:hover:!bg-slate-600 dark:[&[data-selected=true]]:border-l-slate-500' : 'hover:bg-muted'}`}
-                    onClick={() => setSelectedEvent(event)}
-                  >
-                    <TableCell className="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900">{event.title}</TableCell>
-                    <TableCell className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
-                      {event.creator ? `${event.creator.first_name} ${event.creator.last_name}` : event.organizer || 'Belirtilmemiş'}
-                    </TableCell>
-                    <TableCell className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{formatDate(event.event_date)}</TableCell>
-                    <TableCell className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
-                      {event.sport ? event.sport.name : 'Belirtilmemiş'}
-                    </TableCell>
-                    <TableCell className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex flex-col space-y-1">
-                        {getStatusBadge(event.status)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4 px-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end">
-                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteEvent(event.id);
-                        }}>
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </div>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-4">
+                      Yükleniyor...
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        
-        {/* Pagination - only show if there are multiple pages */}
-        {totalPages > 1 && getPageNumbers().length > 0 && (
-          <div className="border-t py-3 px-4 mt-4 rounded-md border">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 text-sm text-muted-foreground">
-                Toplam <strong>{totalEvents || events.length}</strong> etkinlik, <strong>{pageSize}</strong> kayıt/sayfa
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => onPageChange(currentPage - 1)}
-                  disabled={currentPage <= 1}
-                  className="h-7 w-7"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  <span className="sr-only">Önceki Sayfa</span>
-                </Button>
-                
-                {getPageNumbers().map((page, index) => (
-                  page === 'ellipsis' ? (
-                    <Button
-                      key={`ellipsis-${index}`}
-                      variant="outline"
-                      size="icon"
-                      className="h-7 w-7 cursor-default"
-                      disabled
+                ) : events.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-4">
+                      {searchQuery || getTotalSelectedFilters() > 0 ? (
+                        <div className="flex flex-col items-center py-8">
+                          <h3 className="text-lg font-medium mb-2">Arama kriterlerine uygun etkinlik bulunamadı</h3>
+                          <p className="text-muted-foreground mb-4">Farklı filtreler kullanmayı veya arama terimini değiştirmeyi deneyin.</p>
+                          <Button variant="outline" onClick={() => {
+                            setSearchQuery("");
+                            handleFilterChange('status', 'all');
+                          }}>
+                            Filtreleri Temizle
+                          </Button>
+                        </div>
+                      ) : (
+                        "Henüz etkinlik bulunmamaktadır."
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  events.map((event, index) => (
+                    <TableRow
+                      key={`${event.id || ''}-${index}`}
+                      style={selectedEvent?.id === event.id ? { 
+                        backgroundColor: '#d1fae5 !important',
+                        borderLeft: '6px solid #059669'
+                      } : {}}
+                      data-selected={selectedEvent?.id === event.id ? "true" : "false"}
+                      className={`cursor-pointer ${selectedEvent?.id === event.id ? '!bg-green-100 dark:!bg-slate-700 hover:!bg-green-200 dark:hover:!bg-slate-600 dark:[&[data-selected=true]]:border-l-slate-500' : 'hover:bg-muted'}`}
+                      onClick={() => setSelectedEvent(event)}
                     >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      size="icon"
-                      onClick={() => onPageChange(page as number)}
-                      className="h-7 w-7"
-                    >
-                      {page}
-                    </Button>
-                  )
-                ))}
-                
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => onPageChange(currentPage + 1)}
-                  disabled={currentPage >= totalPages}
-                  className="h-7 w-7"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                  <span className="sr-only">Sonraki Sayfa</span>
-                </Button>
+                      <TableCell className="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900">{event.title}</TableCell>
+                      <TableCell className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
+                        {event.creator ? `${event.creator.first_name} ${event.creator.last_name}` : event.organizer || 'Belirtilmemiş'}
+                      </TableCell>
+                      <TableCell className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">{formatDate(event.event_date)}</TableCell>
+                      <TableCell className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
+                        {event.sport ? event.sport.name : 'Belirtilmemiş'}
+                      </TableCell>
+                      <TableCell className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
+                        <div className="flex flex-col space-y-1">
+                          {getStatusBadge(event.status)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 px-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex justify-end">
+                          <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={(e) => {
+                            e.stopPropagation();
+                            confirmDelete(event);
+                          }}>
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          
+          {/* Pagination - only show if there are multiple pages */}
+          {totalPages > 1 && getPageNumbers().length > 0 && (
+            <div className="border-t py-3 px-4 mt-4 rounded-md border">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 text-sm text-muted-foreground">
+                  Toplam <strong>{totalEvents || events.length}</strong> etkinlik, <strong>{pageSize}</strong> kayıt/sayfa
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => onPageChange(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                    className="h-7 w-7"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="sr-only">Önceki Sayfa</span>
+                  </Button>
+                  
+                  {getPageNumbers().map((page, index) => (
+                    page === 'ellipsis' ? (
+                      <Button
+                        key={`ellipsis-${index}-${currentPage}`}
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7 cursor-default"
+                        disabled
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <Button
+                        key={`page-button-${page}-${index}`}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="icon"
+                        onClick={() => onPageChange(page as number)}
+                        className="h-7 w-7"
+                      >
+                        {page}
+                      </Button>
+                    )
+                  ))}
+                  
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => onPageChange(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                    className="h-7 w-7"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                    <span className="sr-only">Sonraki Sayfa</span>
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Etkinliği Sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{eventToDelete?.title}" isimli etkinliği silmek istiyor musunuz? Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={executeDelete}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              Onayla
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

@@ -1,107 +1,111 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { Button } from './button';
 import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  maxVisiblePages?: number;
 }
 
 export const Pagination: React.FC<PaginationProps> = ({
   currentPage,
   totalPages,
   onPageChange,
+  maxVisiblePages = 5
 }) => {
-  const [isChanging, setIsChanging] = useState(false);
-  
-  // Reset isChanging flag when currentPage changes
-  useEffect(() => {
-    setIsChanging(false);
-  }, [currentPage]);
-
-  // Debounced page change handler to prevent rapid successive clicks
-  const handlePageChange = (page: number) => {
-    if (isChanging || page === currentPage) return;
-    
-    setIsChanging(true);
-    onPageChange(page);
-    
-    // Automatically reset after timeout as a failsafe
-    setTimeout(() => {
-      setIsChanging(false);
-    }, 500);
-  };
-  
-  // Sayfa numaralarını oluştur
+  // Create an array of page numbers to display
   const getPageNumbers = () => {
-    const pages: (number | string)[] = [];
+    const pages = [];
     
-    // Her zaman ilk sayfayı göster
-    pages.push(1);
-    
-    // Mevcut sayfanın etrafındaki sayfaları göster
-    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
-      if (i === 2 && currentPage > 3) {
-        pages.push('...');
+    if (totalPages <= maxVisiblePages) {
+      // If total pages is less than or equal to max visible, show all pages
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
       }
-      pages.push(i);
-      if (i === totalPages - 1 && currentPage < totalPages - 2) {
-        pages.push('...');
+    } else {
+      // Calculate start and end pages
+      let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+      let endPage = startPage + maxVisiblePages - 1;
+      
+      // Adjust if end page is greater than total pages
+      if (endPage > totalPages) {
+        endPage = totalPages;
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
       }
-    }
-    
-    // Her zaman son sayfayı göster
-    if (totalPages > 1) {
-      pages.push(totalPages);
+      
+      // Always show first page
+      if (startPage > 1) {
+        pages.push(1);
+        if (startPage > 2) {
+          pages.push('ellipsis');
+        }
+      }
+      
+      // Add pages in the middle
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+      
+      // Always show last page
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          pages.push('ellipsis');
+        }
+        pages.push(totalPages);
+      }
     }
     
     return pages;
   };
 
   return (
-    <div className="flex items-center justify-center gap-2">
+    <div className="flex items-center gap-1">
       <Button
         variant="outline"
         size="icon"
-        onClick={() => handlePageChange(currentPage - 1)}
-        disabled={currentPage === 1 || isChanging}
-        className={isChanging ? "opacity-50 cursor-not-allowed" : ""}
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage <= 1}
+        className="h-7 w-7"
       >
         <ChevronLeft className="h-4 w-4" />
+        <span className="sr-only">Önceki Sayfa</span>
       </Button>
-
+      
       {getPageNumbers().map((page, index) => (
-        <React.Fragment key={index}>
-          {page === '...' ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              disabled
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          ) : (
-            <Button
-              variant={currentPage === page ? 'default' : 'outline'}
-              onClick={() => handlePageChange(page as number)}
-              disabled={isChanging}
-              className={isChanging ? "opacity-50 cursor-not-allowed" : ""}
-            >
-              {page}
-            </Button>
-          )}
-        </React.Fragment>
+        page === 'ellipsis' ? (
+          <Button
+            key={`ellipsis-${index}`}
+            variant="outline"
+            size="icon"
+            className="h-7 w-7 cursor-default"
+            disabled
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button
+            key={`page-${page}`}
+            variant={currentPage === page ? "default" : "outline"}
+            size="icon"
+            onClick={() => onPageChange(page as number)}
+            className="h-7 w-7"
+          >
+            {page}
+          </Button>
+        )
       ))}
-
+      
       <Button
         variant="outline"
         size="icon"
-        onClick={() => handlePageChange(currentPage + 1)}
-        disabled={currentPage === totalPages || isChanging}
-        className={isChanging ? "opacity-50 cursor-not-allowed" : ""}
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage >= totalPages}
+        className="h-7 w-7"
       >
         <ChevronRight className="h-4 w-4" />
+        <span className="sr-only">Sonraki Sayfa</span>
       </Button>
     </div>
   );

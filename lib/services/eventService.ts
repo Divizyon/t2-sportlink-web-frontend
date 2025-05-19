@@ -1,6 +1,37 @@
 import api, { handleApiError } from './api';
 import type { AxiosError } from 'axios';
 
+// API response type
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  message?: string;
+}
+
+interface Sport {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone?: string;
+  profile_picture?: string;
+  role: string;
+}
+
+interface Participant {
+  user_id: string;
+  joined_at: string;
+  event_id?: string;
+  role?: string;
+}
+
 export interface Event {
   id: string;
   creator_id: string;
@@ -14,20 +45,22 @@ export interface Event {
   location_latitude: number;
   location_longitude: number;
   max_participants: number;
-  status: 'draft' | 'active' | 'passive';
+  status: 'active' | 'canceled' | 'completed' | 'passive' | 'pending';
   created_at: string;
   updated_at: string;
-  participants?: Array<{
-    user_id: string;
-    joined_at: string;
-    event_id?: string;
-    role?: string;
-  }>;
+  sport?: Sport;
+  creator?: User;
+  participants?: Participant[];
+  participantCount?: number;
+  category?: string;
+  price?: number;
+  organizer?: string;
+  requirements?: string[];
+  prizes?: string[];
   ratings?: Array<{
     user_id: string;
     rating: number;
-    review: string;
-    created_at: string;
+    comment?: string;
   }>;
   average_rating?: number;
 }
@@ -40,6 +73,8 @@ export interface EventFilterParams {
   keyword?: string;
   startDate?: string;
   endDate?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface PaginatedEventResponse {
@@ -125,6 +160,10 @@ class EventService {
       if (params?.keyword) queryParams.append('keyword', params.keyword);
       if (params?.startDate) queryParams.append('startDate', params.startDate);
       if (params?.endDate) queryParams.append('endDate', params.endDate);
+      
+      // Add sorting parameters if provided
+      if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
+      if (params?.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
       const apiUrl = `/events?${queryParams.toString()}`;
       
@@ -158,14 +197,19 @@ class EventService {
 
       // Standardize status values for UI consistency
       events = events.map(event => {
-        // Handle status values consistently - now just ensuring it's one of our 3 allowed values
+        // Handle status values consistently - convert backend status to frontend status
         const status = String(event.status).toLowerCase();
-        if (status === 'inactive' || status === 'draft') {
-          return {...event, status: 'draft' as Event['status']};
+        if (status === 'draft' || status === 'pending') {
+          return {...event, status: 'pending' as Event['status']};
         } else if (status === 'active') {
           return {...event, status: 'active' as Event['status']};
-        } else {
+        } else if (status === 'canceled') {
+          return {...event, status: 'canceled' as Event['status']};
+        } else if (status === 'passive') {
           return {...event, status: 'passive' as Event['status']};
+        } else {
+          // Default fallback
+          return {...event, status: 'pending' as Event['status']};
         }
       });
 
@@ -268,13 +312,28 @@ class EventService {
     message?: string;
   }> {
     try {
+      console.log('Oluşturulacak etkinlik verileri:', JSON.stringify(eventData, null, 2));
+      
+      // Status kontrolü - eğer status yoksa veya geçersizse 'active' olarak ayarla
+      if (!eventData.status || !['active', 'passive', 'pending', 'canceled'].includes(eventData.status)) {
+        console.log('Status geçersiz veya eksik, active olarak ayarlanıyor');
+        eventData.status = 'active';
+      }
+      
+      // Kesinlikle string olduğundan emin olalım
+      eventData.status = String(eventData.status).toLowerCase() as Event['status'];
+      console.log('Son status değeri:', eventData.status);
+      
       const response = await api.post('/events', eventData);
+      console.log('Oluşturulan etkinlik cevabı:', response.data);
+      
       return {
         success: true,
         data: response.data,
         message: 'Etkinlik başarıyla oluşturuldu'
       };
     } catch (error) {
+      console.error('Etkinlik oluşturma hatası:', error);
       return {
         success: false,
         message: handleApiError(error as AxiosError).message
@@ -303,30 +362,40 @@ class EventService {
       // Create a copy of the data we will send to the API
       let dataToSend: Record<string, any> = { ...eventData };
       
-      // If status is being updated, map it to what the backend expects
-      if (eventData.status) {
-        // Map frontend status to backend status
-        // Backend accepts: 'active' | 'canceled' | 'completed' | 'draft' | 'pending'
-        switch (eventData.status) {
-          case 'draft':
-            dataToSend.status = 'pending'; 
-            break;
-          case 'active':
-            dataToSend.status = 'active';
-            break;
-          case 'passive':
-            dataToSend.status = 'passive'; // Map to 'draft' instead of 'inactive'
-            break;
-          default:
-            // Keep original value if no mapping exists
-            break;
+              // If status is being updated, map it to what the backend expects
+        if (eventData.status) {
+          // Map frontend status to backend status
+          // Backend accepts: 'active' | 'canceled' | 'completed' | 'draft' | 'pending'
+          switch (eventData.status) {
+            case 'pending':
+              dataToSend.status = 'pending'; 
+              break;
+            case 'active':
+              dataToSend.status = 'active';
+              break;
+            case 'passive':
+              dataToSend.status = 'passive'; // Backend passive'i kabul ediyor
+              break;
+            case 'canceled':
+              dataToSend.status = 'canceled';
+              break;
+            default:
+              // Keep original value if no mapping exists
+              break;
+          }
         }
-      }
       
       console.log(`[EventService] updateEvent isteği başlıyor: ${eventId}`);
       const apiEndpoint = `/events/${eventId}`;
       console.log(`[EventService] Request URL: ${apiEndpoint}`);
-      console.log(`[EventService] Request payload:`, dataToSend);
+      console.log(`[EventService] Request payload:`, JSON.stringify(dataToSend, null, 2));
+      
+      // Clear all cache entries that might contain this event
+      Object.keys(this.requestCache).forEach(key => {
+        if (key.startsWith('listEvents:') || key.includes('/events/')) {
+          delete this.requestCache[key];
+        }
+      });
 
       const response = await api.put(apiEndpoint, dataToSend);
       console.log(`[EventService] Update response received:`, response.data);
@@ -566,18 +635,12 @@ class EventService {
   }
 
   /**
-   * Approve event
+   * Cancel event
    */
-  async approveEvent(eventId: string): Promise<{
-    success: boolean;
-    message?: string;
-  }> {
+  async cancelEvent(id: string): Promise<ApiResponse<Event>> {
     try {
-      await api.post(`/events/${eventId}/approve`);
-      return {
-        success: true,
-        message: 'Etkinlik başarıyla onaylandı'
-      };
+      const response = await api.put<ApiResponse<Event>>(`/events/${id}/cancel`);
+      return response.data;
     } catch (error) {
       return {
         success: false,
@@ -585,26 +648,40 @@ class EventService {
       };
     }
   }
+}
 
-  /**
-   * Reject event
-   */
-  async rejectEvent(eventId: string): Promise<{
-    success: boolean;
-    message?: string;
-  }> {
-    try {
-      await api.post(`/events/${eventId}/reject`);
-      return {
-        success: true,
-        message: 'Etkinlik başarıyla reddedildi'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: handleApiError(error as AxiosError).message
-      };
-    }
+// Helper function to safely type a status string to the Event status type
+export function getSafeStatus(status: string): 'active' | 'canceled' | 'completed' | 'passive' | 'pending' {
+  const safeStatus = status.toLowerCase();
+  if (safeStatus === 'active' || safeStatus === 'passive' || safeStatus === 'pending' || 
+      safeStatus === 'canceled' || safeStatus === 'completed') {
+    return safeStatus as 'active' | 'canceled' | 'completed' | 'passive' | 'pending';
+  }
+  
+  // Map 'draft' to 'pending'
+  if (safeStatus === 'draft') {
+    return 'pending';
+  }
+  
+  // Default fallback for unexpected values
+  return 'pending';
+}
+
+// Helper function to map frontend status to backend status
+function mapStatusToBackend(status: string): 'active' | 'canceled' | 'completed' | 'passive' | 'pending' {
+  switch (status.toLowerCase()) {
+    case 'active':
+      return 'active';
+    case 'passive':
+      return 'passive';
+    case 'pending':
+      return 'pending';
+    case 'canceled':
+      return 'canceled';
+    case 'completed':
+      return 'completed';
+    default:
+      return 'pending';
   }
 }
 

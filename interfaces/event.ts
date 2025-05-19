@@ -11,7 +11,7 @@ export interface Event {
   location_latitude: number;
   location_longitude: number;
   max_participants: number;
-  status: 'draft' | 'active' | 'passive';
+  status: 'active' | 'passive'| 'pending' | 'canceled';
   created_at: string;
   updated_at: string;
   sport?: Sport;
@@ -75,12 +75,18 @@ export interface PaginatedEventResponse {
 }
 
 // Helper function to safely type a status string to the Event status type
-export function getSafeStatus(status: string): 'draft' | 'active' | 'passive' {
+export function getSafeStatus(status: string): 'active' |  'passive' | 'pending' | 'canceled' {
   const safeStatus = status.toLowerCase();
-  if (safeStatus === 'draft' || safeStatus === 'active' || safeStatus === 'passive') {
-    return safeStatus as 'draft' | 'active' | 'passive';
+  if (safeStatus === 'active' || safeStatus === 'passive' || 
+      safeStatus === 'pending' || safeStatus === 'canceled') {
+    return safeStatus as 'active' | 'passive' | 'pending' | 'canceled';
+  }
+  
+  // Map 'draft' to 'pending' and use 'pending' as default
+  if (safeStatus === 'draft') {
+    return 'pending';
   }
   
   // Default fallback for unexpected values
-  return 'draft';
+  return 'pending';
 } 

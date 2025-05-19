@@ -29,6 +29,10 @@ export default function EventsPage() {
     pages: 0
   });
 
+  // Add state for pending events
+  const [pendingEvents, setPendingEvents] = useState<Event[]>([]);
+  const [loadingPendingEvents, setLoadingPendingEvents] = useState(false);
+
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [viewMode, setViewMode] = useState<"preview" | "edit">("preview");
@@ -70,15 +74,23 @@ export default function EventsPage() {
 
       const params: EventFilterParams = {
         page: pagination.page,
-        limit: pagination.limit
+        limit: pagination.limit,
+        sortBy: 'created_at',
+        sortOrder: 'desc' // En yeni etkinlikler önce
       };
 
       if (searchQuery) {
         params.keyword = searchQuery;
       }
 
-      // Tüm etkinlik durumlarını içerecek şekilde parametre ayarla
-      params.status = ['all'];
+      // Durum filtresini ayarla
+      if (selectedFilters.status.length > 0) {
+        // Seçili durumları API için hazırla
+        params.status = selectedFilters.status;
+      } else {
+        // Hiçbir durum seçili değilse tüm durumları göster
+        params.status = ['all'];
+      }
       
       if (selectedFilters.category.length > 0 && selectedFilters.category[0]) {
         params.sportId = selectedFilters.category[0];
@@ -139,6 +151,47 @@ export default function EventsPage() {
     }
   }, [events, selectedEvent]);
 
+  // Add a function to fetch all pending events
+  const fetchPendingEvents = useCallback(async () => {
+    try {
+      setLoadingPendingEvents(true);
+
+      const params: EventFilterParams = {
+        // Don't apply pagination limit for pending events
+        limit: 100, // Use a higher limit to get more events
+        status: ['pending'],
+        sortBy: 'created_at',
+        sortOrder: 'desc'
+      };
+
+      const response = await eventService.listEvents(params);
+      
+      if (response.success && response.data) {
+        const eventsData = response.data.data || [];
+        // Update pending events state
+        setPendingEvents(eventsData);
+      } else {
+        console.error("Failed to fetch pending events:", response.message);
+      }
+    } catch (error) {
+      console.error("Error fetching pending events:", error);
+    } finally {
+      setLoadingPendingEvents(false);
+    }
+  }, []);
+
+  // Fetch pending events when the component mounts or after events are updated
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && hasRequiredRole) {
+      fetchPendingEvents();
+    }
+  }, [authLoading, isAuthenticated, hasRequiredRole, fetchPendingEvents]);
+
+  // Refresh pending events when a new event is added
+  const refreshPendingEvents = () => {
+    fetchPendingEvents();
+  };
+
   const handleEditEvent = async () => {
     // Debug için bilgileri logla
     console.log('handleEditEvent çağrıldı');
@@ -159,8 +212,10 @@ export default function EventsPage() {
       // Ensure the status is one of the expected types
       const typedPayload = {
         ...selectedEvent,
-        status: selectedEvent.status as 'draft' | 'active' | 'passive'
+        status: getSafeStatus(selectedEvent.status || 'pending')
       };
+      
+      console.log('Normalized status for update:', typedPayload.status);
 
       // Update the UI immediately for a more responsive feel
       setEvents(prevEvents => prevEvents.map(event => 
@@ -256,6 +311,16 @@ export default function EventsPage() {
   };
 
   const handleFilterChange = (type: 'category' | 'status', value: string) => {
+    if (type === 'status' && value.includes(',')) {
+      // Bu, EventFilter'dan gelen çoklu durum değerleri
+      const statusValues = value.split(',');
+      setSelectedFilters(prev => ({
+        ...prev,
+        status: statusValues
+      }));
+      return;
+    }
+
     setSelectedFilters(prev => {
       const currentFilters = prev[type];
 
@@ -345,23 +410,34 @@ export default function EventsPage() {
 
   // Durum etiketleri için yardımcı fonksiyon
   const getStatusBadge = (status: string) => {
-    switch (status?.toLowerCase()) {
+    // Add null check and normalize status before comparing
+    if (!status) return <Badge variant="outline">Belirtilmemiş</Badge>;
+    
+    const normalizedStatus = status.toLowerCase();
+    
+    switch (normalizedStatus) {
       case 'active':
         return (
           <Badge variant="default" className="bg-green-500 text-white">
             Aktif
           </Badge>
         );
-      case 'draft':
+      case 'passive':
+        return (
+          <Badge variant="secondary" className="bg-gray-500 text-white">
+            Pasif
+          </Badge>
+        );
+      case 'pending':
         return (
           <Badge variant="secondary" className="bg-amber-500 text-white">
             Beklemede
           </Badge>
         );
-      case 'passive':
+      case 'canceled':
         return (
-          <Badge variant="secondary" className="bg-gray-500">
-            Pasif
+          <Badge variant="secondary" className="bg-red-500 text-white">
+            İptal Edildi
           </Badge>
         );
       default:
@@ -400,11 +476,39 @@ export default function EventsPage() {
     setIsEventModalOpen(true);
   };
 
-  // Yeni etkinlik eklendiğinde sadece listeye ekle
+  // Update handleEventAdded to also refresh pending events
   const handleEventAdded = (newEvent?: Event) => {
     if (newEvent) {
-      // Add to the beginning of the list for immediate visibility
-      setEvents(prevEvents => [newEvent, ...prevEvents]);
+      console.log('New event added:', newEvent);
+      
+      // Ensure the new event has all required fields with proper types
+      const completeEvent: Event = {
+        ...newEvent,
+        // Ensure sport data is available for display (if not already present)
+        sport: newEvent.sport || {
+          id: newEvent.sport_id,
+          name: '' // Will be filled after fetchEvents
+        },
+        // Ensure status is a valid type with proper case
+        status: getSafeStatus(newEvent.status || 'pending'),
+        // Ensure we have created_at date for sorting
+        created_at: newEvent.created_at || new Date().toISOString()
+      };
+      
+      console.log('Processed event with status:', completeEvent.status);
+      
+      // Immediately add the new event to the top of the list
+      setEvents(prevEvents => {
+        // Create a new array with the new event at the beginning
+        const updatedEvents = [completeEvent, ...prevEvents];
+        
+        // If we're at the limit, remove the last item to maintain the page size
+        if (updatedEvents.length > pagination.limit) {
+          updatedEvents.pop();
+        }
+        
+        return updatedEvents;
+      });
       
       // Update pagination count to reflect the addition
       setPagination(prev => ({
@@ -412,8 +516,16 @@ export default function EventsPage() {
         total: prev.total + 1
       }));
       
-      // Automatically select the new event for better UX
-      setSelectedEvent(newEvent);
+      // Automatically select the new event
+      setSelectedEvent(completeEvent);
+      
+      // Refresh the events list in the background to ensure complete data
+      fetchEvents();
+      
+      // Also refresh pending events if the new event is pending
+      if (completeEvent.status === 'pending') {
+        refreshPendingEvents();
+      }
       
       // Show success toast
       toast({
@@ -423,32 +535,46 @@ export default function EventsPage() {
     } else {
       // If no event data returned, refresh the list
       fetchEvents();
+      refreshPendingEvents();
     }
   };
 
-  // Event durumunu güncelleme işlevi
-  const handleUpdateStatus = async (id: string, newStatus: 'active' | 'passive' | 'draft') => {
+  // Update handleUpdateStatus to use updateEvent for all status changes
+  const handleUpdateStatus = async (id: string, newStatus: 'active' | 'passive' | 'pending' | 'canceled') => {
     try {
       // Güncellenecek etkinliği bul
-      const eventToUpdate = events.find(e => e.id === id);
+      const eventToUpdate = events.find(e => e.id === id) || pendingEvents.find(e => e.id === id);
       if (!eventToUpdate) return;
       
-      // Make sure we have a valid typed status
-      const safeStatus = getSafeStatus(newStatus);
+      // Normalize the status
+      const normalizedStatus = getSafeStatus(newStatus);
+      console.log(`Updating event ${id} status to: ${normalizedStatus}`);
       
       // UI'ı hemen güncelle
-      setEvents(prevEvents => prevEvents.map(event => 
-        event.id === id ? {...event, status: safeStatus} : event
-      ));
+      setEvents(prevEvents => 
+        prevEvents.map(event => 
+          event.id === id ? {...event, status: normalizedStatus} : event
+        )
+      );
 
       // Seçili etkinlik güncellenenle aynıysa, onu da güncelle
       if (selectedEvent && selectedEvent.id === id) {
-        setSelectedEvent({...selectedEvent, status: safeStatus});
+        setSelectedEvent({...selectedEvent, status: normalizedStatus});
       }
       
-      // API isteği yap
+      // Update the pending events list if the status is changed
+      if (normalizedStatus !== 'pending') {
+        setPendingEvents(prevPendingEvents => 
+          prevPendingEvents.filter(event => event.id !== id)
+        );
+      } else if (normalizedStatus === 'pending') {
+        // If changing to pending, make sure it's in the pending list
+        refreshPendingEvents();
+      }
+      
+      // Use updateEvent for all status changes
       const response = await eventService.updateEvent(id, {
-        status: safeStatus
+        status: normalizedStatus
       });
 
       if (!response.success) {
@@ -461,26 +587,13 @@ export default function EventsPage() {
         
         // Doğru durumu göstermek için etkinlikleri yenile
         fetchEvents();
+        refreshPendingEvents();
       } else {
-        // Başarı mesajı göster - status'a göre farklı mesajlar
-        if (newStatus === 'active') {
-          toast({
-            title: "Başarılı",
-            description: "Etkinlik onaylandı",
-          });
-        } else if (newStatus === 'passive') {
-          toast({
-            title: "Bilgi",
-            description: "Etkinlik reddedildi",
-          });
-        } else {
-          toast({
-            title: "Başarılı",
-            description: `Etkinlik durumu "${newStatus}" olarak güncellendi`,
-          });
-        }
+        // Etkinlik listesini yenile - bu sunucu durumunu almak için önemli
+        fetchEvents();
+        refreshPendingEvents();
       }
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("Etkinlik durumu güncelleme hatası:", error);
       toast({
         title: "Hata",
@@ -490,6 +603,7 @@ export default function EventsPage() {
       
       // Doğru durumu göstermek için etkinlikleri yenile
       fetchEvents();
+      refreshPendingEvents();
     }
   };
 
@@ -518,11 +632,12 @@ export default function EventsPage() {
         />
 
         <ApprovalCenter
-          events={events}
+          events={pendingEvents}
           setSelectedEvent={setSelectedEvent}
           formatDate={formatDate}
           itemsPerPage={5}
           handleUpdateStatus={handleUpdateStatus}
+          loading={loadingPendingEvents}
         />
       </div>
 

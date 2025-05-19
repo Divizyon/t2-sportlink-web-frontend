@@ -24,6 +24,7 @@ import { useToast } from '@/components/ui/use-toast';
 import eventService from '@/lib/services/eventService';
 import type { Event } from '@/interfaces/event';
 import type { Sport } from '@/interfaces/sport';
+import { getSafeStatus } from '@/interfaces/event';
 
 // Helper text for users to understand the coordinates
 const LOCATION_HELP_TEXT = "İpucu: Google Maps'te bir konuma sağ tıkladığınızda koordinatları kopyalayabilirsiniz.";
@@ -54,27 +55,33 @@ interface FormDataType {
   location_latitude: number;
   location_longitude: number;
   max_participants: number;
-  status: 'active' | 'canceled' | 'completed' | 'draft';
-  approval_status: 'pending' | 'approved' | 'rejected';
   sport_id: string;
-  creator_id: string;
+  status: 'active' | 'passive' | 'pending' | 'canceled';
+  category?: string;
+  price?: number;
+  organizer?: string;
+  requirements?: string[];
+  prizes?: string[];
 }
 
 // Default formData values
 const defaultEvent: FormDataType = {
   title: '',
   description: '',
-  event_date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+  event_date: new Date().toLocaleDateString('en-CA'), // Returns YYYY-MM-DD format
   start_time: '12:00', // Default start time
   end_time: '14:00', // Default end time
   location_name: '',
   location_latitude: 0,
   location_longitude: 0,
   max_participants: 10,
-  status: 'draft',
-  approval_status: 'pending',
+  status: 'active',
   sport_id: '',
-  creator_id: '',
+  category: '',
+  price: undefined,
+  organizer: '',
+  requirements: [],
+  prizes: [],
 }
 
 export function EventFormModal({
@@ -122,18 +129,18 @@ export function EventFormModal({
       // Eğer düzenleme modundaysa ve geçerli bir etkinlik varsa
       if (isEditing && event) {
         // Formun varsayılan değerlerini hazırlama
-        const data = {...defaultEvent};
+        const data: FormDataType = {...defaultEvent};
         
         try {
           // event_date
           if (event.event_date) {
             const eventDate = new Date(event.event_date);
             if (!isNaN(eventDate.getTime())) {
-              data.event_date = eventDate.toISOString().split('T')[0];
+              data.event_date = eventDate.toLocaleDateString('en-CA');
             }
           }
           // Type-safety için non-null assertion
-          data.event_date = data.event_date || new Date().toISOString().split('T')[0];
+          data.event_date = data.event_date || new Date().toLocaleDateString('en-CA');
 
           // start_time
           if (event.start_time) {
@@ -152,27 +159,49 @@ export function EventFormModal({
           }
 
           // Temel alanlar
-          data.title = event.title || '';
-          data.description = event.description || '';
-          data.location_name = event.location_name || '';
-          data.location_latitude = event.location_latitude || 0;
-          data.location_longitude = event.location_longitude || 0;
-          data.max_participants = event.max_participants || 10;
-          data.status = (event.status as 'active' | 'draft' | 'canceled' | 'completed') || 'draft';
-          data.approval_status = (event.approval_status as 'pending' | 'approved' | 'rejected') || 'pending';
+          data.title = event.title ?? '';
+          data.description = event.description ?? '';
+          data.location_name = event.location_name ?? '';
+          data.location_latitude = event.location_latitude ?? 0;
+          data.location_longitude = event.location_longitude ?? 0;
+          data.max_participants = event.max_participants ?? 10;
+          
+          // Use getSafeStatus to handle status mapping properly
+          const oldStatus = event.status || 'pending';
+          data.status = getSafeStatus(oldStatus);
           
           // sport_id
           if (event.sport_id) {
             data.sport_id = event.sport_id;
           } else if (event.sport && event.sport.id) {
             data.sport_id = event.sport.id;
+          } else {
+            data.sport_id = '';
           }
 
-          // creator_id
-          if (event.creator_id) {
-            data.creator_id = event.creator_id;
-          } else if (event.creator && event.creator.id) {
-            data.creator_id = event.creator.id;
+          // category
+          if (event.category) {
+            data.category = event.category;
+          }
+
+          // price
+          if (event.price) {
+            data.price = event.price;
+          }
+
+          // organizer
+          if (event.organizer) {
+            data.organizer = event.organizer;
+          }
+
+          // requirements
+          if (event.requirements) {
+            data.requirements = event.requirements;
+          }
+
+          // prizes
+          if (event.prizes) {
+            data.prizes = event.prizes;
           }
         } catch (error) {
           console.error('Date formatting error:', error);
@@ -271,10 +300,21 @@ export function EventFormModal({
       }
       
       // Validate status field
-      if (!formData.status || !['active', 'canceled', 'completed', 'draft'].includes(formData.status)) {
+      if (!formData.status || !['active', 'passive', 'pending', 'canceled'].includes(formData.status)) {
         toast({
           title: "Hata",
           description: "Geçerli bir durum (status) seçiniz",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Prevent creating events with 'canceled' status
+      if (!isEditing && formData.status === 'canceled') {
+        toast({
+          title: "Hata",
+          description: "Yeni etkinlik 'İptal Edildi' durumu ile oluşturulamaz",
           variant: "destructive",
         });
         setIsSubmitting(false);
@@ -302,15 +342,31 @@ export function EventFormModal({
         return;
       }
       
+      // Validate that end time is after start time
+      const startDateTime = new Date(`${formData.event_date}T${formData.start_time}`);
+      const endDateTime = new Date(`${formData.event_date}T${formData.end_time}`);
+      if (endDateTime <= startDateTime) {
+        toast({
+          title: "Hata",
+          description: "Bitiş saati başlangıç saatinden sonra olmalıdır",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
       // Format dates for proper API submission
       const formattedEvent = {
         ...formData,
         event_date: new Date(formData.event_date).toISOString(),
         start_time: new Date(`${formData.event_date}T${formData.start_time}`).toISOString(),
         end_time: new Date(`${formData.event_date}T${formData.end_time}`).toISOString(),
-        // Ensure status is a valid value
-        status: formData.status || 'draft',
+        // Ensure status is a valid value using getSafeStatus function
+        status: getSafeStatus(formData.status || 'active'),
       };
+      
+      console.log("Oluşturulacak/güncellenecek etkinlik:", JSON.stringify(formattedEvent, null, 2));
+      console.log("Status değeri:", formattedEvent.status);
       
       let response;
       
@@ -329,7 +385,7 @@ export function EventFormModal({
           title: isEditing ? "Etkinlik Güncellendi" : "Etkinlik Oluşturuldu",
           description: isEditing 
             ? "Etkinlik başarıyla güncellendi." 
-            : "Yeni etkinlik başarıyla oluşturuldu.",
+            : "Yeni etkinlik başarıyla oluşturuldu. Listeye eklenmesi birkaç saniye sürebilir.",
         });
         
         // Form başarıyla tamamlandı, modal'ı kapat
@@ -337,6 +393,7 @@ export function EventFormModal({
         
         // Etkinlik listesini güncelle (sadece başarılı olduğunda)
         if (onSuccess && response.data) {
+          // Pass the response data directly to ensure complete event data is available
           onSuccess(response.data);
         } else if (onSuccess) {
           // If no data, just call the callback without parameters
@@ -380,6 +437,7 @@ export function EventFormModal({
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-4">
+            <p className="text-sm text-gray-500">* işaretli alanlar zorunludur</p>
             <div className="grid grid-cols-1 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="title">Başlık*</Label>
@@ -518,17 +576,17 @@ export function EventFormModal({
                 <Label htmlFor="status">Durum*</Label>
                 <Select 
                   value={formData.status} 
-                  onValueChange={(value) => handleChange('status', value as 'active' | 'canceled' | 'completed' | 'draft')}
-                  defaultValue="draft"
+                  onValueChange={(value) => handleChange('status', value as 'active' | 'passive' | 'pending' | 'canceled')}
+                  defaultValue="pending"
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Durum seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="draft">Pasif</SelectItem>
                     <SelectItem value="active">Aktif</SelectItem>
-                    <SelectItem value="canceled">İptal Edildi</SelectItem>
-                    <SelectItem value="completed">Tamamlandı</SelectItem>
+                    <SelectItem value="passive">Pasif</SelectItem>
+                    <SelectItem value="pending">Beklemede</SelectItem>
+                    {isEditing && <SelectItem value="canceled">İptal Edildi</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
