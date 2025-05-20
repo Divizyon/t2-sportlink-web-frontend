@@ -10,13 +10,13 @@ import { Badge } from "@/components/ui/badge";
 
 interface EventFilterProps {
   onFilterChange: (filters: {
-    status?: string | undefined;
+    status?: string[] | undefined;
   }) => void;
   onReset: () => void;
 }
 
 export default function EventFilter({ onFilterChange, onReset }: EventFilterProps) {
-  const ALL_STATUSES = ["active", "passive", "pending", "canceled"];
+  const ALL_STATUSES = ["active", "passive", "pending", "canceled", "completed"];
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [isTumuSelected, setIsTumuSelected] = useState(true); // Başlangıçta Tümü seçili
   const [open, setOpen] = useState(false);
@@ -29,8 +29,8 @@ export default function EventFilter({ onFilterChange, onReset }: EventFilterProp
     if (isTumuSelected) {
       onFilterChange({}); // Tümü seçiliyse filtre yok
     } else {
-      // Durumları dizi olarak değil, doğrudan ayrı ayrı değerler olarak gönder
-      onFilterChange({ status: statuses.join(",") }); 
+      // Durumları dizi olarak gönder (OR mantığı)
+      onFilterChange({ status: statuses }); 
     }
   };
 

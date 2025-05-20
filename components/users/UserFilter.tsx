@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 
 interface UserFilterProps {
   onFilterChange: (filters: {
-    role?: string | undefined;
+    role?: string[] | undefined;
     searchQuery?: string | undefined;
     isActive?: boolean | undefined;
   }) => void;
@@ -38,7 +38,7 @@ export default function UserFilter({ onFilterChange, onReset }: UserFilterProps)
     if (isTumuSelected) {
       onFilterChange({}); // Tümü seçiliyse filtre yok
     } else {
-      onFilterChange({ role: roles.join(",") }); // Çoklu rol desteği için virgülle birleştir
+      onFilterChange({ role: roles }); // Rolleri dizi olarak gönder
     }
   };
 

@@ -38,7 +38,7 @@ interface EventListProps {
   setSelectedEvent: (event: Event) => void;
   handleDeleteEvent: (id: string) => void;
   setSearchQuery: (query: string) => void;
-  handleFilterChange: (type: 'category' | 'status', value: string) => void;
+  handleFilterChange: (type: 'category' | 'status', value: string, remove?: boolean) => void;
   getTotalSelectedFilters: () => number;
   handleAddEvent: () => void;
   formatDate: (dateString: string) => string;
@@ -179,14 +179,14 @@ const EventList: React.FC<EventListProps> = ({
 
               <EventFilter 
                 onFilterChange={(filters) => {
-                  if (filters.status) {
-                    const statusArray = filters.status.split(",");
-                    // Apply each status filter separately
-                    statusArray.forEach(status => {
+                  // Tüm filtreleri temizle önce
+                  handleFilterChange('status', 'all');
+                  
+                  // Eğer filtre seçilmişse ekle
+                  if (filters.status && filters.status.length > 0) {
+                    filters.status.forEach(status => {
                       handleFilterChange('status', status);
                     });
-                  } else {
-                    handleFilterChange('status', 'all');
                   }
                 }}
                 onReset={() => {

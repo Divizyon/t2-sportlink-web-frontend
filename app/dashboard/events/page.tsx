@@ -310,17 +310,10 @@ export default function EventsPage() {
     }
   };
 
-  const handleFilterChange = (type: 'category' | 'status', value: string) => {
-    if (type === 'status' && value.includes(',')) {
-      // Bu, EventFilter'dan gelen çoklu durum değerleri
-      const statusValues = value.split(',');
-      setSelectedFilters(prev => ({
-        ...prev,
-        status: statusValues
-      }));
-      return;
-    }
-
+  const handleFilterChange = (type: 'category' | 'status', value: string, remove?: boolean) => {
+    // Sayfa değişikliklerinde filtrelerin korunabilmesi için, sayfa numarasını sıfırla
+    setPagination(prev => ({ ...prev, page: 1 }));
+    
     setSelectedFilters(prev => {
       const currentFilters = prev[type];
 
@@ -332,7 +325,15 @@ export default function EventsPage() {
         };
       }
 
-      // Eğer zaten seçiliyse, kaldır
+      // remove parametresi true ise, değeri kaldır
+      if (remove) {
+        return {
+          ...prev,
+          [type]: currentFilters.filter(item => item !== value)
+        };
+      }
+
+      // Eğer zaten seçiliyse, kaldır (remove parametresi false veya undefined ise)
       if (currentFilters.includes(value)) {
         return {
           ...prev,
@@ -440,6 +441,12 @@ export default function EventsPage() {
             İptal Edildi
           </Badge>
         );
+      case 'completed':
+        return (
+          <Badge variant="secondary" className="bg-blue-500 text-white">
+            Tamamlandı
+          </Badge>
+        );
       default:
         return (
           <Badge variant="outline">
@@ -465,10 +472,11 @@ export default function EventsPage() {
       page
     }));
     
-    // 500ms sonra işareti kaldır - bu birden fazla hızlı tıklamaları engeller
+    // Sayfa değişikliği için 300ms sonra API isteği yap (debounce)
     setTimeout(() => {
+      fetchEvents();
       setIsPageChangePending(false);
-    }, 500);
+    }, 300);
   };
 
   // Modal açma fonksiyonu ekleyelim

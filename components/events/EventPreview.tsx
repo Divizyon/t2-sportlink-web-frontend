@@ -189,7 +189,8 @@ const EventPreview: React.FC<EventPreviewProps> = ({
     { value: "active", label: "Aktif" },
     { value: "pending", label: "Beklemede" },
     { value: "passive", label: "Pasif" },
-    { value: "canceled", label: "İptal Edildi" }
+    { value: "canceled", label: "İptal Edildi" },
+    { value: "completed", label: "Tamamlandı" }
   ];
 
   const getStatusClass = (status: string) => {
@@ -202,6 +203,8 @@ const EventPreview: React.FC<EventPreviewProps> = ({
         return 'bg-gray-100 text-gray-800';
       case 'canceled':
         return 'bg-red-100 text-red-800';
+      case 'completed':
+        return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -217,6 +220,8 @@ const EventPreview: React.FC<EventPreviewProps> = ({
         return 'Pasif';
       case 'canceled':
         return 'İptal Edildi';
+      case 'completed':
+        return 'Tamamlandı';
       default:
         return status;
     }

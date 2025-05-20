@@ -82,16 +82,16 @@ export default function UserList({
   const [userToDelete, setUserToDelete] = useState<UserType | null>(null);
 
   // Filtre değiştiğinde güncelle
-  const handleRoleFilterChange = (filters: { role?: string }) => {
-    if (filters.role) {
-      setRoleFilter(filters.role.split(","));
+  const handleRoleFilterChange = (filters: { role?: string[] }) => {
+    if (filters.role && filters.role.length > 0) {
+      setRoleFilter(filters.role);
     } else {
       setRoleFilter([]);
     }
     
     // Ana bileşene filtre değişikliğini bildir
     if (onFilterChange) {
-      onFilterChange({ role: filters.role });
+      onFilterChange({ role: filters.role ? filters.role.join(",") : undefined });
     }
   };
 

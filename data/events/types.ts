@@ -1,4 +1,4 @@
-export type EventStatus = "upcoming" | "ongoing" | "completed" | "cancelled";
+export type EventStatus = "active" | "passive" | "pending" | "canceled" | "completed";
 
 export interface Event {
   id: string;

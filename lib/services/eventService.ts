@@ -45,7 +45,7 @@ export interface Event {
   location_latitude: number;
   location_longitude: number;
   max_participants: number;
-  status: 'active' | 'canceled' | 'completed' | 'passive' | 'pending';
+  status: 'active' | 'passive' | 'pending' | 'canceled' | 'completed';
   created_at: string;
   updated_at: string;
   sport?: Sport;
@@ -146,12 +146,8 @@ class EventService {
       
       // Status parametresini API'ye gönderme
       if (params?.status && params.status.length > 0) {
-        // 'all' parametresi veya özel durumlar
-        if (params.status.includes('all')) {
-          queryParams.append('status', 'all');
-        } else {
-          params.status.forEach(s => queryParams.append('status', s));
-        }
+        // Backend'in beklediği formata uygun olarak tek bir status parametresi gönder
+        queryParams.append('status', params.status.join(','));
       } else {
         // Default olarak 'all' gönder
         queryParams.append('status', 'all');
@@ -207,6 +203,8 @@ class EventService {
           return {...event, status: 'canceled' as Event['status']};
         } else if (status === 'passive') {
           return {...event, status: 'passive' as Event['status']};
+        } else if (status === 'completed') {
+          return {...event, status: 'completed' as Event['status']};
         } else {
           // Default fallback
           return {...event, status: 'pending' as Event['status']};
@@ -651,11 +649,11 @@ class EventService {
 }
 
 // Helper function to safely type a status string to the Event status type
-export function getSafeStatus(status: string): 'active' | 'canceled' | 'completed' | 'passive' | 'pending' {
+export function getSafeStatus(status: string): 'active' | 'passive' | 'pending' | 'canceled' | 'completed' {
   const safeStatus = status.toLowerCase();
   if (safeStatus === 'active' || safeStatus === 'passive' || safeStatus === 'pending' || 
       safeStatus === 'canceled' || safeStatus === 'completed') {
-    return safeStatus as 'active' | 'canceled' | 'completed' | 'passive' | 'pending';
+    return safeStatus as 'active' | 'passive' | 'pending' | 'canceled' | 'completed';
   }
   
   // Map 'draft' to 'pending'
@@ -668,7 +666,7 @@ export function getSafeStatus(status: string): 'active' | 'canceled' | 'complete
 }
 
 // Helper function to map frontend status to backend status
-function mapStatusToBackend(status: string): 'active' | 'canceled' | 'completed' | 'passive' | 'pending' {
+function mapStatusToBackend(status: string): 'active' | 'passive' | 'pending' | 'canceled' | 'completed' {
   switch (status.toLowerCase()) {
     case 'active':
       return 'active';
