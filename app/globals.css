@@ -121,3 +121,218 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* react-day-picker stilleri */
+.rdp {
+  --rdp-cell-size: 40px;
+  --rdp-accent-color: hsl(var(--primary));
+  --rdp-background-color: hsl(var(--primary) / 0.2);
+  --rdp-accent-color-dark: hsl(var(--primary));
+  --rdp-background-color-dark: hsl(var(--primary) / 0.3);
+  --rdp-outline: 2px solid var(--rdp-accent-color);
+  --rdp-outline-selected: 2px solid hsl(var(--primary));
+  margin: 0;
+}
+
+.rdp-day_selected, 
+.rdp-day_selected:focus-visible, 
+.rdp-day_selected:hover {
+  background-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+.rdp-day_today {
+  background-color: hsl(var(--accent)) !important;
+  color: hsl(var(--accent-foreground)) !important;
+}
+
+.rdp-day {
+  border-radius: var(--radius);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.rdp-nav_button {
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+}
+
+/* Takvim düzeltme stilleri */
+.rdp-months {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.rdp-month {
+  display: inline-block;
+  margin: 0;
+}
+
+.rdp-table {
+  margin: 0;
+  max-width: 100%;
+  border-collapse: collapse;
+}
+
+.rdp-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.rdp-caption_dropdowns {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.rdp-dropdown_month,
+.rdp-dropdown_year {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  appearance: none;
+  padding: 0 0.5rem;
+  font-size: 0.875rem;
+  height: 2rem;
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  background-color: transparent;
+  color: hsl(var(--foreground));
+  cursor: pointer;
+}
+
+.rdp-dropdown_month:hover,
+.rdp-dropdown_year:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.rdp-dropdown_month:focus,
+.rdp-dropdown_year:focus {
+  outline: none;
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.3);
+}
+
+.rdp-head_cell {
+  font-weight: 600;
+  text-align: center;
+  padding: 0.5rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.rdp-cell {
+  width: var(--rdp-cell-size);
+  height: var(--rdp-cell-size);
+  padding: 0;
+  text-align: center;
+}
+
+/* Tema değişikliği için özel grafikler ve tablolar */
+/* Recharts için tema desteği */
+.recharts-wrapper .recharts-cartesian-grid-horizontal line,
+.recharts-wrapper .recharts-cartesian-grid-vertical line {
+  @apply stroke-border;
+}
+
+.recharts-wrapper .recharts-xAxis line,
+.recharts-wrapper .recharts-yAxis line {
+  @apply stroke-border;
+}
+
+.recharts-wrapper .recharts-xAxis text,
+.recharts-wrapper .recharts-yAxis text {
+  @apply fill-muted-foreground text-xs;
+}
+
+.recharts-tooltip-wrapper {
+  @apply bg-background border-border shadow-md rounded-md;
+}
+
+.recharts-default-tooltip {
+  @apply bg-background border-border text-foreground; 
+}
+
+.recharts-tooltip-label {
+  @apply text-foreground font-medium;
+}
+
+.recharts-tooltip-item-name,
+.recharts-tooltip-item-value {
+  @apply text-foreground;
+}
+
+.recharts-legend-item-text {
+  @apply text-foreground;
+}
+
+/* Çakışmaları önlemek için özellikle tooltip için özel CSS */
+.recharts-default-tooltip {
+  background-color: hsl(var(--background)) !important;
+  border-color: hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.recharts-tooltip-label,
+.recharts-tooltip-item-name,
+.recharts-tooltip-item-value {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Tablolar için tema desteği */
+table {
+  @apply bg-card text-card-foreground;
+}
+
+thead {
+  @apply bg-muted;
+}
+
+tbody tr:nth-child(even) {
+  @apply bg-muted/30;
+}
+
+tbody tr:hover {
+  @apply bg-accent/20;
+}
+
+.dark tbody tr:nth-child(even) {
+  @apply bg-muted/20;
+}
+
+.dark tbody tr:hover {
+  @apply bg-accent/10;
+}
+
+.dark thead {
+  @apply bg-muted/50;
+}
+
+/* Listeler için tema desteği */
+.list-item {
+  @apply border-border;
+}
+
+.dark .list-item {
+  @apply border-border/60;
+}
+
+/* Kartlar için tema desteği */
+.card-hover {
+  @apply transition-all duration-200;
+}
+
+.card-hover:hover {
+  @apply shadow-md;
+}
+
+.dark .card-hover:hover {
+  @apply shadow-lg shadow-primary/5 border-primary/20;
+}
